@@ -1,5 +1,13 @@
 # FORJA — frontend oficial
 
+INVESTIGAÇÃO ATUAL: o teste real ainda falha. Não concluir que source da semana
+comprova confirmação de cada período. Auditoria temporária scripts/temporary-*
+somente nesta branch, job manual read-only-firestore-audit na validação.
+Hosting Preview está suspenso por false && durante esta auditoria; produção não
+foi alterada. Remover job/scripts/chave pública e restaurar o gate original antes
+de qualquer merge futuro. Não enviar este script ao backend: redeploy inicia
+maintenance/sync. Nenhuma escrita em Firestore/Auth/Google autorizada.
+
 Revisão atual do PR #2: CSS real forja-v630-style e fonte de disponibilidade
 publicada corrigida no PR #2 separado do backend. Não usar mais o modo de Preview
 production-unchanged para esta versão: o drawer exige published-week-v1 e health
