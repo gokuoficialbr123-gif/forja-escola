@@ -86,7 +86,7 @@ export async function audit(raw){
 function seal(report){
   const key=randomBytes(32),iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,iv);
   const data=Buffer.concat([cipher.update(JSON.stringify(report)),cipher.final()]);
-  const publicKey=readFileSync(new URL('./temporary-audit-public.pem',import.meta.url));
+  const publicKey=readFileSync(new URL('./temporary-audit-public-key.txt',import.meta.url));
   return Buffer.from(JSON.stringify({algorithm:'RSA-OAEP-SHA256/AES-256-GCM',sealedKey:publicEncrypt({key:publicKey,oaepHash:'sha256',padding:constants.RSA_PKCS1_OAEP_PADDING},key).toString('base64'),iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),ciphertext:data.toString('base64')})).toString('base64');
 }
 export async function selfTest(){
