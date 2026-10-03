@@ -1,5 +1,52 @@
 # FORJA — Firebase Hosting pelo GitHub
 
+## Preview da correção 6.31 — sem publicação de produção
+
+Branch fix/secretaria-drawer-6.31.0, PR para main. Não fazer merge/push em main:
+FIREBASE_HOSTING_ENABLED já está true, portanto main publica o site live.
+Configuração Firebase e FORJA_API_URL oficial continuam intactas.
+
+Descrição deste PR: <!-- FORJA_PREVIEW_BACKEND=production-unchanged -->.
+Workflow valida o modo explicitamente, prepara fonte integral e publica apenas
+Preview Channel. Verifica marker/hash exatos, /health 6.30.1, CORS refletindo o
+Origin Firebase, preflight 204 e /me sem token 401. Não realiza login/criação de
+contas/aulas nem amplia permissões. Com backend modificado, continuar usando
+FORJA_PREVIEW_API_URL com serviço Render Preview e --preview; os modos são
+mutuamente exclusivos e falta de parâmetro não tem fallback automático.
+
+A referência de marker/hash do validador foi atualizada conscientemente para a
+release funcional 6.31 em revisão. A mesma proteção de integridade aplica-se ao
+artefato e ao HTML servido; produção exige bytes oficiais e a API oficial.
+
+Validação local/CI:
+
+```bash
+node scripts/validate.mjs
+node --test scripts/pipeline.test.mjs
+npm install --prefix /tmp/forja-browser-tests --cache /tmp/forja-npm-cache --no-save --package-lock=false playwright@1.56.1
+/tmp/forja-browser-tests/node_modules/.bin/playwright install --with-deps chromium
+FORJA_PLAYWRIGHT_MODULE=/tmp/forja-browser-tests/node_modules/playwright/index.mjs node --test scripts/secretaria-drawer.test.mjs
+node scripts/prepare-hosting.mjs
+```
+
+Se Chromium do sistema já estiver instalado, pode-se usar FORJA_CHROMIUM_PATH
+com seu caminho verificado. A execução local usou /usr/bin/chromium. Não adicionar
+arquivos npm/dependências ao artefato Hosting. CI instala navegador isoladamente.
+
+13 regressões em Chromium passaram: DOM/foco/scroll desktop/mobile, filtro de
+alunos/pacotes falhos, seleções compatíveis, respostas antigas/fora de ordem,
+loading localizado, horários livres, bloqueio/restauração do fundo, reabertura,
+modalidade, foco de teclado e contrato/confirmação com conflito. 17 testes do
+pipeline e 57 testes existentes do backend também passaram. Estes testes têm
+fixtures locais isoladas e não comprovam login real nem sincronização Google.
+
+Teste manual no Preview com administrador: abrir Secretaria → Marcar aula,
+seguir os seis passos em desktop/celular, trocar filtros após rolar, checar
+compatibilidade e fundo imóvel; fechar/reabrir e conferir restauração. Confirmar
+aula somente com dados/horário de teste autorizados, pois o Preview usa serviços
+reais. Conferir aula/Google, atualização automática e conflito concorrente.
+
+
 Preparação de 03/10/2026. Na etapa inicial não houve push, merge ou deploy.
 Na continuação o usuário autorizou commit/push em `setup/firebase-hosting-6.30`,
 PR para main e tentativa de Preview Channel. Merge, ativação e produção continuam

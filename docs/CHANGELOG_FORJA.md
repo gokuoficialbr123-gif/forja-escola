@@ -1,5 +1,22 @@
 # FORJA — frontend
 
+## 03/10/2026 — 6.31.0-secretaria-drawer-fluido (em revisão)
+
+- Secretaria → Marcar aula mantém drawer/campos montados e atualiza subseções.
+- Fluxo Professor → Matéria → Aluno → Data/Duração → Horários → Confirmar.
+- Preserva scroll, foco e valores compatíveis; loading só nos horários.
+- Invalida respostas antigas e bloqueia fundo/body/calendário; auto sync continua.
+- Filtra alunos pelas mesmas regras existentes de atividade, catálogo/série e
+  pacote do backend, sem fallback por catálogo; pacotes relidos ao abrir.
+- Confirmação e contrato /aulas preservados; locks e Calendar ficam no backend
+  6.30.1 intacto. Nenhuma alteração em aluno/professor/Google central.
+- 13 regressões em Chromium, 17 testes de pipeline e 57 regressões existentes
+  do backend passaram; sintaxe/hash/artefato e actionlint passaram.
+- Preview somente frontend seleciona explicitamente API oficial intacta; o
+  Render Preview anterior responde 404 e não é necessário novo backend.
+- Release/hash preparados para revisão. Sem merge ou publicação live.
+
+
 ## 03/10/2026 — deploy automático de produção habilitado
 
 FIREBASE_HOSTING_ENABLED=true foi habilitado pelo usuário no repositório

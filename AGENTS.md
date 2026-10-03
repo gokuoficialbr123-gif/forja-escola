@@ -4,19 +4,24 @@ Leia os três documentos em `docs/` antes de trabalhar. Este checkout é
 `gokuoficialbr123-gif/forja-escola`; o backend permanece em `forja-backend`.
 
 - Trabalhe no checkout existente; não crie worktrees sem solicitação.
-- A base é o `index.html` 6.30.0 idêntico à produção em 03/10/2026. Não recrie o
-  portal, use mocks nem altere o HTML nesta etapa de infraestrutura.
+- Base publicada: 6.30.0; release preparada neste PR:
+  `6.31.0-secretaria-drawer-fluido`. Correção autorizada exclusivamente em
+  Secretaria → Marcar aula, testes e infraestrutura necessária ao Preview.
+  Não reconstruir o portal nem alterar aluno, professor ou Google central.
 - Preserve Firebase Hosting/Auth/Firestore, backend Render e dados reais.
 - Perfis: admin, teacher, psychologist, student, parent. Nunca crie staff.
 - Agenda: azul Aula, verde Disponível, vermelho Ocupado. Eventos pessoais Google
   são privados. Preserve sync de cinco minutos e conexões individuais.
-- O próximo bug funcional é o drawer Secretaria → Marcar aula voltar ao topo.
-  Sua correção não foi autorizada nesta etapa. Não amplie o escopo ao aluno.
-- Não publique produção, faça merge ou push sem autorização. Produção está
-  bloqueada enquanto `FIREBASE_HOSTING_ENABLED` não for `true` nas variables.
-  PRs confiáveis do próprio repositório podem gerar Preview Channel; isso não
-  depende da variável de produção. Commit/push da branch de preparação e PR
-  foram autorizados nesta etapa; merge, ativação e produção continuam proibidos.
+- Branch de revisão: `fix/secretaria-drawer-6.31.0`. Commit/push, PR e Firebase
+  Preview autorizados. Não fazer merge nem push em main. A produção automática
+  já está habilitada; um push em main publicaria produção e não está autorizado.
+- Drawer: manter estrutura e campos montados; atualizar apenas dependências,
+  invalidar consultas antigas, preservar foco/scroll e seleções compatíveis.
+- Elegibilidade reproduz /profissionais/disponibilidade e POST /aulas:
+  role student, active === true, matéria existente e active !== false,
+  série compatível quando restrita, vínculo aluno_materias status !== inativo.
+  Pacotes não carregados/falhos nunca autorizam fallback pelo catálogo.
+- Preservar validação final, locks e sincronização existentes do backend.
 - Não crie service accounts, chaves ou secrets sem a autorização necessária;
   o usuário realizará a configuração inicial. Nunca copie valores para o Git.
 - Não dispare D-2/WhatsApp, altere Rules, banco ou autenticação para testar UI.
@@ -27,12 +32,22 @@ Leia os três documentos em `docs/` antes de trabalhar. Este checkout é
 - Auth/Firestore continuam conforme o HTML original; Render Preview não comprova
   isolamento de dados. Teste somente leituras/CORS, sem dados falsos em produção.
 - Execute `node scripts/validate.mjs` e `node --test scripts/pipeline.test.mjs`.
+  Execute também `node --test scripts/secretaria-drawer.test.mjs`, usando
+  Playwright 1.56.1 e Chromium. Para instalação isolada e comandos, ver DEPLOYMENT.
+  Os testes executam o código real do drawer com fixtures isoladas, sem rede
+  de produção; não confundir isso com uma sessão administrativa autenticada.
   Antes de deploy, gere `.firebase-public/` com `node scripts/prepare-hosting.mjs`.
 - A pasta publicada deve conter somente `index.html`. Documentação, scripts,
   configurações e credenciais nunca pertencem ao artefato Hosting.
 - A URL temporária deve corresponder a HTTPS forja-api-pr-N.onrender.com. Não
   hardcode a URL do PR atual no portal, scripts ou workflow. Um Preview sem esse
   parâmetro deve falhar, sem recorrer à API de produção.
+- PR somente frontend pode declarar exatamente o comentário
+  `<!-- FORJA_PREVIEW_BACKEND=production-unchanged -->` na descrição.
+  Nesse modo explícito, o artefato e a verificação usam a fonte integral e a
+  API oficial, sem substituição. Ausência/conflito de parâmetro deve falhar.
+  Um PR que altera backend continua exigindo seu Render Preview via comentário
+  FORJA_PREVIEW_API_URL. Nunca presumir isolamento de Auth/Firestore.
 - O workflow pós-Preview exige /health 6.30.1-cors-preview-forja-escola, CORS
   refletindo a origem Firebase, preflight 204 e /me sem token retornando 401.
 - A release inicial tem marker e SHA-256 fixados no validador. Em uma alteração

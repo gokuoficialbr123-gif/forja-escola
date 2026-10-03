@@ -10,8 +10,10 @@ export function assertVaryOrigin(headers) {
   assert.ok(fields.includes('origin'), 'Vary deve incluir Origin; proxies podem acrescentar Accept-Encoding.');
 }
 
-export async function verifyPreviewBackend(apiUrl, frontendUrl) {
-  validatePreviewApiUrl(apiUrl);
+export async function verifyPreviewBackend(apiUrl, frontendUrl, { mode = 'render-preview' } = {}) {
+  assert.ok(['render-preview', 'production-unchanged'].includes(mode), 'Modo de backend inválido.');
+  if (mode === 'production-unchanged') assert.equal(apiUrl, 'https://forja-api-m1kq.onrender.com', 'API oficial deve ser exata.');
+  else validatePreviewApiUrl(apiUrl);
   const origin = new URL(frontendUrl).origin;
   assert.match(origin, /^https:\/\/forja-escola--[a-z0-9-]+-[a-z0-9]{8}\.web\.app$/, 'Origem deve ser um Firebase Preview da FORJA.');
   const request = (path, options = {}) => fetch(apiUrl + path, {
@@ -47,7 +49,7 @@ export async function verifyPreviewBackend(apiUrl, frontendUrl) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    console.log(JSON.stringify(await verifyPreviewBackend(process.env.FORJA_PREVIEW_API_URL, process.env.FORJA_VERIFY_URL), null, 2));
+    console.log(JSON.stringify(await verifyPreviewBackend(process.env.FORJA_PREVIEW_API_URL, process.env.FORJA_VERIFY_URL, { mode: process.env.FORJA_PREVIEW_BACKEND_MODE || 'render-preview' }), null, 2));
   } catch (error) {
     // Surface a useful diagnostic through GitHub check annotations even when
     // the separate signed log-download host is inaccessible to the reviewer.

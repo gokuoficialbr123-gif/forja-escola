@@ -4449,6 +4449,26 @@ async function therapyConsentModal(studentId){try{const r=await api(`/terapia/co
 function reportRows(){const r=state.reportSummary||{};return [["Indicador","Valor"],["Alunos ativos",r.alunos||0],["Professores ativos",r.professores||0],["Aulas",r.aulas||0],["Aulas concluídas",r.aulasConcluidas||0],["Faltas",r.faltas||0],["Sessões e horários",r.sessoes||0],["Tarefas pendentes",r.tarefasPendentes||0],["Acompanhamentos abertos",r.acompanhamentosAbertos||0]]}
 function downloadBlob(content,type,name){const a=document.createElement("a"),u=URL.createObjectURL(new Blob([content],{type}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 function exportReport(kind){const rows=reportRows();if(kind==="csv"){downloadBlob('\ufeff'+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(';')).join('\n'),"text/csv;charset=utf-8","forja-relatorio.csv");return}if(kind==="xls"){const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Relatório"><Table>${rows.map(r=>`<Row>${r.map(v=>`<Cell><Data ss:Type="String">${esc(v)}</Data></Cell>`).join('')}</Row>`).join('')}</Table></Worksheet></Workbook>`;downloadBlob(xml,"application/vnd.ms-excel","forja-relatorio.xls");return}const w=window.open("","_blank");if(!w){toast("Permita pop-ups para gerar o PDF.","warn");return}w.document.write(`<html><head><title>Relatório ${esc(schoolDisplayName())}</title><style>body{font-family:Arial;padding:40px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:10px}h1{color:#081f2e}
+
+/* 6.31: scoped to the mounted Secretaria booking drawer. */
+#v630BookingRoot .v630-drawer{width:min(440px,100vw)}
+#v630BookingRoot .v630-drawer-head{padding:14px 16px 10px}
+#v630BookingRoot .v630-drawer-head h2{font-size:20px}
+#v630BookingRoot .v630-steps{grid-template-columns:repeat(6,minmax(0,1fr));padding:8px 12px;gap:3px}
+#v630BookingRoot .v630-step{padding:5px 3px}
+#v630BookingRoot .v630-step span{font-size:8px}
+#v630BookingRoot .v630-drawer-scroll{flex:1;display:block;padding:12px 16px;overscroll-behavior:none;overflow-anchor:none;scrollbar-gutter:stable;touch-action:pan-y}
+#v630BookingRoot .v630-card{border-radius:12px;padding:11px;margin-bottom:10px}
+#v630BookingRoot .v631-fields{display:grid;gap:10px}
+#v630BookingRoot .v630-field label{font-size:11px}
+#v630BookingRoot .v630-field select,#v630BookingRoot .v630-field input{font-size:13px}
+#v630BookingRoot .v630-actions button{font-size:12px}
+#v630BookingRoot .v630-actions{position:static;margin:0;padding:10px 16px;background:#fff;border-top:1px solid #e2e7e9;flex-shrink:0}
+#v630BookingRoot #v631Slots{min-height:130px}
+#v630BookingRoot .v630-slots{max-height:180px;overflow:auto;overscroll-behavior:none}
+#v630BookingRoot .v630-slot[aria-pressed=true]{background:#2f8a60;color:#fff}
+#v630BookingRoot [hidden]{display:none!important}
+@media(max-width:760px){#v630BookingRoot .v630-two{grid-template-columns:1fr 1fr}}
 </style></head><body><h1>Relatório ${esc(schoolDisplayName())}</h1><p>Gerado em ${new Date().toLocaleString('pt-BR')}</p><table>${rows.map((r,i)=>`<tr>${r.map(v=>i===0?`<th>${esc(v)}</th>`:`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</table></body></html>`);w.document.close();w.focus();setTimeout(()=>w.print(),250)}
 
 async function reloadAndRender(){const page=state.page;$("#workspaceContent").innerHTML=loading("Atualizando dados...");try{await loadRoleData();state.page=page;renderShell();renderPage()}catch(e){console.error(e);$("#workspaceContent").innerHTML=`${loadIssueBanner()}${empty("Não foi possível atualizar os dados",e.message||"Tente novamente.")}`;throw e}}
@@ -7044,32 +7064,33 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
 <script id="forja-v630-script">
 /* ===== FORJA 6.30 — SECRETARIA / MARCAR AULA PROFISSIONAL ===== */
 (function installForjaSecretaryBooking630(){
-  const VERSION='6.30.0-bloco-a-secretaria-marcar-aula';
+  const VERSION='6.31.0-secretaria-drawer-fluido';
   const BOOKING_DEFAULTS={open:false,teacherId:'',subjectId:'',studentId:'',date:'',duration:60,slotStart:'',slotEnd:'',mode:'presencial',place:'',meetLink:'',slots:[],loading:false,error:'',preferredStart:''};
   state.v630Booking=Object.assign({},BOOKING_DEFAULTS,state.v630Booking||{});
-  let slotRequestSeq=0;
+  let slotRequestSeq=0, linksRequestSeq=0, scrollLock=null, deferredAgendaRender=false, returnFocus=null;
 
-  function v630Teachers(){return (state.users||[]).filter(x=>x.role==='teacher'&&x.active!==false)}
+  function v630Teachers(){return (state.users||[]).filter(x=>x.role==='teacher'&&x.active===true)}
   function v630Teacher(id){return v630Teachers().find(x=>x.uid===id)||null}
   function v630SubjectsForTeacher(id){
-    const teacher=v630Teacher(id),ids=[...new Set((teacher?.disciplinaIds||[]).filter(Boolean))];
-    return ids.map(id=>({id,nome:subjectLabel(id)||id})).sort((a,b)=>String(a.nome).localeCompare(String(b.nome),'pt-BR'));
+    const teacher=v630Teacher(id),ids=Array.isArray(teacher?.disciplinaIds)?[...new Set(teacher.disciplinaIds.map(x=>String(x||'').trim()).filter(Boolean))]:[];
+    return ids.filter(id=>(state.subjects||[]).some(x=>x.id===id&&x.active!==false)).map(id=>({id,nome:subjectLabel(id)||id})).sort((a,b)=>String(a.nome).localeCompare(String(b.nome),'pt-BR'));
   }
   function v630Students(){
-    const source=(state.students&&state.students.length)?state.students:(state.users||[]).filter(x=>x.role==='student');
-    return source.filter(x=>x.active!==false).sort((a,b)=>String(a.fullName||'').localeCompare(String(b.fullName||''),'pt-BR'));
+    const source=(state.students&&state.students.length)?state.students:(state.users||[]);
+    return source.filter(x=>x.role==='student'&&x.active===true).sort((a,b)=>String(a.fullName||'').localeCompare(String(b.fullName||''),'pt-BR'));
   }
-  function v630LinksForStudent(studentId){
-    try{if(typeof secretaryStudentLinksD==='function')return secretaryStudentLinksD(studentId)||[]}catch(_e){}
-    return (state.secretarySubjectLinksD||[]).filter(x=>x.alunoId===studentId&&String(x.status||'ativo')!=='inativo');
-  }
+  // Same predicates as /profissionais/disponibilidade and POST /aulas:
+  // active student, active catalog subject, compatible series and a non-inactive package link.
   function v630StudentHasSubject(studentId,subjectId){
-    if(!studentId||!subjectId)return false;
-    const links=v630LinksForStudent(studentId);if(links.length)return links.some(x=>x.disciplinaId===subjectId);
-    try{if(typeof studentSubjects==='function')return (studentSubjects(studentId)||[]).some(x=>(x.id||x.disciplinaId)===subjectId)}catch(_e){}
-    return false;
+    if(!state.secretarySubjectLinksLoadedD||!studentId||!subjectId)return false;
+    const student=v630Students().find(x=>x.uid===studentId),subject=(state.subjects||[]).find(x=>x.id===subjectId);
+    if(!student||!subject||subject.active===false)return false;
+    const series=Array.isArray(subject.seriesIds)?[...new Set(subject.seriesIds.map(x=>String(x||'').trim()).filter(Boolean))]:[];
+    if(series.length&&!series.includes(String(student.serieId||'').trim()))return false;
+    return (state.secretarySubjectLinksD||[]).some(x=>x.alunoId===studentId&&x.disciplinaId===subjectId&&x.status!=='inativo');
   }
   function v630StudentsForSubject(subjectId){return subjectId?v630Students().filter(x=>v630StudentHasSubject(x.uid,subjectId)):[]}
+
   function v630SubjectName(id){return id?(subjectLabel(id)||id):'—'}
   function v630Student(id){return v630Students().find(x=>x.uid===id)||null}
   function v630Booking(){return state.v630Booking}
@@ -7078,36 +7099,73 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   function v630InitialDate(){try{return state.adminLessonAgendaDateG||todayKey()}catch(_e){return todayKey()}}
   function v630InitialTeacher(){
     const selected=(state.v629SecretarySelectedTeacherIds||[]).find(id=>!!v630Teacher(id));
-    return selected||state.v621AdminProfessionalId||v630Teachers()[0]?.uid||'';
+    return selected||(v630Teacher(state.v621AdminProfessionalId)?state.v621AdminProfessionalId:'')||v630Teachers()[0]?.uid||'';
+  }
+  function v630InvalidateSlots(){
+    ++slotRequestSeq;
+    Object.assign(v630Booking(),{slotStart:'',slotEnd:'',slots:[],error:'',loading:false});
   }
   function v630ResetAfter(key){
     const b=v630Booking();
-    if(key==='teacher'){b.subjectId='';b.studentId='';}
-    if(key==='subject'){b.studentId='';}
-    b.slotStart='';b.slotEnd='';b.slots=[];b.error='';b.preferredStart='';
+    if(key==='teacher'&&!v630SubjectsForTeacher(b.teacherId).some(x=>x.id===b.subjectId))b.subjectId='';
+    if((key==='teacher'||key==='subject')&&!v630StudentHasSubject(b.studentId,b.subjectId))b.studentId='';
+    b.preferredStart='';v630InvalidateSlots();
+  }
+  function v630LockBackground(){
+    if(scrollLock)return;
+    const body=document.body,keys=['position','top','left','width','overflow','paddingRight'];
+    scrollLock={x:window.scrollX,y:window.scrollY,styles:Object.fromEntries(keys.map(k=>[k,body.style[k]])),siblings:[]};
+    const gutter=window.innerWidth-document.documentElement.clientWidth;
+    if(gutter>0)body.style.paddingRight=`${parseFloat(getComputedStyle(body).paddingRight)+gutter}px`;
+    Object.assign(body.style,{position:'fixed',top:`-${scrollLock.y}px`,left:`-${scrollLock.x}px`,width:'100%',overflow:'hidden'});
+    for(const el of [...body.children])if(el!==v630Root()&&!['SCRIPT','STYLE'].includes(el.tagName)){scrollLock.siblings.push([el,el.inert]);el.inert=true}
+    body.classList.add('v630-drawer-open');
+  }
+  function v630UnlockBackground(){
+    if(!scrollLock)return;
+    const saved=scrollLock;scrollLock=null;
+    Object.assign(document.body.style,saved.styles);document.body.classList.remove('v630-drawer-open');
+    for(const [el,inert] of saved.siblings)el.inert=inert;
+    window.scrollTo({left:saved.x,top:saved.y,behavior:'instant'});
+  }
+  async function v630RefreshLinks(){
+    const seq=++linksRequestSeq;
+    state.secretarySubjectLinksLoadedD=false;
+    const previousStudent=v630Booking().studentId;v630Booking().studentId='';v630InvalidateSlots();v630Update(['students','slots']);
+    try{
+      const r=await api('/admin/aluno-materias');if(seq!==linksRequestSeq)return;
+      state.secretarySubjectLinksD=r.items||[];state.secretarySubjectLinksLoadedD=true;
+      v630Booking().linksError='';if(v630StudentHasSubject(previousStudent,v630Booking().subjectId))v630Booking().studentId=previousStudent;
+    }catch(e){if(seq!==linksRequestSeq)return;state.secretarySubjectLinksD=[];v630Booking().linksError=e.message||'Não foi possível validar os pacotes.'}
+    if(seq===linksRequestSeq){v630Update(['students','slots']);v630LoadSlots({preferredStart:v630Booking().preferredStart})}
   }
   function v630Open(prefill={}){
-    const b=v630Booking();
-    b.open=true;
-    if(!b.date)b.date=v630InitialDate();
-    if(!b.teacherId)b.teacherId=v630InitialTeacher();
-    if(prefill.teacherId&&v630Teacher(prefill.teacherId)){
-      if(b.teacherId!==prefill.teacherId){b.teacherId=prefill.teacherId;v630ResetAfter('teacher')}
-    }
-    if(prefill.date)b.date=prefill.date;
-    if(prefill.duration)b.duration=Number(prefill.duration)||60;
-    if(prefill.start){b.preferredStart=prefill.start;b.slotStart='';b.slotEnd=''}
-    document.body.classList.add('v630-drawer-open');
-    v630Mount();
-    v630Render();
-    if(b.teacherId&&b.subjectId&&b.studentId&&b.date)v630LoadSlots({preferredStart:b.preferredStart});
+    const b=v630Booking(),alreadyOpen=b.open;returnFocus=alreadyOpen?returnFocus:document.activeElement;b.open=true;
+    if(!b.date)b.date=v630InitialDate();if(!b.teacherId)b.teacherId=v630InitialTeacher();
+    if(prefill.teacherId&&v630Teacher(prefill.teacherId)&&b.teacherId!==prefill.teacherId){b.teacherId=prefill.teacherId;v630ResetAfter('teacher')}
+    if(prefill.date)b.date=prefill.date;if(prefill.duration)b.duration=Number(prefill.duration)||60;
+    if(prefill.start)b.preferredStart=prefill.start;
+    v630Mount();v630LockBackground();v630Update(['teacher','subjects','students','details','slots']);
+    if(!alreadyOpen){v630Root().querySelector('#v630Teacher').focus({preventScroll:true});v630RefreshLinks()}
+    else v630LoadSlots({preferredStart:b.preferredStart});
   }
   function v630Close(){
-    state.v630Booking.open=false;document.body.classList.remove('v630-drawer-open');
-    const root=document.getElementById('v630BookingRoot');if(root)root.classList.remove('open');
+    state.v630Booking.open=false;++linksRequestSeq;v630InvalidateSlots();
+    const root=v630Root();if(root){root.classList.remove('open');root.inert=true;root.setAttribute('aria-hidden','true')}
+    v630UnlockBackground();
+    if(deferredAgendaRender){
+      deferredAgendaRender=false;
+      const selectors=['.workspace-content','.v629-main','.v621-week-wrap'];
+      const positions=selectors.flatMap(selector=>[...document.querySelectorAll(selector)].map((el,index)=>({selector,index,top:el.scrollTop,left:el.scrollLeft})));
+      renderPage();
+      for(const pos of positions){const el=document.querySelectorAll(pos.selector)[pos.index];if(el){el.scrollTop=pos.top;el.scrollLeft=pos.left}}
+    }
+    if(returnFocus?.isConnected)returnFocus.focus({preventScroll:true});
   }
-  function v630StepState(){const b=v630Booking();return [!!b.teacherId,!!b.subjectId,!!b.studentId,!!b.slotStart]}
-  function v630Step(label,index,done,current){return `<div class="v630-step ${done?'done':''} ${current?'current':''}"><b>${index}</b><span>${esc(label)}</span></div>`}
+
+  function v630StepState(){const b=v630Booking();return [!!b.teacherId,!!b.subjectId,!!b.studentId,!!b.date&&!!b.studentId,!!b.slotStart,v630CanSave()]}
+  function v630Step(label,index,done,current){return `<div class="v630-step ${done?'done':''} ${current?'current':''}" data-v631-step="${index-1}"><b>${index}</b><span>${esc(label)}</span></div>`}
+
   function v630TeacherOptions(){
     const b=v630Booking(),teachers=v630Teachers();
     return `<option value="">Selecione o professor</option>${teachers.map(t=>`<option value="${esc(t.uid)}" ${b.teacherId===t.uid?'selected':''}>${esc(t.fullName||t.forjaId||'Professor')}</option>`).join('')}`;
@@ -7144,31 +7202,51 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     const b=v630Booking(),t=v630Teacher(b.teacherId),s=v630Student(b.studentId),time=b.slotStart&&b.slotEnd?`${b.slotStart}–${b.slotEnd}`:'—';
     return `<div class="v630-summary"><div class="v630-summary-row"><span>Professor</span><b>${esc(t?.fullName||'—')}</b></div><div class="v630-summary-row"><span>Matéria</span><b>${esc(v630SubjectName(b.subjectId))}</b></div><div class="v630-summary-row"><span>Aluno</span><b>${esc(s?.fullName||'—')}</b></div><div class="v630-summary-row"><span>Aula</span><b>${esc(`${v630DateLabel(b.date)} · ${time}`)}</b></div><div class="v630-summary-row"><span>Modalidade</span><b>${esc(b.mode==='online'?'Online':'Presencial')}</b></div></div>`;
   }
-  function v630CanSave(){const b=v630Booking();return !!(b.teacherId&&b.subjectId&&b.studentId&&b.date&&b.slotStart&&b.slotEnd&&(b.mode==='online'||String(b.place||'').trim()))}
+  function v630CanSave(){const b=v630Booking();return !!(!b.loading&&!b.saving&&v630SubjectsForTeacher(b.teacherId).some(x=>x.id===b.subjectId)&&v630StudentHasSubject(b.studentId,b.subjectId)&&b.date&&b.slots.some(x=>x.inicio===b.slotStart&&x.fim===b.slotEnd)&&(b.mode==='online'||String(b.place||'').trim()))}
   function v630DrawerHtml(){
-    const b=v630Booking(),steps=v630StepState(),firstIncomplete=steps.findIndex(x=>!x),current=firstIncomplete<0?3:firstIncomplete;
-    const t=v630Teacher(b.teacherId),subjects=v630SubjectsForTeacher(b.teacherId),students=v630StudentsForSubject(b.subjectId);
-    return `<div class="v630-drawer-head"><div><small>SECRETARIA · AULAS</small><h2>Marcar aula</h2><p>Escolha o professor e o FORJA mostra apenas horários que ainda podem receber a aula.</p></div><button type="button" class="v630-close" data-v630-close aria-label="Fechar">×</button></div>
-      <div class="v630-steps">${v630Step('Professor',1,steps[0],current===0)}${v630Step('Matéria',2,steps[1],current===1)}${v630Step('Aluno',3,steps[2],current===2)}${v630Step('Horário',4,steps[3],current===3)}</div>
-      <div class="v630-drawer-scroll">
-        <section class="v630-card"><div class="v630-card-title"><h3>1. Professor</h3><small>${v630Teachers().length} ativo(s)</small></div><div class="v630-field"><label>Professor</label><select id="v630Teacher">${v630TeacherOptions()}</select></div>${v630TeacherInfo()}</section>
-        <section class="v630-card"><div class="v630-card-title"><h3>2. Matéria</h3><small>${subjects.length} disponível(is)</small></div><div class="v630-field"><label>Matéria que o professor ministra</label><select id="v630Subject" ${!t?'disabled':''}>${v630SubjectOptions()}</select></div>${t&&!subjects.length?'<div class="v630-help">Esse professor ainda não possui matérias configuradas no cadastro.</div>':''}</section>
-        <section class="v630-card"><div class="v630-card-title"><h3>3. Aluno</h3><small>${students.length} compatível(is)</small></div><div class="v630-field"><label>Aluno com essa matéria liberada</label><select id="v630Student" ${!b.subjectId?'disabled':''}>${v630StudentOptions()}</select></div><div class="v630-help">A lista usa as matérias liberadas no pacote do aluno. O servidor valida novamente antes de criar a aula.</div></section>
-        <section class="v630-card"><div class="v630-card-title"><h3>4. Horários disponíveis</h3><small>Somente livres</small></div><div class="v630-two"><div class="v630-field"><label>Data</label><input id="v630Date" type="date" min="${todayKey()}" value="${esc(b.date||v630InitialDate())}"></div><div class="v630-field"><label>Duração</label><select id="v630Duration"><option value="30" ${Number(b.duration)===30?'selected':''}>30 min</option><option value="60" ${Number(b.duration)===60?'selected':''}>60 min</option><option value="90" ${Number(b.duration)===90?'selected':''}>90 min</option><option value="120" ${Number(b.duration)===120?'selected':''}>120 min</option></select></div></div><div class="v630-help">Ocupado no Google, aula FORJA, bloqueio, conflito do aluno e fora da disponibilidade não aparecem aqui.</div><div style="margin-top:10px">${v630SlotsMarkup()}</div></section>
-        <section class="v630-card"><div class="v630-card-title"><h3>Detalhes da aula</h3><small>Finalização</small></div><div class="v630-two"><div class="v630-field"><label>Modalidade</label><select id="v630Mode"><option value="presencial" ${b.mode==='presencial'?'selected':''}>Presencial</option><option value="online" ${b.mode==='online'?'selected':''}>Online</option></select></div>${b.mode==='presencial'?`<div class="v630-field"><label>Local</label><input id="v630Place" value="${esc(b.place||'')}" placeholder="Local da aula"></div>`:`<div class="v630-field"><label>Meet específico (opcional)</label><input id="v630Meet" value="${esc(b.meetLink||'')}" placeholder="https://meet.google.com/..."></div>`}</div>${b.mode==='online'?`<div class="v630-help">${esc(v630MeetHelp())}</div>`:''}</section>
-        <section class="v630-card"><div class="v630-card-title"><h3>Confirmar</h3><small>Checagem final no servidor</small></div>${v630Summary()}<div class="v630-google-note" style="margin-top:10px"><i>G</i><div><b>Google Calendar do professor</b><br>Ao confirmar, o servidor verifica o horário novamente e a aula é sincronizada com a conta Google conectada do professor.</div></div></section>
-        <div class="v630-actions"><button type="button" class="v630-cancel" data-v630-close>Cancelar</button><button type="button" class="v630-save" data-v630-save ${v630CanSave()?'':'disabled'}>Confirmar aula</button></div>
-      </div>`;
+    const b=v630Booking();
+    return `<div class="v630-drawer-head"><div><small>SECRETARIA · AULAS</small><h2 id="v631Title">Marcar aula</h2><p>Professor → Matéria → Aluno → Data/Duração → Horários → Confirmar</p></div><button type="button" class="v630-close" data-v630-close aria-label="Fechar">×</button></div>
+      <div class="v630-steps">${['Professor','Matéria','Aluno','Data/Duração','Horários','Confirmar'].map((x,i)=>v630Step(x,i+1,false,i===0)).join('')}</div>
+      <div class="v630-drawer-scroll" tabindex="-1">
+        <section class="v630-card v631-fields"><div class="v630-field"><label for="v630Teacher">1. Professor</label><select id="v630Teacher"></select></div><div class="v630-field"><label for="v630Subject">2. Matéria</label><select id="v630Subject"></select></div><div class="v630-field"><label for="v630Student">3. Aluno com matéria liberada</label><select id="v630Student"></select><div id="v631StudentHelp" class="v630-help"></div></div></section>
+        <section class="v630-card"><div class="v630-two"><div class="v630-field"><label for="v630Date">4. Data</label><input id="v630Date" type="date" min="${todayKey()}" value="${esc(b.date||v630InitialDate())}"></div><div class="v630-field"><label for="v630Duration">Duração</label><select id="v630Duration">${[30,60,90,120].map(n=>`<option value="${n}" ${Number(b.duration)===n?'selected':''}>${n} min</option>`).join('')}</select></div></div></section>
+        <section class="v630-card"><div class="v630-card-title"><h3>5. Horários disponíveis</h3><small>FORJA + Google</small></div><div id="v631Slots" aria-live="polite" aria-busy="false"></div><div class="v630-help">Somente horários livres. Conflitos são conferidos novamente ao confirmar.</div></section>
+        <section class="v630-card"><div class="v630-card-title"><h3>6. Confirmar</h3></div><div class="v630-two"><div class="v630-field"><label for="v630Mode">Modalidade</label><select id="v630Mode"><option value="presencial">Presencial</option><option value="online">Online</option></select></div><div class="v630-field" id="v631PlaceField"><label for="v630Place">Local</label><input id="v630Place" placeholder="Local da aula"></div><div class="v630-field" id="v631MeetField" hidden><label for="v630Meet">Meet (opcional)</label><input id="v630Meet" placeholder="https://meet.google.com/..."></div></div><div id="v631MeetHelp" class="v630-help"></div><div id="v631Summary"></div></section>
+      </div><div class="v630-actions"><button type="button" class="v630-cancel" data-v630-close>Cancelar</button><button type="button" class="v630-save" data-v630-save disabled>Confirmar aula</button></div>`;
   }
   function v630Root(){return document.getElementById('v630BookingRoot')}
-  function v630Render(){
-    const root=v630Root();if(!root)return;root.classList.toggle('open',v630Booking().open);const drawer=root.querySelector('.v630-drawer');if(drawer)drawer.innerHTML=v630DrawerHtml();v630BindDrawer();
+  function v630PatchHtml(el,html){if(el&&el.innerHTML!==html)el.innerHTML=html}
+  function v630Update(parts=[]){
+    const root=v630Root();if(!root)return;
+    const b=v630Booking(),scroll=root.querySelector('.v630-drawer-scroll'),top=scroll.scrollTop;
+    const field=id=>root.querySelector('#'+id);
+    if(parts.includes('teacher')){v630PatchHtml(field('v630Teacher'),v630TeacherOptions());field('v630Teacher').value=b.teacherId}
+    if(parts.includes('subjects')){v630PatchHtml(field('v630Subject'),v630SubjectOptions());field('v630Subject').value=b.subjectId;field('v630Subject').disabled=!b.teacherId}
+    if(parts.includes('students')){
+      v630PatchHtml(field('v630Student'),v630StudentOptions());field('v630Student').value=b.studentId;
+      field('v630Student').disabled=!b.subjectId||!state.secretarySubjectLinksLoadedD;
+      field('v631StudentHelp').textContent=b.linksError||(!state.secretarySubjectLinksLoadedD?'Pacotes ainda não validados.':`${v630StudentsForSubject(b.subjectId).length} aluno(s) compatível(is).`);
+    }
+    if(parts.includes('slots')){const area=field('v631Slots');area.style.minHeight=`${Math.max(130,area.getBoundingClientRect().height)}px`;v630PatchHtml(area,v630SlotsMarkup());area.setAttribute('aria-busy',String(b.loading))}
+    if(parts.includes('details')){
+      field('v630Mode').value=b.mode;field('v630Place').value=b.place||'';field('v630Meet').value=b.meetLink||'';
+      field('v631PlaceField').hidden=b.mode!=='presencial';field('v631MeetField').hidden=b.mode!=='online';field('v631MeetHelp').textContent=v630MeetHelp();
+    }
+    field('v630Date').value=b.date;field('v630Duration').value=String(b.duration);
+    field('v630Date').disabled=field('v630Duration').disabled=!b.studentId;
+    v630PatchHtml(field('v631Summary'),v630Summary());
+    const steps=v630StepState(),first=steps.findIndex(x=>!x);
+    root.querySelectorAll('[data-v631-step]').forEach((el,i)=>{el.classList.toggle('done',steps[i]);el.classList.toggle('current',i===(first<0?5:first))});
+    root.querySelector('[data-v630-save]').disabled=!v630CanSave();
+    scroll.scrollTop=top;
   }
+  function v630Render(){v630Update(['teacher','subjects','students','details','slots'])}
+
   function v630Mount(){
     if(state.role!=='admin'||state.page!=='agenda')return;
     let root=v630Root();
-    if(!root){root=document.createElement('div');root.id='v630BookingRoot';root.className='v630-booking';root.innerHTML='<div class="v630-backdrop" data-v630-close></div><aside class="v630-drawer" aria-label="Marcar aula"></aside>';document.body.appendChild(root)}
-    root.classList.toggle('open',v630Booking().open);
+    if(!root){root=document.createElement('div');root.id='v630BookingRoot';root.className='v630-booking';root.innerHTML='<div class="v630-backdrop" data-v630-close></div><aside class="v630-drawer" role="dialog" aria-modal="true" aria-labelledby="v631Title"></aside>';document.body.appendChild(root);root.querySelector('.v630-drawer').innerHTML=v630DrawerHtml();v630BindDrawer();v630Render()}
+    root.classList.toggle('open',v630Booking().open);root.inert=!v630Booking().open;root.setAttribute('aria-hidden',String(!v630Booking().open));
     let edge=document.getElementById('v630EdgeTab');if(!edge){edge=document.createElement('button');edge.id='v630EdgeTab';edge.type='button';edge.className='v630-edge-tab';edge.textContent='Marcar aula';edge.onclick=()=>v630Open();document.body.appendChild(edge)}
     const title=document.querySelector('.v629-secretary-title');if(title&&!title.querySelector('.v630-mode-tabs')){const tabs=document.createElement('div');tabs.className='v630-mode-tabs';tabs.innerHTML='<button type="button" class="active">Disponibilidade</button><button type="button" class="book" data-v630-open>Marcar aula</button>';title.appendChild(tabs)}
     const head=document.querySelector('.v629-secretary-head');if(head&&!head.querySelector('.v630-inline-action')){const btn=document.createElement('button');btn.type='button';btn.className='v630-inline-action';btn.dataset.v630Open='';btn.textContent='+ Marcar aula';head.appendChild(btn)}
@@ -7176,54 +7254,66 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     $$('[data-v621-book-slot]').forEach(b=>{b.onclick=e=>{e.preventDefault();e.stopPropagation();v630Open({teacherId:b.dataset.v621BookSlot,date:b.dataset.date,start:b.dataset.start,duration:Number(b.dataset.duration||60)})}});
     $$('[data-action="newLesson"]').forEach(b=>{if(state.role==='admin'&&state.page==='agenda')b.onclick=e=>{e.preventDefault();v630Open()}});
     root.querySelectorAll('[data-v630-close]').forEach(el=>el.onclick=v630Close);
-    if(v630Booking().open)v630Render();
+    if(v630Booking().open)v630Update();
   }
   function v630Unmount(){
-    document.getElementById('v630EdgeTab')?.remove();document.getElementById('v630BookingRoot')?.remove();document.body.classList.remove('v630-drawer-open');
+    v630Close();document.getElementById('v630EdgeTab')?.remove();v630Root()?.remove();
   }
   async function v630LoadSlots({preferredStart=''}={}){
-    const b=v630Booking();b.slotStart='';b.slotEnd='';b.error='';b.slots=[];
-    if(!b.teacherId||!b.subjectId||!b.studentId||!b.date){v630Render();return}
-    const seq=++slotRequestSeq;b.loading=true;v630Render();
+    const b=v630Booking();v630InvalidateSlots();const seq=slotRequestSeq;
+    if(!b.open||!b.teacherId||!b.subjectId||!v630StudentHasSubject(b.studentId,b.subjectId)||!b.date){v630Update(['slots']);return}
+    b.loading=true;v630Update(['slots']);
+    const requested={teacherId:b.teacherId,subjectId:b.subjectId,studentId:b.studentId,date:b.date,duration:b.duration};
+    const current=()=>seq===slotRequestSeq&&b.open&&Object.keys(requested).every(k=>b[k]===requested[k]);
     try{
-      const q=new URLSearchParams({data:b.date,role:'teacher',professionalId:b.teacherId,disciplinaId:b.subjectId,alunoId:b.studentId,duracaoMinutos:String(Number(b.duration)||60)});
-      const r=await api(`/profissionais/disponibilidade?${q.toString()}`);if(seq!==slotRequestSeq)return;
-      const item=(r.items||[]).find(x=>x.uid===b.teacherId);b.slots=(item?.slots||[]).filter(x=>x.status==='disponivel');b.loading=false;
-      const wanted=preferredStart||b.preferredStart||'';const match=wanted?b.slots.find(x=>x.inicio===wanted):null;if(match){b.slotStart=match.inicio;b.slotEnd=match.fim;b.preferredStart=''}
-      v630Render();
-    }catch(e){if(seq!==slotRequestSeq)return;b.loading=false;b.error=e.message||'Erro ao consultar disponibilidade.';v630Render()}
+      const q=new URLSearchParams({data:requested.date,role:'teacher',professionalId:requested.teacherId,disciplinaId:requested.subjectId,alunoId:requested.studentId,duracaoMinutos:String(requested.duration)});
+      const r=await api(`/profissionais/disponibilidade?${q}`);if(!current())return;
+      const item=(r.items||[]).find(x=>x.uid===requested.teacherId);b.slots=(item?.slots||[]).filter(x=>x.status==='disponivel');b.loading=false;
+      const wanted=preferredStart||b.preferredStart||'',match=b.slots.find(x=>x.inicio===wanted);
+      if(match){b.slotStart=match.inicio;b.slotEnd=match.fim}b.preferredStart='';v630Update(['slots']);
+    }catch(e){if(!current())return;b.loading=false;b.error=e.message||'Erro ao consultar disponibilidade.';v630Update(['slots'])}
   }
   function v630BindDrawer(){
-    const root=v630Root();if(!root)return;root.querySelectorAll('[data-v630-close]').forEach(el=>el.onclick=v630Close);
-    const teacher=root.querySelector('#v630Teacher');if(teacher)teacher.onchange=()=>{const b=v630Booking();b.teacherId=teacher.value;v630ResetAfter('teacher');v630Render()};
-    const subject=root.querySelector('#v630Subject');if(subject)subject.onchange=()=>{const b=v630Booking();b.subjectId=subject.value;v630ResetAfter('subject');v630Render()};
-    const student=root.querySelector('#v630Student');if(student)student.onchange=()=>{const b=v630Booking();b.studentId=student.value;b.slotStart='';b.slotEnd='';b.slots=[];b.error='';v630Render();v630LoadSlots()};
-    const date=root.querySelector('#v630Date');if(date)date.onchange=()=>{const b=v630Booking();b.date=date.value;b.slotStart='';b.slotEnd='';v630LoadSlots()};
-    const duration=root.querySelector('#v630Duration');if(duration)duration.onchange=()=>{const b=v630Booking();b.duration=Number(duration.value)||60;b.slotStart='';b.slotEnd='';v630LoadSlots()};
-    root.querySelectorAll('[data-v630-slot]').forEach(btn=>btn.onclick=()=>{const b=v630Booking();b.slotStart=btn.dataset.v630Slot;b.slotEnd=btn.dataset.end;v630Render()});
-    const mode=root.querySelector('#v630Mode');if(mode)mode.onchange=()=>{const b=v630Booking();b.mode=mode.value;b.place='';b.meetLink='';v630Render()};
-    const place=root.querySelector('#v630Place');if(place)place.oninput=()=>{v630Booking().place=place.value;const save=root.querySelector('[data-v630-save]');if(save)save.disabled=!v630CanSave()};
-    const meet=root.querySelector('#v630Meet');if(meet)meet.oninput=()=>{v630Booking().meetLink=meet.value};
-    const save=root.querySelector('[data-v630-save]');if(save)save.onclick=()=>v630Save(save);
+    const root=v630Root(),field=id=>root.querySelector('#'+id);if(!root)return;
+    root.querySelectorAll('[data-v630-close]').forEach(el=>el.onclick=v630Close);
+    field('v630Teacher').onchange=()=>{const b=v630Booking();b.teacherId=field('v630Teacher').value;v630ResetAfter('teacher');v630Update(['subjects','students','details','slots']);v630LoadSlots()};
+    field('v630Subject').onchange=()=>{v630Booking().subjectId=field('v630Subject').value;v630ResetAfter('subject');v630Update(['students','slots']);v630LoadSlots()};
+    field('v630Student').onchange=()=>{const b=v630Booking(),id=field('v630Student').value;b.studentId=v630StudentHasSubject(id,b.subjectId)?id:'';v630LoadSlots()};
+    field('v630Date').onchange=()=>{v630Booking().date=field('v630Date').value;v630LoadSlots()};
+    field('v630Duration').onchange=()=>{v630Booking().duration=Number(field('v630Duration').value)||60;v630LoadSlots()};
+    root.querySelector('#v631Slots').onclick=e=>{const btn=e.target.closest('[data-v630-slot]'),b=v630Booking();if(!btn||b.loading||!b.slots.some(x=>x.inicio===btn.dataset.v630Slot&&x.fim===btn.dataset.end))return;b.slotStart=btn.dataset.v630Slot;b.slotEnd=btn.dataset.end;root.querySelectorAll('[data-v630-slot]').forEach(el=>{const selected=el===btn;el.classList.toggle('selected',selected);el.setAttribute('aria-pressed',String(selected))});v630Update()};
+    field('v630Mode').onchange=()=>{v630Booking().mode=field('v630Mode').value;v630Update(['details'])};
+    field('v630Place').oninput=()=>{v630Booking().place=field('v630Place').value;v630Update()};
+    field('v630Meet').oninput=()=>{v630Booking().meetLink=field('v630Meet').value};
+    root.querySelector('[data-v630-save]').onclick=()=>v630Save(root.querySelector('[data-v630-save]'));
+    root.addEventListener('keydown',e=>{
+      if(e.key!=='Tab'||!v630Booking().open)return;
+      const items=[...root.querySelectorAll('button,input,select')].filter(el=>!el.disabled&&el.getClientRects().length),first=items[0],last=items.at(-1);
+      if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+    });
+    for(const event of ['wheel','touchmove'])root.addEventListener(event,e=>{if(!e.target.closest('.v630-drawer-scroll'))e.preventDefault()},{passive:false});
   }
+
   async function v630Save(button){
     const b=v630Booking(),teacher=v630Teacher(b.teacherId),student=v630Student(b.studentId);if(!v630CanSave()||!teacher||!student){toast('Complete professor, matéria, aluno, horário e modalidade.','warn');return}
     const meet=String(b.meetLink||'').trim();if(meet&&typeof isGoogleMeetClientUrl==='function'&&!isGoogleMeetClientUrl(meet)){toast('Use um link https://meet.google.com/...','warn');return}
     const body={alunoId:student.uid,professorId:teacher.uid,disciplinaId:b.subjectId,serieId:student.serieId||'',dataAula:b.date,horaAula:b.slotStart,horaFim:b.slotEnd,modalidade:b.mode,localAula:b.mode==='presencial'?String(b.place||'').trim():'',meetLink:meet,criarMeet:false};
     const fixed=typeof safeHttpUrl==='function'?safeHttpUrl(teacher.meetLinkFixo||''):'';if(body.modalidade==='online'&&!meet&&!fixed&&v630ConnectedTeacher(teacher.uid))body.criarMeet=true;
     if(body.modalidade==='online'&&!meet&&!fixed&&!body.criarMeet){toast('Esse professor precisa de Meet configurado ou Google conectado para aula online.','warn');return}
-    setBusy(button,true,'Confirmando...');
+    b.saving=true;setBusy(button,true,'Confirmando...');
     try{
       await api('/aulas',{method:'POST',body});toast('Aula marcada e sincronização com o Google do professor processada.','ok');Object.assign(state.v630Booking,BOOKING_DEFAULTS,{date:b.date,duration:b.duration});v630Close();await reloadAndRender();
     }catch(e){toast(e.message||'Não foi possível marcar a aula.','bad');await v630LoadSlots().catch(()=>{})}
-    finally{setBusy(button,false)}
+    finally{b.saving=false;setBusy(button,false);v630Update()}
   }
 
+  const renderPageBeforeV631=renderPage;
+  renderPage=function(...args){if(state.role==='admin'&&state.page==='agenda'&&v630Booking().open){deferredAgendaRender=true;return}return renderPageBeforeV631.apply(this,args)};
   const bindPageBeforeV630=bindPage;
   bindPage=function(){bindPageBeforeV630();if(state.role==='admin'&&state.page==='agenda')v630Mount();else v630Unmount()};
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&v630Booking().open)v630Close()});
   const polishPortalBlockEBeforeV630=polishPortalBlockE;
-  polishPortalBlockE=function(){polishPortalBlockEBeforeV630();document.documentElement.dataset.forjaUiVersion='6.30.0';document.documentElement.dataset.forjaAgendaVersion=VERSION};
+  polishPortalBlockE=function(){polishPortalBlockEBeforeV630();document.documentElement.dataset.forjaUiVersion='6.31.0';document.documentElement.dataset.forjaAgendaVersion=VERSION};
 })();
 </script>
 

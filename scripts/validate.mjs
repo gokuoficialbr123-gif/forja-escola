@@ -7,8 +7,8 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-export const referenceVersion = '6.30.0-bloco-a-secretaria-marcar-aula';
-export const referenceSha256 = '447bef249c8e4ea839b133739311fcf68d271c0c6d8b4c482a650fcf35a22868';
+export const referenceVersion = '6.31.0-secretaria-drawer-fluido';
+export const referenceSha256 = '848383afe003d3ad7435c77b0cbd0902417f9ce7aed5eb58d4193ff164cf343b';
 export const sha256 = data => createHash('sha256').update(data).digest('hex');
 
 export function validateInlineScripts(html) {
@@ -40,7 +40,7 @@ export function validate(root = rootDir) {
   const marker = release.match(/\bconst\s+VERSION\s*=\s*["']([^"']+)["']/)?.[1];
   assert.equal(marker, referenceVersion, 'Marker da release ativa incorreto.');
   assert.match(release, /dataset\.forjaAgendaVersion\s*=\s*VERSION/, 'Marker não aplicado à versão ativa.');
-  assert.equal(sha256(bytes), referenceSha256, 'HTML diferente da base 6.30 confirmada em produção.');
+  assert.equal(sha256(bytes), referenceSha256, 'HTML diferente da base 6.31 preparada para revisão.');
   assert.ok(!/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(html), 'Chave privada não pode entrar no frontend.');
   const config = JSON.parse(readFileSync(join(root, 'firebase.json'), 'utf8'));
   const aliases = JSON.parse(readFileSync(join(root, '.firebaserc'), 'utf8'));

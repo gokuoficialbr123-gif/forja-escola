@@ -37,13 +37,19 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
-      - name: Ler backend temporário da descrição do PR
+      - name: Ler modo do backend da descrição do PR
         id: preview-config
         run: node scripts/preview-config.mjs
       - name: Preparar somente o artefato Preview
         env:
           FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
-        run: node scripts/prepare-hosting.mjs --preview
+          FORJA_PREVIEW_BACKEND_MODE: ${{ steps.preview-config.outputs.mode }}
+        run: |
+          if [ "$FORJA_PREVIEW_BACKEND_MODE" = "production-unchanged" ]; then
+            node scripts/prepare-hosting.mjs
+          else
+            node scripts/prepare-hosting.mjs --preview
+          fi
       - name: Confirmar disponibilidade do secret pelo nome
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA }}
@@ -66,11 +72,18 @@ jobs:
         env:
           FORJA_VERIFY_URL: ${{ steps.hosting.outputs.details_url }}
           FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
-        run: node scripts/verify-hosting.mjs --preview
-      - name: Conferir Preview conectado ao Render Preview
+          FORJA_PREVIEW_BACKEND_MODE: ${{ steps.preview-config.outputs.mode }}
+        run: |
+          if [ "$FORJA_PREVIEW_BACKEND_MODE" = "production-unchanged" ]; then
+            node scripts/verify-hosting.mjs
+          else
+            node scripts/verify-hosting.mjs --preview
+          fi
+      - name: Conferir CORS e Auth do backend selecionado
         env:
           FORJA_VERIFY_URL: ${{ steps.hosting.outputs.details_url }}
           FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
+          FORJA_PREVIEW_BACKEND_MODE: ${{ steps.preview-config.outputs.mode }}
         run: node scripts/verify-preview-backend.mjs
 
   production:

@@ -1,5 +1,52 @@
 # FORJA Escola / Projeto Júlio — frontend oficial
 
+## Estado atual — 6.31.0 preparada para revisão
+
+Produção conferida antes da correção: frontend 6.30.0 com SHA-256
+447bef249c8e4ea839b133739311fcf68d271c0c6d8b4c482a650fcf35a22868,
+API oficial https://forja-api-m1kq.onrender.com e backend
+6.30.1-cors-preview-forja-escola. Ambos os PRs anteriores foram integrados
+pelo usuário; main frontend está em 4f03b7dea4b2646ab0887a51b3278882059110b6.
+Produção automática foi habilitada na etapa anterior. Os registros abaixo
+sobre restrições e PRs antigos são históricos.
+
+O novo trabalho usa fix/secretaria-drawer-6.31.0, sem merge/push em main.
+Alteração funcional exclusivamente no script final do drawer e CSS limitado
+por #v630BookingRoot. O restante do frontend foi comparado byte a byte com main.
+Backend, rotas, locks, Calendar, Auth, Rules e dados não foram modificados.
+
+Causa: v630Render substituía drawer.innerHTML em seleções e em cada fase de
+v630LoadSlots, recriando scroll/foco. Reset de dependências não invalidava toda
+consulta pendente; respostas antigas podiam preencher filtros novos. O fallback
+studentSubjects permitia catálogo/série sem vínculo de pacote. active !== false
+permitia perfis sem active true, recusados pelo servidor.
+
+A estrutura do drawer agora monta uma vez. Professor atualiza matérias/alunos/
+horários; matéria atualiza alunos/horários; aluno, data e duração atualizam
+horários. Resumo/estado dos passos atualizam localmente. Campos compatíveis ficam
+selecionados; incompatíveis são limpos. Loading somente no bloco de horários,
+respostas obsoletas descartadas, botões delegados, confirmação final preservada.
+Pacotes são relidos ao abrir e o aluno fica bloqueado até validar a resposta.
+
+Aluno elegível: student + active true; disciplina presente/ativa; seriesIds
+normalizados sem restrição ou contendo a série do aluno; vínculo correspondente
+em aluno_materias com status diferente de inativo. Mesmas condições dos helpers
+assertDisciplineForStudent/assertStudentHasActiveSubject e da disponibilidade
+6.30.1. O servidor continua autoridade final caso os dados mudem depois da leitura.
+
+Scroll: body fixado conservando posição/largura, fundo inert e overscroll contido.
+Área dos horários mantém sua altura durante troca/loading; grade tem altura
+limitada. Renderizações da agenda são adiadas enquanto o drawer estiver aberto,
+mas timer, consultas e sincronização de cinco minutos continuam executando.
+Fechar libera o fundo, aplica atualização pendente e restaura scroll/foco.
+
+O Render Preview anterior /forja-api-pr-1 retorna 404. Como não há mudança de
+backend, este PR opta explicitamente por production-unchanged e usa a API oficial
+no Firebase Preview. Não precisa criar um novo serviço Render. Auth/Firestore
+seguem serviços reais; automação verifica somente leituras/CORS/Auth sem token.
+Fluxo real de login/confirmação Google continua exigindo teste manual autorizado.
+
+
 Registro de 03/10/2026, fuso America/Sao_Paulo. O usuário definiu
 `gokuoficialbr123-gif/forja-escola` como repositório oficial do frontend.
 O código foi preparado no checkout `/workspace/forja-escola`. A continuação foi
