@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash, generateKeyPairSync, randomBytes, createCipheriv, publicEncrypt, constants } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import { deflateSync } from 'node:zlib';
 const APP_TIME_ZONE='America/Sao_Paulo';
 const incidentDate='2026-10-03',incidentWeek='2026-09-28';
 const userFields=['role','fullName','active','forjaId','disciplinaIds','serieId','disponibilidadeSemanal','availabilityWeekMigrationV616','availabilityWeekMigrationAt','createdAt','updatedAt'];
@@ -85,9 +86,9 @@ export async function audit(raw){
 }
 function seal(report){
   const key=randomBytes(32),iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,iv);
-  const data=Buffer.concat([cipher.update(JSON.stringify(report)),cipher.final()]);
+  const data=Buffer.concat([cipher.update(deflateSync(Buffer.from(JSON.stringify(report)))),cipher.final()]);
   const publicKey=readFileSync(new URL('./temporary-audit-public-key.txt',import.meta.url));
-  return Buffer.from(JSON.stringify({algorithm:'RSA-OAEP-SHA256/AES-256-GCM',sealedKey:publicEncrypt({key:publicKey,oaepHash:'sha256',padding:constants.RSA_PKCS1_OAEP_PADDING},key).toString('base64'),iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),ciphertext:data.toString('base64')})).toString('base64');
+  return Buffer.from(JSON.stringify({algorithm:'RSA-OAEP-SHA256/AES-256-GCM',encoding:'deflate',sealedKey:publicEncrypt({key:publicKey,oaepHash:'sha256',padding:constants.RSA_PKCS1_OAEP_PADDING},key).toString('base64'),iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),ciphertext:data.toString('base64')})).toString('base64');
 }
 export async function selfTest(){
   let writes=0;
@@ -142,7 +143,7 @@ async function main(){
     report=await audit(app.firestore());
   }catch(error){report={readOnly:true,phase:'Firestore read audit',error:safeError(error)};process.exitCode=1}
   finally{if(app)await app.firestore().terminate()}
-  const encrypted=seal(report),chunks=encrypted.match(/.{1,5500}/g)||[];
+  const encrypted=seal(report),chunks=encrypted.match(/.{1,500}/g)||[];
   for(let i=0;i<chunks.length;i++)console.log(`::notice title=FORJA_AUDIT_ENCRYPTED_${i+1}_OF_${chunks.length}::${chunks[i]}`);
   console.log(report.error?'Read-only audit blocked; encrypted diagnostic emitted.':'Read-only audit completed; encrypted result emitted.');
 }
