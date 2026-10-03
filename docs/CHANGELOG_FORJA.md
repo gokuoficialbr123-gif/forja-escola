@@ -1,5 +1,18 @@
 # FORJA — frontend
 
+## 03/10/2026 — deploy automático de produção habilitado
+
+FIREBASE_HOSTING_ENABLED=true foi habilitado pelo usuário no repositório
+forja-escola. Este commit somente de documentação em main dispara o workflow
+Firebase Hosting FORJA para a primeira publicação automática autorizada.
+
+A produção usa a geração sem --preview: index.html 6.30.0 permanece intacto,
+com marker 6.30.0-bloco-a-secretaria-marcar-aula e API oficial
+https://forja-api-m1kq.onrender.com. O /health oficial confirmou
+6.30.1-cors-preview-forja-escola antes do acionamento. Nenhuma configuração
+Firebase, URL da API ou lógica do portal foi alterada por este registro.
+O resultado da publicação será confirmado pelo job production e leitura pública.
+
 ## 03/10/2026 — artefato Firebase Preview com backend temporário
 
 - Fonte index.html preservada, inclusive URL de API oficial e hash 6.30.
