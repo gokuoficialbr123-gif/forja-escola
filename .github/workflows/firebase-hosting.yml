@@ -1,0 +1,89 @@
+name: Firebase Hosting FORJA
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-hosting-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate:
+    uses: ./.github/workflows/validation.yml
+
+  preview:
+    needs: validate
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - run: node scripts/prepare-hosting.mjs
+      - name: Confirmar disponibilidade do secret pelo nome
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo 'Secret FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA indisponível para este job.'
+            exit 1
+          fi
+          echo 'Secret FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA disponível; valor não exibido.'
+      - name: Publicar Preview Channel
+        id: hosting
+        uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA }}
+          projectId: forja-escola
+          expires: 7d
+          firebaseToolsVersion: '15.32.1'
+      - name: Conferir HTML servido no preview
+        env:
+          FORJA_VERIFY_URL: ${{ steps.hosting.outputs.details_url }}
+        run: node scripts/verify-hosting.mjs
+
+  production:
+    needs: validate
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      vars.FIREBASE_HOSTING_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - run: node scripts/prepare-hosting.mjs
+      - name: Publicar site oficial
+        uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA }}
+          projectId: forja-escola
+          channelId: live
+          firebaseToolsVersion: '15.32.1'
+      - name: Conferir versão realmente servida na produção
+        env:
+          FORJA_VERIFY_URL: https://forja-escola.web.app
+        run: node scripts/verify-hosting.mjs
