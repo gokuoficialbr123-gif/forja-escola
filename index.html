@@ -3287,6 +3287,26 @@ body.v630-drawer-open{overflow:hidden}
 .v630-actions{position:sticky;bottom:-26px;margin:0 -20px -26px;padding:14px 20px 18px;background:linear-gradient(to bottom,rgba(247,249,250,.8),#f7f9fa 30%);display:grid;grid-template-columns:1fr 1.4fr;gap:8px}.v630-actions button{border-radius:11px;padding:11px 12px;font-weight:900;font-size:10px;cursor:pointer}.v630-cancel{border:1px solid #dbe2e5;background:#fff;color:#617079}.v630-save{border:1px solid #0b2a40;background:#0b2a40;color:#fff}.v630-save:disabled{opacity:.45;cursor:not-allowed}
 .v630-inline-action{display:inline-flex;align-items:center;gap:7px;border:0;background:#0b2a40;color:#fff;border-radius:11px;padding:10px 13px;font-weight:900;font-size:10px;cursor:pointer;margin-left:auto}
 @media(max-width:760px){.v630-edge-tab{top:auto;bottom:18px;right:14px;writing-mode:horizontal-tb;transform:none;border-radius:999px;padding:12px 16px}.v630-drawer{width:100vw}.v630-steps{grid-template-columns:repeat(2,1fr)}.v630-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.v630-two{grid-template-columns:1fr}.v630-inline-action{width:100%;justify-content:center;margin:8px 0 0}}
+
+/* 6.31: scoped to the mounted Secretaria booking drawer. */
+#v630BookingRoot .v630-drawer{width:min(440px,100vw)}
+#v630BookingRoot .v630-drawer-head{padding:14px 16px 10px}
+#v630BookingRoot .v630-drawer-head h2{font-size:20px}
+#v630BookingRoot .v630-steps{grid-template-columns:repeat(6,minmax(0,1fr));padding:8px 12px;gap:3px}
+#v630BookingRoot .v630-step{padding:5px 3px}
+#v630BookingRoot .v630-step span{font-size:8px}
+#v630BookingRoot .v630-drawer-scroll{flex:1;display:block;padding:12px 16px;overscroll-behavior:none;overflow-anchor:none;scrollbar-gutter:stable;touch-action:pan-y}
+#v630BookingRoot .v630-card{border-radius:12px;padding:11px;margin-bottom:10px}
+#v630BookingRoot .v631-fields{display:grid;gap:10px}
+#v630BookingRoot .v630-field label{font-size:11px}
+#v630BookingRoot .v630-field select,#v630BookingRoot .v630-field input{font-size:13px}
+#v630BookingRoot .v630-actions button{font-size:12px}
+#v630BookingRoot .v630-actions{position:static;margin:0;padding:10px 16px;background:#fff;border-top:1px solid #e2e7e9;flex-shrink:0}
+#v630BookingRoot #v631Slots{min-height:130px}
+#v630BookingRoot .v630-slots{max-height:180px;overflow:auto;overscroll-behavior:none}
+#v630BookingRoot .v630-slot[aria-pressed=true]{background:#2f8a60;color:#fff}
+#v630BookingRoot [hidden]{display:none!important}
+@media(max-width:760px){#v630BookingRoot .v630-two{grid-template-columns:1fr 1fr}}
 </style>
 
 </head>
@@ -4449,26 +4469,6 @@ async function therapyConsentModal(studentId){try{const r=await api(`/terapia/co
 function reportRows(){const r=state.reportSummary||{};return [["Indicador","Valor"],["Alunos ativos",r.alunos||0],["Professores ativos",r.professores||0],["Aulas",r.aulas||0],["Aulas concluídas",r.aulasConcluidas||0],["Faltas",r.faltas||0],["Sessões e horários",r.sessoes||0],["Tarefas pendentes",r.tarefasPendentes||0],["Acompanhamentos abertos",r.acompanhamentosAbertos||0]]}
 function downloadBlob(content,type,name){const a=document.createElement("a"),u=URL.createObjectURL(new Blob([content],{type}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 function exportReport(kind){const rows=reportRows();if(kind==="csv"){downloadBlob('\ufeff'+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(';')).join('\n'),"text/csv;charset=utf-8","forja-relatorio.csv");return}if(kind==="xls"){const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Relatório"><Table>${rows.map(r=>`<Row>${r.map(v=>`<Cell><Data ss:Type="String">${esc(v)}</Data></Cell>`).join('')}</Row>`).join('')}</Table></Worksheet></Workbook>`;downloadBlob(xml,"application/vnd.ms-excel","forja-relatorio.xls");return}const w=window.open("","_blank");if(!w){toast("Permita pop-ups para gerar o PDF.","warn");return}w.document.write(`<html><head><title>Relatório ${esc(schoolDisplayName())}</title><style>body{font-family:Arial;padding:40px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:10px}h1{color:#081f2e}
-
-/* 6.31: scoped to the mounted Secretaria booking drawer. */
-#v630BookingRoot .v630-drawer{width:min(440px,100vw)}
-#v630BookingRoot .v630-drawer-head{padding:14px 16px 10px}
-#v630BookingRoot .v630-drawer-head h2{font-size:20px}
-#v630BookingRoot .v630-steps{grid-template-columns:repeat(6,minmax(0,1fr));padding:8px 12px;gap:3px}
-#v630BookingRoot .v630-step{padding:5px 3px}
-#v630BookingRoot .v630-step span{font-size:8px}
-#v630BookingRoot .v630-drawer-scroll{flex:1;display:block;padding:12px 16px;overscroll-behavior:none;overflow-anchor:none;scrollbar-gutter:stable;touch-action:pan-y}
-#v630BookingRoot .v630-card{border-radius:12px;padding:11px;margin-bottom:10px}
-#v630BookingRoot .v631-fields{display:grid;gap:10px}
-#v630BookingRoot .v630-field label{font-size:11px}
-#v630BookingRoot .v630-field select,#v630BookingRoot .v630-field input{font-size:13px}
-#v630BookingRoot .v630-actions button{font-size:12px}
-#v630BookingRoot .v630-actions{position:static;margin:0;padding:10px 16px;background:#fff;border-top:1px solid #e2e7e9;flex-shrink:0}
-#v630BookingRoot #v631Slots{min-height:130px}
-#v630BookingRoot .v630-slots{max-height:180px;overflow:auto;overscroll-behavior:none}
-#v630BookingRoot .v630-slot[aria-pressed=true]{background:#2f8a60;color:#fff}
-#v630BookingRoot [hidden]{display:none!important}
-@media(max-width:760px){#v630BookingRoot .v630-two{grid-template-columns:1fr 1fr}}
 </style></head><body><h1>Relatório ${esc(schoolDisplayName())}</h1><p>Gerado em ${new Date().toLocaleString('pt-BR')}</p><table>${rows.map((r,i)=>`<tr>${r.map(v=>i===0?`<th>${esc(v)}</th>`:`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</table></body></html>`);w.document.close();w.focus();setTimeout(()=>w.print(),250)}
 
 async function reloadAndRender(){const page=state.page;$("#workspaceContent").innerHTML=loading("Atualizando dados...");try{await loadRoleData();state.page=page;renderShell();renderPage()}catch(e){console.error(e);$("#workspaceContent").innerHTML=`${loadIssueBanner()}${empty("Não foi possível atualizar os dados",e.message||"Tente novamente.")}`;throw e}}
@@ -7268,6 +7268,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     try{
       const q=new URLSearchParams({data:requested.date,role:'teacher',professionalId:requested.teacherId,disciplinaId:requested.subjectId,alunoId:requested.studentId,duracaoMinutos:String(requested.duration)});
       const r=await api(`/profissionais/disponibilidade?${q}`);if(!current())return;
+      if(r.availabilityPolicy!=='published-week-v1')throw new Error('Este backend ainda não valida disponibilidade publicada. Use o Preview atualizado antes de marcar a aula.');
       const item=(r.items||[]).find(x=>x.uid===requested.teacherId);b.slots=(item?.slots||[]).filter(x=>x.status==='disponivel');b.loading=false;
       const wanted=preferredStart||b.preferredStart||'',match=b.slots.find(x=>x.inicio===wanted);
       if(match){b.slotStart=match.inicio;b.slotEnd=match.fim}b.preferredStart='';v630Update(['slots']);

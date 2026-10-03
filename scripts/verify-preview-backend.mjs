@@ -3,7 +3,8 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validatePreviewApiUrl } from './preview-config.mjs';
 
-const expectedVersion = '6.30.1-cors-preview-forja-escola';
+const productionVersion = '6.30.1-cors-preview-forja-escola';
+const previewVersion = '6.31.0-secretaria-disponibilidade-publicada';
 
 export function assertVaryOrigin(headers) {
   const fields = (headers.get('vary') || '').split(',').map(field => field.trim().toLowerCase());
@@ -27,7 +28,7 @@ export async function verifyPreviewBackend(apiUrl, frontendUrl, { mode = 'render
   assertVaryOrigin(health.headers);
   const data = await health.json();
   assert.equal(data.ok, true);
-  assert.equal(data.version, expectedVersion, 'Versão incorreta no backend Preview.');
+  assert.equal(data.version, mode === 'production-unchanged' ? productionVersion : previewVersion, 'Versão incorreta no backend Preview.');
 
   const preflight = await request('/me', {
     method: 'OPTIONS',

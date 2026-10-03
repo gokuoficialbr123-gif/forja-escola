@@ -1,5 +1,16 @@
 # FORJA — frontend oficial
 
+Revisão atual do PR #2: CSS real forja-v630-style e fonte de disponibilidade
+publicada corrigida no PR #2 separado do backend. Não usar mais o modo de Preview
+production-unchanged para esta versão: o drawer exige published-week-v1 e health
+6.31.0-secretaria-disponibilidade-publicada no Render Preview. Aguardando URL
+antes de ligar/publish Preview. Nunca copiar temporária para index.html.
+Testes de CSS devem usar parser HTML/DOM real, nunca regex que extraia style de
+strings JavaScript. Execute 20 testes Chromium e 17 testes pipeline. Relatório
+exportReport deve manter seu CSS original sem #v630BookingRoot. Preservar demais
+áreas, locks, sync, Auth e Firestore. Sem merge/main/produção.
+
+
 Leia os três documentos em `docs/` antes de trabalhar. Este checkout é
 `gokuoficialbr123-gif/forja-escola`; o backend permanece em `forja-backend`.
 
@@ -48,7 +59,9 @@ Leia os três documentos em `docs/` antes de trabalhar. Este checkout é
   API oficial, sem substituição. Ausência/conflito de parâmetro deve falhar.
   Um PR que altera backend continua exigindo seu Render Preview via comentário
   FORJA_PREVIEW_API_URL. Nunca presumir isolamento de Auth/Firestore.
-- O workflow pós-Preview exige /health 6.30.1-cors-preview-forja-escola, CORS
+- O workflow pós-Preview exige /health da versão esperada para o modo: novo
+  backend Preview 6.31.0-secretaria-disponibilidade-publicada; histórico modo
+  production-unchanged 6.30.1-cors-preview-forja-escola, CORS
   refletindo a origem Firebase, preflight 204 e /me sem token retornando 401.
 - A release inicial tem marker e SHA-256 fixados no validador. Em uma alteração
   funcional futura autorizada, atualize a referência conscientemente e registre

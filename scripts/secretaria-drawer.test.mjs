@@ -9,19 +9,27 @@ const modulePath = process.env.FORJA_PLAYWRIGHT_MODULE;
 const { chromium } = await import(modulePath ? pathToFileURL(resolve(modulePath)).href : 'playwright');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const script = html.match(/<script id="forja-v630-script">([\s\S]*?)<\/script>/)[1];
-const css = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(x=>x[1]).join('\n');
+
 let browser;
 before(async () => { browser = await chromium.launch({ headless: true, ...(process.env.FORJA_CHROMIUM_PATH ? { executablePath: process.env.FORJA_CHROMIUM_PATH } : {}) }); });
 after(async () => { await browser?.close(); });
 
-async function fixture(t, { mobile = false, linksFail = false } = {}) {
+async function fixture(t, { mobile = false, linksFail = false, portalSource = html } = {}) {
   const page = await browser.newPage({ viewport: mobile ? { width: 390, height: 660 } : { width: 1100, height: 720 } });
   t.after(() => page.close());
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   t.after(() => assert.deepEqual(errors, []));
-  await page.setContent(`<style>${css}
-html,body{height:auto;overflow:visible;scroll-behavior:auto}body{min-height:2200px}</style><div id="background" style="height:2200px"><button id="launch">Abrir</button><div class="v621-week-wrap" style="height:250px;overflow:auto"><div style="height:1800px">Calendário</div></div></div>`);
+  await page.setContent('<div id="background" style="height:2200px"><button id="launch">Abrir</button><div class="v621-week-wrap" style="height:250px;overflow:auto"><div style="height:1800px">Calendário</div></div></div>');
+  await page.evaluate(source => {
+    // HTML parsing treats <script> contents as opaque text, including template
+    // strings used by exportReport. Only real DOM styles affect this fixture.
+    const portal = new DOMParser().parseFromString(source, 'text/html');
+    document.head.replaceChildren(...[...portal.querySelectorAll('style')].map(el=>el.cloneNode(true)));
+    const fixtureStyle=document.createElement('style');
+    fixtureStyle.textContent='html,body{height:auto;overflow:visible;scroll-behavior:auto}body{min-height:2200px}';
+    document.head.appendChild(fixtureStyle);
+  }, portalSource);
   await page.evaluate(({ script, linksFail }) => {
     window.state = { role: 'admin', page: 'agenda', users: [
       { uid: 't1', fullName: 'Professor 1', role: 'teacher', active: true, disciplinaIds: ['math','science'] },
@@ -70,7 +78,7 @@ html,body{height:auto;overflow:visible;scroll-behavior:auto}body{min-height:2200
 async function choose(page,id,value) { await page.locator('#'+id).focus();await page.locator('#'+id).selectOption(value); }
 async function eligible(page) { await choose(page,'v630Subject','math');await choose(page,'v630Student','s1'); }
 async function respond(page,index=0,slots=[{inicio:'10:00',fim:'11:00',status:'disponivel'},{inicio:'11:00',fim:'12:00',status:'ocupado'}]) {
-  await page.evaluate(({index,slots})=>pending[index].resolve({items:[{uid:'t1',slots}]}),{index,slots});
+  await page.evaluate(({index,slots})=>pending[index].resolve({availabilityPolicy:'published-week-v1',items:[{uid:'t1',slots}]}),{index,slots});
   await page.waitForTimeout(20);
 }
 async function identity(page) {
@@ -169,7 +177,7 @@ test('confirmação envia contrato existente; conflito final mantém drawer e co
 
 test('troca de filtros/loading preserva scroll até no fim de muitos horários',async t=>{
   const page=await fixture(t);await eligible(page);
-  await respond(page,0,Array.from({length:30},(_,i)=>({inicio:`${String(7+Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`,fim:'22:00',status:'disponivel'})));
+  await respond(page,0,Array.from({length:30},(_,i)=>({inicio:`${String(7+Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`,fim:`${String(8+Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`,status:'disponivel'})));
   const top=await page.evaluate(()=>{nodes.scroll.scrollTop=nodes.scroll.scrollHeight;return nodes.scroll.scrollTop});
   await page.evaluate(()=>{nodes.v630Duration.value='90';nodes.v630Duration.dispatchEvent(new Event('change',{bubbles:true}))});
   assert.equal(await page.evaluate(()=>nodes.scroll.scrollTop),top);
@@ -194,4 +202,65 @@ test('Meet preservado mas oculto não impede confirmação presencial',async t=>
   assert.equal(await page.evaluate(()=>calls.find(x=>x.url==='/aulas')?.body.meetLink),'');
   await page.evaluate(()=>pending[1].resolve({ok:true}));await page.waitForFunction(()=>!state.v630Booking.open);
   assert.equal(await page.evaluate(()=>document.querySelector('#background').inert),false);
+});
+
+
+for(const mobile of [false,true])test(`CSS real: largura, padding, seis passos, scroll e slots (${mobile?'mobile':'desktop'})`,async t=>{
+ const page=await fixture(t,{mobile});
+ const style=await page.evaluate(()=>{
+  const drawer=getComputedStyle(nodes.drawer),scroll=getComputedStyle(nodes.scroll),head=getComputedStyle(document.querySelector('.v630-drawer-head')),steps=getComputedStyle(document.querySelector('.v630-steps'));
+  return {width:drawer.width,padding:scroll.padding,headPadding:head.padding,columns:steps.gridTemplateColumns.split(' ').length,overflow:scroll.overflowY,overscroll:scroll.overscrollBehaviorY,flex:scroll.flexGrow,anchor:scroll.overflowAnchor,styleInPortal:document.getElementById('forja-v630-style').textContent.includes('/* 6.31: scoped')};
+ });
+ assert.equal(style.styleInPortal,true);assert.equal(style.width,mobile?'390px':'440px');assert.equal(style.padding,'12px 16px');assert.equal(style.headPadding,'14px 16px 10px');assert.equal(style.columns,6);assert.equal(style.overflow,'auto');assert.equal(style.overscroll,'none');assert.equal(style.flex,'1');assert.equal(style.anchor,'none');
+ await eligible(page);
+ await respond(page,0,Array.from({length:30},(_,i)=>({inicio:`${String(7+Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`,fim:`${String(8+Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`,status:'disponivel'})));
+ const grid=await page.locator('.v630-slots').evaluate(el=>({height:el.getBoundingClientRect().height,max:getComputedStyle(el).maxHeight,overflow:getComputedStyle(el).overflowY,scrollHeight:el.scrollHeight,clientHeight:el.clientHeight}));
+ assert.equal(grid.max,'180px');assert.ok(grid.height<=182);assert.equal(grid.overflow,'auto');assert.ok(grid.scrollHeight>grid.clientHeight);
+ await page.locator('[data-v630-slot]').first().click();
+ const selected=await page.locator('[data-v630-slot]').first().evaluate(el=>({bg:getComputedStyle(el).backgroundColor,color:getComputedStyle(el).color,pressed:el.getAttribute('aria-pressed')}));
+ assert.deepEqual(selected,{bg:'rgb(47, 138, 96)',color:'rgb(255, 255, 255)',pressed:'true'});
+ await identity(page);
+ if(process.env.FORJA_VISUAL_DIR)await page.screenshot({path:`${process.env.FORJA_VISUAL_DIR}/drawer-${mobile?'mobile':'desktop'}.png`});
+});
+
+test('DOMParser exclui estilos dentro de strings de script (regressão do falso positivo)',async t=>{
+ const page=await fixture(t);
+ assert.deepEqual(await page.evaluate(()=>{
+  const source='<html><head><style id="real">body{color:red}</style></head><body><script>const report=`<style id="fake">body{color:blue}</style>`;</script></body></html>';
+  return [...new DOMParser().parseFromString(source,'text/html').querySelectorAll('style')].map(x=>x.id);
+ }),['real']);
+ const report=html.slice(html.indexOf('function exportReport('),html.indexOf('async function reloadAndRender()',html.indexOf('function exportReport(')));
+ assert.equal(report.includes('6.31: scoped'),false);assert.equal(report.includes('#v630BookingRoot'),false);
+});
+
+test('relatório/PDF conserva seu CSS original e não recebe o estilo do drawer',async t=>{
+ const page=await fixture(t);
+ const report=html.slice(html.indexOf('function exportReport('),html.indexOf('async function reloadAndRender()',html.indexOf('function exportReport(')));
+ const styles=await page.evaluate(report=>{
+  window.reportRows=()=>[['Nome','Aulas'],['Exemplo','1']];window.schoolDisplayName=()=> 'FORJA';window.downloadBlob=()=>{};
+  let output='';const original=window.open;
+  window.open=()=>({document:{write:s=>output=s,close:()=>{}},focus:()=>{},print:()=>{}});
+  (0,eval)(report);exportReport('pdf');window.open=original;
+  const parsed=new DOMParser().parseFromString(output,'text/html');
+  return [...parsed.querySelectorAll('style')].map(x=>x.textContent.trim());
+ },report);
+ assert.deepEqual(styles,['body{font-family:Arial;padding:40px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:10px}h1{color:#081f2e}']);
+});
+
+test('backend antigo sem política de publicação gera erro explícito, nunca slots legados',async t=>{
+ const page=await fixture(t);await eligible(page);
+ await page.evaluate(()=>pending[0].resolve({items:[{uid:'t1',slots:[{inicio:'20:00',fim:'21:00',status:'disponivel'}]}]}));
+ await page.waitForFunction(()=>state.v630Booking.error.includes('disponibilidade publicada'));
+ assert.equal(await page.locator('[data-v630-slot]').count(),0);assert.equal(await page.locator('[data-v630-save]').isDisabled(),true);
+});
+
+
+test('CSS colocado só na string do relatório não estiliza o portal (controle negativo)',async t=>{
+ const a=html.indexOf('/* 6.31: scoped'),z=html.indexOf('</style>',a),block=html.slice(a,z);
+ let wrong=html.slice(0,a)+html.slice(z);
+ const exportIndex=wrong.indexOf('function exportReport('),reportStyleEnd=wrong.indexOf('</style>',exportIndex);
+ wrong=wrong.slice(0,reportStyleEnd)+block+wrong.slice(reportStyleEnd);
+ const page=await fixture(t,{portalSource:wrong});
+ const actual=await page.evaluate(()=>({width:getComputedStyle(nodes.drawer).width,columns:getComputedStyle(document.querySelector('.v630-steps')).gridTemplateColumns.split(' ').length,realStylesContainBlock:[...document.querySelectorAll('style')].some(el=>el.textContent.includes('/* 6.31: scoped'))}));
+ assert.deepEqual(actual,{width:'470px',columns:4,realStylesContainBlock:false});
 });

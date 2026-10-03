@@ -1,5 +1,54 @@
 # FORJA Escola / Projeto Júlio — frontend oficial
 
+## Revisão do PR #2 — horários publicados e CSS real (03/10/2026)
+
+O CSS 6.31 estava indevidamente dentro da string de exportReport. A coleta por
+regex dos testes incluía esse style de JavaScript, mascarando a ausência no portal.
+A verificação visual anterior era um falso positivo. Agora o bloco inteiro está
+no style real forja-v630-style, com escopo #v630BookingRoot, e foi removido do
+relatório. Seu CSS de impressão original é validado separadamente sem alteração.
+
+Os testes parseiam o HTML com DOMParser do Chromium e clonam somente styles
+reais. Há um controle negativo: mover novamente o bloco para exportReport deve
+produzir largura470/4 colunas, não a largura440/6 colunas correta. Testes reais
+verificam desktop/mobile, padding, grid de seis passos, scroll, limite180px da
+grade, overflow e cores/aria-pressed do slot selecionado. 20 testes passaram,
+além de 17 proteções do pipeline. Fixtures são isoladas; não substituem login real.
+
+Auditoria dos slots: v630LoadSlots usa /profissionais/disponibilidade. Não há
+fallback visual gerando horários. No backend, professionalAvailabilityWeek podia
+migrar disponibilidade recorrente do perfil para a semana atual durante o GET.
+Sem publicação semanal, um legado de sábado20–22 reproduziu exatamente os três
+slots relatados. O documento real do Carlos ainda não foi consultado de forma
+autenticada; não afirmar que sua origem é essa sem resposta/semana sanitizada.
+
+Correção da fonte em PR separado: gokuoficialbr123-gif/forja-backend #2,
+fix/secretaria-slots-publicados-6.31.0, versão6.31.0-secretaria-disponibilidade-publicada.
+Fonte explícita: disponibilidades_semanais, professionalId|segunda-feira em
+base64url, semana[dia]. Exige origem de publicação válida e metadados corretos,
+sem migrar legado ao consultar marcação. Slots derivam somente das janelas,
+com duração completa e remoção por conflitos/bloqueios/locks. POST /aulas revalida
+publicação dentro dos locks. Auth, professor/aluno, Calendar/sync e demais rotas
+mantêm regras anteriores. Legados não são apagados; publicação pelo fluxo
+existente é necessária para autorizar novas aulas.
+
+O frontend exige availabilityPolicy=published-week-v1 e mostra erro explícito
+se conectado a backend antigo; não inventa nem esconde slots com filtro de faixa
+local. Preview deve usar Render Preview do PR backend, via comentário
+FORJA_PREVIEW_API_URL da descrição do PR, alterando só o artefato gerado.
+index.html continua com a API oficial; configuração Firebase não foi alterada.
+Render Preview ainda depende de URL: API Render401, sem binding de credencial;
+GitHub deployments403 e nenhum check/comentário/status Render identificado.
+Não assumir que ausência de sinal significa Previews desabilitados. Nenhum merge
+ou produção autorizado. Produção automática segue habilitada, não tocar main.
+
+Após URL disponível: verificar /health6.31.0, conectar artefato Preview, verificar
+hash/marker e CORS/Auth pelo workflow; testar manualmente Carlos, João, Matemática,
+03/10/2026, 60min. Sem disponibilidade explicitamente publicada naquele dia,
+nenhum slot deve aparecer. Dados de Preview continuam reais, sem criar aulas
+nem ampliar permissões para teste automático.
+
+
 ## Estado atual — 6.31.0 preparada para revisão
 
 Produção conferida antes da correção: frontend 6.30.0 com SHA-256
