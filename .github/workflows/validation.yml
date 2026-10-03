@@ -30,7 +30,13 @@ jobs:
         run: npm install --prefix /tmp/forja-readonly-tools --no-save --package-lock=false --no-audit --no-fund firebase-admin@13.10.0
       - name: Conferir barreiras de leitura e redação
         run: node scripts/temporary-firestore-audit.mjs --self-test
+      - name: Conferir somente client_email e project_id do secret
+        id: audit-identity
+        env:
+          FORJA_AUDIT_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA }}
+        run: node scripts/temporary-audit-identity.mjs
       - name: Auditar somente leituras do projeto existente
+        if: steps.audit-identity.outputs.same_account == 'true' && steps.audit-identity.outputs.project_ok == 'true'
         env:
           FORJA_AUDIT_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA }}
           FORJA_ADMIN_MODULE: /tmp/forja-readonly-tools/node_modules/firebase-admin/lib/index.js
