@@ -12,7 +12,14 @@ revisão, sem HTML ou workflows. Sua criação não executou deploy nem merge.
 - Job verifica somente a disponibilidade de FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA.
 - Não ativar FIREBASE_HOSTING_ENABLED, fazer merge ou publicar produção.
 - Nenhuma alteração no HTML ou na lógica da aplicação.
-- Resultados dos workflows serão conferidos no GitHub; não presumir sucesso.
+- [PR #1](https://github.com/gokuoficialbr123-gif/forja-escola/pull/1) aberto;
+  commit inicial `f50acde16b9111067a4e113235bb33934fb71066` publicado.
+- Validação de push e PR passaram, incluindo os oito testes do pipeline.
+- Hosting validou o artefato; preview falhou na checagem de presença do secret,
+  antes da publicação. Produção skipped. Sem Preview Channel ou URL.
+- Metadados de secrets: HTTP 403 pela integração. Secret recebido vazio no job;
+  conferir a entrada em Repository secrets do frontend. IAM Firebase não testado.
+- Registro detalhado dos runs e diagnóstico em DEPLOYMENT.md.
 
 ## 03/10/2026 — preparação de versionamento e Hosting, sem nova release
 
@@ -44,7 +51,10 @@ O usuário aprovou a auditoria e definiu este repositório como frontend oficial
   `docs/forja-context-6-30`, commit `b75b7672bccfa901deeaed701d616bbd9098b9df`.
   Os oito arquivos funcionais ficaram intactos.
 
-### Não executado / pendências
+### Não executado / pendências na preparação inicial
+
+Este registro descreve a etapa anterior à autorização de envio; o resultado da
+continuação consta no início deste documento.
 
 Nenhum commit do frontend, push, merge, deploy, criação de Preview Channel,
 conta de serviço, chave, secret ou ativação da variável. Não alterada lógica do

@@ -49,9 +49,24 @@ sucesso. Isso não desfaz automaticamente a publicação: rollback é uma ação
 
 Não há FIREBASE_TOKEN, PAT pessoal ou credencial Render nessa integração.
 O usuário confirmou a criação de `FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA`.
-A consulta de metadados pela integração ainda retorna HTTP 403. O job de preview
-confere a disponibilidade do nome esperado, sem exibir o valor, antes de tentar
-deploy. Não criar outro secret para contornar falta de leitura dos metadados.
+A consulta de metadados pela integração retorna HTTP 403 (Resource not accessible
+by integration), inclusive ao listar nomes. Isso não prova a ausência do secret.
+No PR #1, porém, o job recebeu esse secret vazio e falhou na checagem de
+presença, antes da action Firebase. Nenhum valor foi exibido.
+
+O PR é do próprio repositório, aberto pelo proprietário, e não é Dependabot.
+A API de Environments retornou uma lista vazia. Portanto, não há evidência de
+restrição de fork ou de um Environment existente que precise ser associado ao
+job. A configuração usa exatamente o nome informado pelo usuário.
+
+Para desbloquear, conferir no frontend **Settings → Secrets and variables →
+Actions → Secrets → Repository secrets** se o nome exato aparece nessa seção.
+Uma entrada em Variables ou em outro repositório não atende a expressão secrets
+usada pelo workflow. Se já estiver na seção correta, revisar/atualizar essa
+entrada pelo campo seguro do GitHub e reexecutar o job de preview. Não enviar o
+valor ao chat e não criar credenciais duplicadas para contornar o HTTP 403.
+A integração precisa de leitura de metadados de Actions secrets somente para
+confirmar nomes via API; o próprio job pode confirmar disponibilidade sem isso.
 
 ## Única etapa manual: autorizar GitHub → Firebase
 
@@ -93,11 +108,12 @@ conferidos no código da CLI; nenhum valor de credencial foi copiado.
 
 ## Ativação futura, somente depois da aprovação
 
-1. Revisar estes arquivos e autorizar o commit/push inicial do frontend. Eles
-   ainda estão locais em uma branch sem commits; main do GitHub continua vazio.
-2. Versionar a base em main com publicação ainda desativada. Isso permite criar
-   PRs depois; um repo vazio não oferece comparação de PR contra main.
-3. Completar a autorização manual acima. Revisar a configuração Hosting histórica.
+1. Revisar o [PR #1](https://github.com/gokuoficialbr123-gif/forja-escola/pull/1),
+   aberto de `setup/firebase-hosting-6.30` para main. A base main contém somente
+   README de revisão; toda a estrutura do frontend está na branch do PR.
+2. Desbloquear o secret indisponível no job e obter um preview verificado.
+   Nenhum merge foi autorizado nesta etapa.
+3. Revisar a configuração Hosting histórica e aprovar explicitamente a entrega.
 4. Quando o usuário autorizar ativação, definir `FIREBASE_HOSTING_ENABLED=true`
    em [Actions Variables](https://github.com/gokuoficialbr123-gif/forja-escola/settings/variables/actions).
    A configuração da variável não dispara deploy por si só; o próximo evento elegível dispara.
@@ -118,6 +134,19 @@ nem antecipa o merge da aplicação.
 Caso o frontend passe a depender de uma versão nova do backend, incluir um
 requisito de health dessa versão antes do deploy. A 6.30 já foi confirmada no
 backend; esta etapa não altera Render nem a lógica da aplicação.
+
+## Resultados reais de CI — PR #1
+
+Commit inicial publicado: `f50acde16b9111067a4e113235bb33934fb71066`.
+
+- [Validação do push](https://github.com/gokuoficialbr123-gif/forja-escola/actions/runs/37138397582): passou.
+- [Validação do PR](https://github.com/gokuoficialbr123-gif/forja-escola/actions/runs/37138442852): passou, incluindo oito testes e preparação do artefato.
+- [Hosting do PR](https://github.com/gokuoficialbr123-gif/forja-escola/actions/runs/37138442978): validação passou; preview falhou na presença do secret; publicação e verificação do preview não executadas; produção skipped.
+
+Preview não criado, sem URL. Ainda não é possível validar as permissões IAM da
+conta Firebase: a autenticação sequer foi tentada. Merge e ativação da variável
+não foram executados. Novas execuções devem ser conferidas no GitHub; esta seção
+registra as execuções identificadas, sem presumir o resultado de tentativas futuras.
 
 ## Validação local e leitura pública
 

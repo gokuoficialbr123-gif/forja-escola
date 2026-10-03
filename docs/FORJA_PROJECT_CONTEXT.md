@@ -95,13 +95,16 @@ ser conferidos antes de ativar o deploy. Nenhuma configuração publicada foi mu
 O workflow de validação é reutilizado pelo workflow Hosting. Preview só recebe
 credenciais em PR do próprio repositório; produção só em push de main.
 Somente produção depende de `FIREBASE_HOSTING_ENABLED=true`; não ativamos essa
-variável. O usuário criou o secret Firebase. O job de preview conferirá sua
-disponibilidade por nome, sem exibir o valor.
+variável. O usuário informou a criação do secret Firebase. No primeiro job do
+PR #1, ele veio vazio; a checagem de presença falhou, sem exibir seu valor e
+antes de qualquer publicação. A leitura de metadados por API recebeu HTTP 403.
+O PR e a branch foram publicados, sem merge. Ver diagnóstico em DEPLOYMENT.md.
 
 Preview Channel publica uma cópia do HTML, mas continua usando os serviços reais
 configurados no arquivo. Não equivale a um banco ou backend de testes.
 
-Validados localmente: marker/hash/sintaxe, oito testes do pipeline, geração
-repetível do artefato e schema dos workflows por actionlint. Não executados:
-GitHub Actions, autenticação de deploy, criação de Preview Channel, deploy live
-e fluxo autenticado da Secretaria. Ver `DEPLOYMENT.md` para autorização inicial.
+Validados localmente e no GitHub Actions: marker/hash/sintaxe, oito testes do
+pipeline e geração do artefato. Actionlint também passou localmente. O Hosting
+validou o artefato, mas preview falhou na presença do secret. Não executados:
+autenticação Firebase, publicação de Preview Channel, deploy live e fluxo
+autenticado da Secretaria. Ver DEPLOYMENT.md para resultados e desbloqueio.
