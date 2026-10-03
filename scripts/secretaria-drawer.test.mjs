@@ -185,3 +185,13 @@ test('Tab fica no drawer, Escape fecha e devolve foco sem mover a página',async
   await page.keyboard.press('Escape');assert.equal(await page.locator('#v630BookingRoot').getAttribute('aria-hidden'),'true');
   assert.equal(await page.evaluate(()=>document.activeElement.id),'launch');assert.equal(await page.evaluate(()=>window.scrollY),220);
 });
+
+
+test('Meet preservado mas oculto não impede confirmação presencial',async t=>{
+  const page=await fixture(t);await eligible(page);await respond(page);await choose(page,'v630Mode','online');
+  await page.locator('#v630Meet').fill('rascunho incompleto');await choose(page,'v630Mode','presencial');
+  await page.locator('#v630Place').fill('Sala A');await page.locator('[data-v630-slot]').click();await page.locator('[data-v630-save]').click();
+  assert.equal(await page.evaluate(()=>calls.find(x=>x.url==='/aulas')?.body.meetLink),'');
+  await page.evaluate(()=>pending[1].resolve({ok:true}));await page.waitForFunction(()=>!state.v630Booking.open);
+  assert.equal(await page.evaluate(()=>document.querySelector('#background').inert),false);
+});

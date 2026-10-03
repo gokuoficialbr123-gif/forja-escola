@@ -10,7 +10,7 @@
   pacote do backend, sem fallback por catálogo; pacotes relidos ao abrir.
 - Confirmação e contrato /aulas preservados; locks e Calendar ficam no backend
   6.30.1 intacto. Nenhuma alteração em aluno/professor/Google central.
-- 13 regressões em Chromium, 17 testes de pipeline e 57 regressões existentes
+- 14 regressões em Chromium, 17 testes de pipeline e 57 regressões existentes
   do backend passaram; sintaxe/hash/artefato e actionlint passaram.
 - Preview somente frontend seleciona explicitamente API oficial intacta; o
   Render Preview anterior responde 404 e não é necessário novo backend.

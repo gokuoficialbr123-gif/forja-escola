@@ -33,7 +33,7 @@ Se Chromium do sistema já estiver instalado, pode-se usar FORJA_CHROMIUM_PATH
 com seu caminho verificado. A execução local usou /usr/bin/chromium. Não adicionar
 arquivos npm/dependências ao artefato Hosting. CI instala navegador isoladamente.
 
-13 regressões em Chromium passaram: DOM/foco/scroll desktop/mobile, filtro de
+14 regressões em Chromium passaram: DOM/foco/scroll desktop/mobile, filtro de
 alunos/pacotes falhos, seleções compatíveis, respostas antigas/fora de ordem,
 loading localizado, horários livres, bloqueio/restauração do fundo, reabertura,
 modalidade, foco de teclado e contrato/confirmação com conflito. 17 testes do

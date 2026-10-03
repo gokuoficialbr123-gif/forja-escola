@@ -7296,7 +7296,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
 
   async function v630Save(button){
     const b=v630Booking(),teacher=v630Teacher(b.teacherId),student=v630Student(b.studentId);if(!v630CanSave()||!teacher||!student){toast('Complete professor, matéria, aluno, horário e modalidade.','warn');return}
-    const meet=String(b.meetLink||'').trim();if(meet&&typeof isGoogleMeetClientUrl==='function'&&!isGoogleMeetClientUrl(meet)){toast('Use um link https://meet.google.com/...','warn');return}
+    const meet=b.mode==='online'?String(b.meetLink||'').trim():'';if(meet&&typeof isGoogleMeetClientUrl==='function'&&!isGoogleMeetClientUrl(meet)){toast('Use um link https://meet.google.com/...','warn');return}
     const body={alunoId:student.uid,professorId:teacher.uid,disciplinaId:b.subjectId,serieId:student.serieId||'',dataAula:b.date,horaAula:b.slotStart,horaFim:b.slotEnd,modalidade:b.mode,localAula:b.mode==='presencial'?String(b.place||'').trim():'',meetLink:meet,criarMeet:false};
     const fixed=typeof safeHttpUrl==='function'?safeHttpUrl(teacher.meetLinkFixo||''):'';if(body.modalidade==='online'&&!meet&&!fixed&&v630ConnectedTeacher(teacher.uid))body.criarMeet=true;
     if(body.modalidade==='online'&&!meet&&!fixed&&!body.criarMeet){toast('Esse professor precisa de Meet configurado ou Google conectado para aula online.','warn');return}
