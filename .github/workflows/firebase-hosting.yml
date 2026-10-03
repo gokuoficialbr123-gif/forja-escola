@@ -3,6 +3,7 @@ name: Firebase Hosting FORJA
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
 
@@ -36,7 +37,13 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
-      - run: node scripts/prepare-hosting.mjs
+      - name: Ler backend temporário da descrição do PR
+        id: preview-config
+        run: node scripts/preview-config.mjs
+      - name: Preparar somente o artefato Preview
+        env:
+          FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
+        run: node scripts/prepare-hosting.mjs --preview
       - name: Confirmar disponibilidade do secret pelo nome
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA }}
@@ -58,7 +65,13 @@ jobs:
       - name: Conferir HTML servido no preview
         env:
           FORJA_VERIFY_URL: ${{ steps.hosting.outputs.details_url }}
-        run: node scripts/verify-hosting.mjs
+          FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
+        run: node scripts/verify-hosting.mjs --preview
+      - name: Conferir Preview conectado ao Render Preview
+        env:
+          FORJA_VERIFY_URL: ${{ steps.hosting.outputs.details_url }}
+          FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
+        run: node scripts/verify-preview-backend.mjs
 
   production:
     needs: validate

@@ -6,6 +6,35 @@ O código foi preparado no checkout `/workspace/forja-escola`. A continuação f
 autorizada em `setup/firebase-hosting-6.30`, com commit/push, PR e tentativa de
 preview. Merge, ativação da variável e publicação em produção continuam proibidos.
 
+## Atualização: Firebase Preview conectado ao Render Preview
+
+O backend está em revisão no PR #1 de forja-backend, commit
+849a16f16df1d6bb1c860730f85f0b4e96346e31. O usuário confirmou o serviço Preview
+com /health 6.30.1-cors-preview-forja-escola; produção segue no backend original.
+Esta etapa autoriza atualizar e republicar somente o Firebase Preview do PR #1
+frontend. Sem merge, ativação da variável ou deploy de produção.
+
+O index.html oficial continua byte a byte igual à base e com a API oficial.
+Apenas .firebase-public/index.html gerado para Preview substitui a única declaração
+FORJA_API_URL. A URL temporária é um parâmetro na descrição do PR, não um valor
+permanente do portal ou do workflow. O parâmetro precisa corresponder ao padrão
+HTTPS forja-api-pr-N.onrender.com; faltando ou inválido, Preview falha.
+
+validate.mjs mantém o hash original fixo. O hash do Preview é derivado da fonte
+validada com a única substituição permitida; não se aceita hash arbitrário nem
+um arquivo gerado sem conferir sua origem. Produção ignora a variável temporária
+e continua exigindo os bytes originais. Ambos mantêm o mesmo marker frontend.
+Quinze testes locais passaram, incluindo artefatos separados e rejeição de
+alterações adicionais; resultados de publicação e integração constam no PR.
+
+Auth, Firestore, Google Calendar e regras de negócio não foram modificados.
+O banco/Auth continuam configurados conforme a base; não declarar isolamento
+completo só porque a API está em outro serviço. Verificação pós-Preview é somente
+GET/OPTIONS: health/version, CORS, preflight e /me exigindo autenticação.
+
+O bloqueio inicial do secret descrito abaixo é histórico: run 37138923430,
+tentativa 3, passou e criou o primeiro Firebase Preview. Não pedir outro secret.
+
 ## Origem e versão preservadas
 
 A base é exatamente o `index.html` do pacote

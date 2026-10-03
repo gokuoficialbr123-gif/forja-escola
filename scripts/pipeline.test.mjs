@@ -4,9 +4,10 @@ import { createServer } from 'node:http';
 import { copyFileSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { rootDir, validate, validateInlineScripts } from './validate.mjs';
-import { prepareHosting } from './prepare-hosting.mjs';
+import { rootDir, referenceSha256, sha256, validate, validateInlineScripts } from './validate.mjs';
+import { buildHostingArtifact, hostingOptionsFromArgs, prepareHosting, productionApiUrl } from './prepare-hosting.mjs';
 import { verifyHosting } from './verify-hosting.mjs';
+import { previewApiFromEvent, validatePreviewApiUrl } from './preview-config.mjs';
 
 const html = readFileSync(join(rootDir, 'index.html'));
 function fixture(t) {
@@ -66,4 +67,101 @@ test('verificação pública aguarda propagação e recusa bytes errados com mes
   body = Buffer.concat([html, Buffer.from('alterado')]);
   calls = 0;
   await assert.rejects(verifyHosting(url, { attempts: 1 }), /HTML servido diferente/);
+});
+
+const previewApiUrl = 'https://forja-api-pr-42.onrender.com';
+const previewEvent = body => ({
+  repository: { full_name: 'gokuoficialbr123-gif/forja-escola' },
+  pull_request: { head: { repo: { full_name: 'gokuoficialbr123-gif/forja-escola' } }, body },
+});
+
+test('artefato Preview muda somente a declaração da API e preserva a fonte oficial', t => {
+  const root = fixture(t);
+  const result = prepareHosting(root, { previewApiUrl });
+  const artifact = readFileSync(join(root, '.firebase-public', 'index.html'));
+  const expected = Buffer.from(html.toString().replace(
+    `const FORJA_API_URL = "${productionApiUrl}";`,
+    `const FORJA_API_URL = "${previewApiUrl}";`,
+  ));
+  assert.ok(artifact.equals(expected));
+  assert.ok(readFileSync(join(root, 'index.html')).equals(html));
+  assert.equal(result.target, 'preview');
+  assert.equal(result.sha256, sha256(expected));
+  assert.notEqual(result.sha256, referenceSha256);
+  assert.equal(artifact.toString().includes(productionApiUrl), false);
+  assert.equal(artifact.toString().includes(previewApiUrl), true);
+  assert.deepEqual(readdirSync(join(root, '.firebase-public')), ['index.html']);
+});
+
+test('preparar produção depois de Preview restaura integralmente o artefato oficial', t => {
+  const root = fixture(t);
+  prepareHosting(root, { previewApiUrl });
+  const result = prepareHosting(root);
+  const artifact = readFileSync(join(root, '.firebase-public', 'index.html'));
+  assert.ok(artifact.equals(html));
+  assert.equal(result.target, 'production');
+  assert.equal(result.sha256, referenceSha256);
+  assert.equal(artifact.toString().includes(previewApiUrl), false);
+  assert.equal(artifact.toString().includes(productionApiUrl), true);
+});
+
+test('variável temporária não afeta produção e --preview exige URL explícita', t => {
+  const previous = process.env.FORJA_PREVIEW_API_URL;
+  t.after(() => {
+    if (previous === undefined) delete process.env.FORJA_PREVIEW_API_URL;
+    else process.env.FORJA_PREVIEW_API_URL = previous;
+  });
+  process.env.FORJA_PREVIEW_API_URL = previewApiUrl;
+  assert.deepEqual(hostingOptionsFromArgs([]), {});
+  assert.deepEqual(hostingOptionsFromArgs(['--preview']), { previewApiUrl });
+  assert.equal(buildHostingArtifact(rootDir, hostingOptionsFromArgs([])).result.sha256, referenceSha256);
+  delete process.env.FORJA_PREVIEW_API_URL;
+  assert.throws(() => hostingOptionsFromArgs(['--preview']), /URL do backend Preview obrigatória/);
+  assert.throws(() => hostingOptionsFromArgs(['--preview', '--production']), /Use somente/);
+});
+
+test('Preview não dispensa o hash fixo da fonte nem aceita alterações adicionais', t => {
+  const root = fixture(t);
+  writeFileSync(join(root, 'index.html'), Buffer.concat([html, Buffer.from('\n<!-- alteração -->')]));
+  assert.throws(() => prepareHosting(root, { previewApiUrl }), /HTML diferente da base/);
+});
+
+test('URL de Preview recusa produção, domínios falsos, injeções e normalização', () => {
+  for (const url of [
+    productionApiUrl, 'https://evil.example',
+    'http://forja-api-pr-42.onrender.com',
+    previewApiUrl + '.evil.example', previewApiUrl + '/', previewApiUrl + ':443',
+    previewApiUrl + '?token=x', previewApiUrl + '#fragment', previewApiUrl + '\n',
+    'https://evil.example@forja-api-pr-42.onrender.com',
+    'https://forja-api-pr-0.onrender.com',
+    'https://forja-api-pr-42.onrender.com";alert(1);//',
+    undefined, '',
+  ]) assert.throws(() => validatePreviewApiUrl(url));
+});
+
+test('parâmetro temporário do PR é obrigatório, único e restrito ao próprio repo', () => {
+  const comment = `<!-- FORJA_PREVIEW_API_URL=${previewApiUrl} -->`;
+  assert.equal(previewApiFromEvent(previewEvent(comment)), previewApiUrl);
+  assert.throws(() => previewApiFromEvent(previewEvent('sem parâmetro')), /exatamente um/);
+  assert.throws(() => previewApiFromEvent(previewEvent(comment + '\n' + comment)), /exatamente um/);
+  assert.throws(() => previewApiFromEvent(previewEvent(`<!-- FORJA_PREVIEW_API_URL=${productionApiUrl} -->`)), /Backend Preview/);
+  const fork = previewEvent(comment);
+  fork.pull_request.head.repo.full_name = 'other/fork';
+  assert.throws(() => previewApiFromEvent(fork), /próprio repositório/);
+});
+
+test('verificação exige o hash exato do Preview e continua recusando Preview como produção', async t => {
+  const { bytes: previewBytes } = buildHostingArtifact(rootDir, { previewApiUrl });
+  let body = previewBytes;
+  const server = createServer((_req, res) => res.end(body));
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const url = `http://127.0.0.1:${server.address().port}`;
+  await verifyHosting(url, { expected: previewBytes, attempts: 1 });
+  await assert.rejects(verifyHosting(url, { attempts: 1 }), /HTML servido diferente/);
+  body = Buffer.concat([previewBytes, Buffer.from('alteração indevida')]);
+  await assert.rejects(verifyHosting(url, { expected: previewBytes, attempts: 1 }), /HTML servido diferente/);
+  body = html;
+  await verifyHosting(url, { attempts: 1 });
+  await assert.rejects(verifyHosting(url, { expected: previewBytes, attempts: 1 }), /HTML servido diferente/);
 });

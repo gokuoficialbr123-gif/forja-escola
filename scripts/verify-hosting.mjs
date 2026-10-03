@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rootDir, referenceVersion, sha256 } from './validate.mjs';
+import { buildHostingArtifact, hostingOptionsFromArgs } from './prepare-hosting.mjs';
 
 export async function verifyHosting(url, {
   expected = readFileSync(join(rootDir, 'index.html')),
@@ -37,5 +38,8 @@ export async function verifyHosting(url, {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const url = process.env.FORJA_VERIFY_URL;
   assert.ok(url, 'Defina FORJA_VERIFY_URL.');
-  console.log(JSON.stringify(await verifyHosting(url), null, 2));
+  // Derive expected bytes from the pinned source and the single allowed Preview
+  // substitution. Do not trust a supplied hash or an arbitrary generated file.
+  const { bytes } = buildHostingArtifact(rootDir, hostingOptionsFromArgs());
+  console.log(JSON.stringify(await verifyHosting(url, { expected: bytes }), null, 2));
 }

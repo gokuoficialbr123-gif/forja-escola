@@ -6,6 +6,44 @@ PR para main e tentativa de Preview Channel. Merge, ativação e produção cont
 proibidos. A publicação de produção permanece bloqueada enquanto
 `FIREBASE_HOSTING_ENABLED` estiver ausente ou diferente de `true` nas Variables.
 
+## Preview por PR: API temporária somente no artefato
+
+A URL do Render Preview é fornecida na descrição do PR frontend em um comentário
+HTML com o campo FORJA_PREVIEW_API_URL. A URL real permanece fora do Git; não há
+valor temporário hardcoded no index.html, workflow ou scripts. preview-config.mjs
+lê o evento GitHub, exige PR do próprio repo e exatamente um comentário válido.
+Aceita somente HTTPS no formato forja-api-pr-N.onrender.com, sem path, porta,
+userinfo, query, fragmento ou normalização.
+
+O workflow exige esse parâmetro antes do deploy. Não há fallback para produção
+quando o Preview está sem configuração. Eventos edited permitem atualizar o
+parâmetro sem alterar o portal. Não usar pull_request_target.
+
+Geração Preview: FORJA_PREVIEW_API_URL fornecida ao comando
+node scripts/prepare-hosting.mjs --preview. Primeiro validate.mjs confere o hash
+original fixo; somente então a única declaração FORJA_API_URL é substituída no
+artefato .firebase-public/index.html. A fonte permanece intacta. O artefato tem
+somente index.html, com sintaxe validada e hash calculado para seus bytes exatos.
+
+Geração/validação de produção: comandos sem --preview. Uma variável de Preview
+presente no ambiente não altera produção. O hash fixo original não foi trocado.
+verify-hosting.mjs --preview deriva os bytes esperados a partir da fonte validada
+e do parâmetro, sem confiar em um hash externo ou arquivo alterado manualmente.
+verify-hosting.mjs sem --preview exige a fonte original validada.
+
+Após publicar Preview, verify-preview-backend.mjs verifica, com Origin Firebase:
+/health 200 e versão 6.30.1-cors-preview-forja-escola; ACAO igual à origem e Vary;
+OPTIONS /me 204 e headers Authorization/Content-Type/X-FORJA-OTP; GET /me sem
+token 401, preservando Auth. Não é teste de login completo nem escrita no banco.
+A checagem deve passar antes de considerar a conexão Preview → Render validada.
+
+A rede desta nuvem pode bloquear o host temporário com CONNECT 403. As checagens
+do workflow GitHub não dependem desse proxy; registrar os resultados reais do
+run, sem desabilitar assertions para contornar falhas.
+
+O secret inicial foi corrigido pelo usuário: Hosting run 37138923430 tentativa
+3 passou. As falhas iniciais registradas neste documento são históricas.
+
 ## Configuração e artefato
 
 - Repositório oficial: `gokuoficialbr123-gif/forja-escola`.
@@ -24,7 +62,7 @@ histórica antes de habilitar publicação se houver personalizações.
 ## Workflows preparados
 
 `validation.yml`: push, PR para main, execução manual e workflow_call. Usa
-Node.js 22, verifica release ativa/hash/sintaxe, executa oito testes do pipeline
+Node.js 22, verifica release ativa/hash/sintaxe, executa quinze testes do pipeline
 e gera o artefato. Não usa credenciais Firebase.
 
 `firebase-hosting.yml`: usa a mesma validação como requisito. PR confiável do
@@ -111,7 +149,7 @@ conferidos no código da CLI; nenhum valor de credencial foi copiado.
 1. Revisar o [PR #1](https://github.com/gokuoficialbr123-gif/forja-escola/pull/1),
    aberto de `setup/firebase-hosting-6.30` para main. A base main contém somente
    README de revisão; toda a estrutura do frontend está na branch do PR.
-2. Desbloquear o secret indisponível no job e obter um preview verificado.
+2. Conferir o secret já funcional e obter Preview verificado com o backend temporário.
    Nenhum merge foi autorizado nesta etapa.
 3. Revisar a configuração Hosting histórica e aprovar explicitamente a entrega.
 4. Quando o usuário autorizar ativação, definir `FIREBASE_HOSTING_ENABLED=true`

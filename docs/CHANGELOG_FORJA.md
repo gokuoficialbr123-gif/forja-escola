@@ -1,5 +1,23 @@
 # FORJA — frontend
 
+## 03/10/2026 — artefato Firebase Preview com backend temporário
+
+- Fonte index.html preservada, inclusive URL de API oficial e hash 6.30.
+- prepare-hosting.mjs ganha modo --preview; só o artefato gerado substitui a
+  única declaração FORJA_API_URL pelo parâmetro temporário do PR.
+- preview-config.mjs lê esse parâmetro da descrição do PR, restringe HTTPS e
+  o padrão forja-api-pr-N.onrender.com; URL atual não é hardcoded no Git.
+- Produção ignora o parâmetro e mantém os bytes/hash fixos originais.
+- verify-hosting.mjs deriva o hash de Preview da transformação única validada;
+  verify-preview-backend.mjs verifica health, versão, CORS, preflight e Auth.
+- 15 testes passaram, zero falhas/skips; actionlint, sintaxe e diff check passaram.
+  Testes incluem Preview/produção separados, fonte intacta, parâmetro obrigatório,
+  URLs falsas, alteração adicional e rejeição de Preview pela validação produção.
+- Sem alterações de Auth, Firestore, Google Calendar, regras ou versão do portal.
+  Sem merge, ativação ou produção. Publicação Preview e resultados no PR #1.
+- O secret inicial foi corrigido pelo usuário; tentativa 3 de Hosting run
+  37138923430 criou o primeiro Preview com sucesso. Registro anterior é histórico.
+
 ## 03/10/2026 — envio para revisão e tentativa de preview
 
 O usuário autorizou commit/push da estrutura em `setup/firebase-hosting-6.30`,
