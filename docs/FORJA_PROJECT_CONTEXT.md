@@ -37,12 +37,13 @@ se conectado a backend antigo; não inventa nem esconde slots com filtro de faix
 local. Preview deve usar Render Preview do PR backend, via comentário
 FORJA_PREVIEW_API_URL da descrição do PR, alterando só o artefato gerado.
 index.html continua com a API oficial; configuração Firebase não foi alterada.
-Render Preview ainda depende de URL: API Render401, sem binding de credencial;
-GitHub deployments403 e nenhum check/comentário/status Render identificado.
-Não assumir que ausência de sinal significa Previews desabilitados. Nenhum merge
-ou produção autorizado. Produção automática segue habilitada, não tocar main.
+O usuário forneceu Render Preview https://forja-api-pr-2.onrender.com.
+A descrição do PR #2 aponta para ele via FORJA_PREVIEW_API_URL; o workflow
+verifica health 6.31.0-secretaria-disponibilidade-publicada, CORS/Auth e HTML.
+O acesso direto deste ambiente recebeu CONNECT403; a verificação pública ocorre
+no runner GitHub. Nenhum merge ou produção autorizado; não tocar main.
 
-Após URL disponível: verificar /health6.31.0, conectar artefato Preview, verificar
+Após a atualização do Preview: exigir sucesso da verificação de
 hash/marker e CORS/Auth pelo workflow; testar manualmente Carlos, João, Matemática,
 03/10/2026, 60min. Sem disponibilidade explicitamente publicada naquele dia,
 nenhum slot deve aparecer. Dados de Preview continuam reais, sem criar aulas

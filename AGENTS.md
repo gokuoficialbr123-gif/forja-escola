@@ -3,8 +3,10 @@
 Revisão atual do PR #2: CSS real forja-v630-style e fonte de disponibilidade
 publicada corrigida no PR #2 separado do backend. Não usar mais o modo de Preview
 production-unchanged para esta versão: o drawer exige published-week-v1 e health
-6.31.0-secretaria-disponibilidade-publicada no Render Preview. Aguardando URL
-antes de ligar/publish Preview. Nunca copiar temporária para index.html.
+6.31.0-secretaria-disponibilidade-publicada no Render Preview.
+URL fornecida: https://forja-api-pr-2.onrender.com, configurada na descrição do
+PR #2 para substituir somente o artefato Preview. Exigir checks públicos aprovados;
+nunca copiar temporária para index.html.
 Testes de CSS devem usar parser HTML/DOM real, nunca regex que extraia style de
 strings JavaScript. Execute 20 testes Chromium e 17 testes pipeline. Relatório
 exportReport deve manter seu CSS original sem #v630BookingRoot. Preservar demais
