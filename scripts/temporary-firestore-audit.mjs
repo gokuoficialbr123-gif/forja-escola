@@ -36,7 +36,12 @@ const verificarUsuario=async()=>({profile:{role:'admin'},decoded:{uid:'read-only
 const jsonResponse=(_res,status,body)=>({status,body});
 const handleError=(_res,error)=>({status:400,body:{error:safeError(error)}});
 let db;
-function safeError(error){const code=error?.code;return {code:typeof code==='number'||typeof code==='string'&&/^[a-z0-9_/-]{1,50}$/i.test(code)?code:'UNKNOWN',message:/^[A-Z0-9_]{1,100}$/.test(error?.message||'')?error.message:'Audit operation unavailable; credential details omitted'}};
+function safeError(error){
+  const code=error?.code,text=String(error?.message||'')+' '+String(error?.details||'');
+  const reason=/not been used|api.*disabled|service_disabled/i.test(text)?'API_DISABLED':/insufficient permissions|permission.*denied|does not have.*permission/i.test(text)?'READ_PERMISSION_DENIED':/database.*does not exist|database.*not found/i.test(text)?'DATABASE_NOT_FOUND':/invalid_grant|unauthenticated/i.test(text)?'CREDENTIAL_UNUSABLE':'UNCLASSIFIED';
+  const missingPermission=(text.match(/\bdatastore\.[a-zA-Z.]+/g)||[]).filter(x=>/^datastore\.[a-zA-Z.]{1,80}$/.test(x));
+  return {code:typeof code==='number'||typeof code==='string'&&/^[a-z0-9_/-]{1,50}$/i.test(code)?code:'UNKNOWN',reason,missingPermission:[...new Set(missingPermission)],message:/^[A-Z0-9_]{1,100}$/.test(error?.message||'')?error.message:'Audit operation unavailable; credential details omitted'};
+};
 const normalized=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase().replace(/\s+/g,' ');
 const matching=(value,name)=>normalized(value)===normalized(name)||normalized(value).startsWith(normalized(name)+' ');
 const safeId=x=>typeof x==='string'&&/^[a-zA-Z0-9_|-]{1,190}$/.test(x)?x:null;
