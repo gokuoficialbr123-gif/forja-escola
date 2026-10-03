@@ -8,6 +8,7 @@ import { rootDir, referenceSha256, sha256, validate, validateInlineScripts } fro
 import { buildHostingArtifact, hostingOptionsFromArgs, prepareHosting, productionApiUrl } from './prepare-hosting.mjs';
 import { verifyHosting } from './verify-hosting.mjs';
 import { previewApiFromEvent, validatePreviewApiUrl } from './preview-config.mjs';
+import { assertVaryOrigin } from './verify-preview-backend.mjs';
 
 const html = readFileSync(join(rootDir, 'index.html'));
 function fixture(t) {
@@ -164,4 +165,14 @@ test('verificação exige o hash exato do Preview e continua recusando Preview c
   body = html;
   await verifyHosting(url, { attempts: 1 });
   await assert.rejects(verifyHosting(url, { expected: previewBytes, attempts: 1 }), /HTML servido diferente/);
+});
+
+test('Vary inclui Origin mesmo quando o proxy acrescenta Accept-Encoding', () => {
+  for (const value of ['Origin', 'Origin, Accept-Encoding', 'Accept-Encoding, origin']) {
+    assertVaryOrigin(new Headers({ Vary: value }));
+  }
+  for (const value of ['', 'Accept-Encoding', 'OriginX', '*']) {
+    assert.throws(() => assertVaryOrigin(new Headers({ Vary: value })), /Vary deve incluir Origin/);
+  }
+  assert.throws(() => assertVaryOrigin(new Headers()), /Vary deve incluir Origin/);
 });

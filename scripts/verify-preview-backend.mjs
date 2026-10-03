@@ -5,6 +5,11 @@ import { validatePreviewApiUrl } from './preview-config.mjs';
 
 const expectedVersion = '6.30.1-cors-preview-forja-escola';
 
+export function assertVaryOrigin(headers) {
+  const fields = (headers.get('vary') || '').split(',').map(field => field.trim().toLowerCase());
+  assert.ok(fields.includes('origin'), 'Vary deve incluir Origin; proxies podem acrescentar Accept-Encoding.');
+}
+
 export async function verifyPreviewBackend(apiUrl, frontendUrl) {
   validatePreviewApiUrl(apiUrl);
   const origin = new URL(frontendUrl).origin;
@@ -17,7 +22,7 @@ export async function verifyPreviewBackend(apiUrl, frontendUrl) {
   console.log(JSON.stringify({ check: 'preview-health', status: health.status, origin, allowedOrigin: health.headers.get('access-control-allow-origin') }));
   assert.equal(health.status, 200, 'Backend Preview indisponível.');
   assert.equal(health.headers.get('access-control-allow-origin'), origin, 'CORS do health deve refletir a origem exata.');
-  assert.equal(health.headers.get('vary'), 'Origin');
+  assertVaryOrigin(health.headers);
   const data = await health.json();
   assert.equal(data.ok, true);
   assert.equal(data.version, expectedVersion, 'Versão incorreta no backend Preview.');

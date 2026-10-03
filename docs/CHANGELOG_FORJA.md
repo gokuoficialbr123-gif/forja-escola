@@ -10,9 +10,11 @@
 - Produção ignora o parâmetro e mantém os bytes/hash fixos originais.
 - verify-hosting.mjs deriva o hash de Preview da transformação única validada;
   verify-preview-backend.mjs verifica health, versão, CORS, preflight e Auth.
-- 15 testes passaram, zero falhas/skips; actionlint, sintaxe e diff check passaram.
+- 16 testes passaram, zero falhas/skips; actionlint, sintaxe e diff check passaram.
   Testes incluem Preview/produção separados, fonte intacta, parâmetro obrigatório,
   URLs falsas, alteração adicional e rejeição de Preview pela validação produção.
+- Verificador de Vary exige presença de Origin e permite o Accept-Encoding
+  acrescentado pelo proxy Render; teste de regressão cobre tokens falsos/ausentes.
 - Sem alterações de Auth, Firestore, Google Calendar, regras ou versão do portal.
   Sem merge, ativação ou produção. Publicação Preview e resultados no PR #1.
 - O secret inicial foi corrigido pelo usuário; tentativa 3 de Hosting run

@@ -24,7 +24,7 @@ validate.mjs mantém o hash original fixo. O hash do Preview é derivado da font
 validada com a única substituição permitida; não se aceita hash arbitrário nem
 um arquivo gerado sem conferir sua origem. Produção ignora a variável temporária
 e continua exigindo os bytes originais. Ambos mantêm o mesmo marker frontend.
-Quinze testes locais passaram, incluindo artefatos separados e rejeição de
+Dezesseis testes locais passaram, incluindo artefatos separados e rejeição de
 alterações adicionais; resultados de publicação e integração constam no PR.
 
 Auth, Firestore, Google Calendar e regras de negócio não foram modificados.

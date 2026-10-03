@@ -62,7 +62,7 @@ histórica antes de habilitar publicação se houver personalizações.
 ## Workflows preparados
 
 `validation.yml`: push, PR para main, execução manual e workflow_call. Usa
-Node.js 22, verifica release ativa/hash/sintaxe, executa quinze testes do pipeline
+Node.js 22, verifica release ativa/hash/sintaxe, executa dezesseis testes do pipeline
 e gera o artefato. Não usa credenciais Firebase.
 
 `firebase-hosting.yml`: usa a mesma validação como requisito. PR confiável do
