@@ -14,6 +14,7 @@ export async function verifyPreviewBackend(apiUrl, frontendUrl) {
     headers: { Origin: origin, ...options.headers },
   });
   const health = await request('/health');
+  console.log(JSON.stringify({ check: 'preview-health', status: health.status, origin, allowedOrigin: health.headers.get('access-control-allow-origin') }));
   assert.equal(health.status, 200, 'Backend Preview indisponível.');
   assert.equal(health.headers.get('access-control-allow-origin'), origin, 'CORS do health deve refletir a origem exata.');
   assert.equal(health.headers.get('vary'), 'Origin');
@@ -40,5 +41,14 @@ export async function verifyPreviewBackend(apiUrl, frontendUrl) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  console.log(JSON.stringify(await verifyPreviewBackend(process.env.FORJA_PREVIEW_API_URL, process.env.FORJA_VERIFY_URL), null, 2));
+  try {
+    console.log(JSON.stringify(await verifyPreviewBackend(process.env.FORJA_PREVIEW_API_URL, process.env.FORJA_VERIFY_URL), null, 2));
+  } catch (error) {
+    // Surface a useful diagnostic through GitHub check annotations even when
+    // the separate signed log-download host is inaccessible to the reviewer.
+    const message = `${error.message}${error.cause?.code ? ` (${error.cause.code})` : ''}`;
+    const escaped = message.replaceAll('%', '%25').replaceAll('\r', '%0D').replaceAll('\n', '%0A');
+    console.error(`::error::${escaped}`);
+    process.exitCode = 1;
+  }
 }
