@@ -7,8 +7,8 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-export const referenceVersion = '6.31.0-secretaria-drawer-fluido';
-export const referenceSha256 = 'c8abcb7058a11f2825d185307a9cef981bcbc724bcdb0733556cae88f4658ea0';
+export const referenceVersion = '6.31.1-secretaria-drawer-fluido';
+export const referenceSha256 = '6a28db4b541d997602c1c1b6ada8c61404df24b3a875427b9618832a298b5d7d';
 export const sha256 = data => createHash('sha256').update(data).digest('hex');
 
 export function validateInlineScripts(html) {

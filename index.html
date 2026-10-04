@@ -4517,7 +4517,7 @@ function bindPage(){
   $$('[data-account-action]').forEach(b=>b.onclick=async()=>{const act=b.dataset.accountAction;if(act==="photo")changePhotoModal();else if(act==="meet")editOwnMeetModal();else if(act==="copyRegistry"){const code=state.profile?.forjaId||"";if(!code){toast("Registro FORJA ainda não disponível.","warn");return}try{await navigator.clipboard.writeText(code);toast("Registro FORJA copiado.","ok")}catch(_){toast(code,"info")}}else if(act==="resetPassword"){setBusy(b,true,"Enviando...");try{await auth.sendPasswordResetEmail(state.user.email);toast("E-mail de redefinição enviado. Confira também Spam ou Lixo eletrônico.","ok")}catch(e){toast("Não foi possível enviar agora.","bad")}finally{setBusy(b,false)}}else if(act==="verifyEmail")await resendVerification();else if(act==="accessHistory"){setBusy(b,true,"Carregando...");try{const r=await api("/me/acessos");const items=r.items||[];modal("Histórico de acessos",items.length?items.map(x=>row(fmtDateTime(x.createdAt),x.userAgent||"Navegador","Acesso")).join(""):empty("Nenhum acesso registrado"))}catch(e){toast(e.message,"bad")}finally{setBusy(b,false)}}else if(act==="revokeAll"){setBusy(b,true,"Revogando...");try{await api("/me/revogar-sessoes",{method:"POST",body:{}});toast("Sessões revogadas. Faça login novamente.","ok");await executeLogout()}catch(e){toast(e.message,"bad")}finally{setBusy(b,false)}}else if(act==="profile")navigate("perfil")});
   $$('[data-add-week-period]').forEach(b=>b.onclick=()=>{const day=b.dataset.addWeekPeriod,box=$(`[data-week-periods="${day}"]`);box?.querySelector('[data-week-empty]')?.remove();box?.insertAdjacentHTML('beforeend',weeklyPeriodRow(day,{}));const row=box?.lastElementChild;row?.querySelector('[data-remove-week-period]')?.addEventListener('click',()=>{row.remove();if(box&&!box.querySelector('[data-week-period]'))box.innerHTML='<div class="weekly-empty" data-week-empty>Nenhum período informado.</div>'})});
   $$('[data-remove-week-period]').forEach(b=>b.onclick=()=>{const row=b.closest('[data-week-period]'),box=row?.parentElement;row?.remove();if(box&&!box.querySelector('[data-week-period]'))box.innerHTML='<div class="weekly-empty" data-week-empty>Nenhum período informado.</div>'});
-  if($("#saveWeekly"))$("#saveWeekly").onclick=async()=>{const semana={};for(const dayBox of $$('[data-week-day]')){const d=dayBox.dataset.weekDay,periods=[];for(const r of dayBox.querySelectorAll('[data-week-period]')){const inicio=r.querySelector('[data-week-start]')?.value||'',fim=r.querySelector('[data-week-end]')?.value||'';if(!inicio&&!fim)continue;if(!inicio||!fim||fim<=inicio){toast(`Confira os períodos de ${dayBox.querySelector('b')?.textContent||'disponibilidade'}.`,"warn");return}periods.push({inicio,fim})}periods.sort((a,b)=>a.inicio.localeCompare(b.inicio));for(let i=1;i<periods.length;i++){if(periods[i].inicio<periods[i-1].fim){toast("Há períodos de disponibilidade sobrepostos.","warn");return}}if(periods.length)semana[d]=periods}const btn=$("#saveWeekly");setBusy(btn,true);try{const r=await api("/disponibilidade-semanal",{method:"PATCH",body:{semana}});state.weeklyAvailability=r.items||{};toast("Disponibilidade semanal salva.","ok");renderPage()}catch(e){toast(e.message,"bad")}finally{setBusy(btn,false)}};
+  if($("#saveWeekly"))$("#saveWeekly").onclick=async()=>{const semana={};for(const dayBox of $$('[data-week-day]')){const d=dayBox.dataset.weekDay,periods=[];for(const r of dayBox.querySelectorAll('[data-week-period]')){const inicio=r.querySelector('[data-week-start]')?.value||'',fim=r.querySelector('[data-week-end]')?.value||'';if(!inicio&&!fim)continue;if(!inicio||!fim||fim<=inicio){toast(`Confira os períodos de ${dayBox.querySelector('b')?.textContent||'disponibilidade'}.`,"warn");return}periods.push({inicio,fim})}periods.sort((a,b)=>a.inicio.localeCompare(b.inicio));for(let i=1;i<periods.length;i++){if(periods[i].inicio<periods[i-1].fim){toast("Há períodos de disponibilidade sobrepostos.","warn");return}}if(periods.length)semana[d]=periods}const btn=$("#saveWeekly");setBusy(btn,true);try{const r=await api("/disponibilidade-semanal",{method:"PATCH",body:{weekStart:v616CurrentWeek(),semana,publicationConfirmation:await forjaConfirmAvailabilityWeek(v616CurrentWeek(),semana)}});state.weeklyAvailability=r.items||{};toast("Disponibilidade semanal salva.","ok");renderPage()}catch(e){toast(e.message,"bad")}finally{setBusy(btn,false)}};
 }
 
 function runGlobalSearch(query){
@@ -5989,12 +5989,31 @@ function v616CollectWeek(){
   }
   return semana;
 }
+// Publication confirms the full visible configuration, including inherited periods.
+// Keep this digest envelope identical to backend availabilityWeekFingerprint.
+async function forjaConfirmAvailabilityWeek(weekStart, semana) {
+  weekStart=weekStart||v616CurrentWeek();
+  const canonical={};
+  for(let day=0;day<=6;day++){
+    const periods=(semana[day]||[]).map(p=>({inicio:p.inicio,fim:p.fim})).sort((a,b)=>a.inicio.localeCompare(b.inicio)||a.fim.localeCompare(b.fim));
+    if(periods.length)canonical[String(day)]=periods;
+  }
+  const lines=Object.entries(canonical).flatMap(([day,periods])=>{
+    const date=new Date(`${weekStart}T12:00:00Z`);date.setUTCDate(date.getUTCDate()+(Number(day)===0?6:Number(day)-1));
+    return periods.map(p=>`${date.toISOString().slice(0,10)}: ${p.inicio}–${p.fim}`);
+  });
+  const summary=lines.length?lines.join('\n'):'Nenhum período. A Secretaria ficará sem horários nesta semana.';
+  if(!window.confirm(`Publicar a semana ${weekStart}?\n\n${summary}\n\nConfira TODOS os períodos, incluindo os já armazenados. Ao confirmar, você autoriza exatamente esta semana para novas aulas.`))throw new Error('Publicação cancelada. Nenhum horário foi alterado.');
+  const payload={version:1,timeZone:'America/Sao_Paulo',professionalId:state.user.uid,weekStart,semana:canonical};
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(payload)));
+  return {version:1,fingerprint:Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('')};
+}
 async function v616SaveWeek(btn){
   let semana;try{semana=v616CollectWeek()}catch(e){toast(e.message,"warn");return}
   setBusy(btn,true,"Salvando...");
-  try{const r=await api("/disponibilidade-semanal",{method:"PATCH",body:{weekStart:state.availabilityWeekStartV616,semana}});state.availabilityWeekItemsV616=r.items||{};state.availabilityWeekSavedV616=true;if(r.weekStart===v616CurrentWeek()){state.currentWeekAvailabilityV616=r.items||{};state.weeklyAvailability=r.items||{}}toast("Disponibilidade desta semana salva.","ok");renderPage()}catch(e){toast(e.message||"Erro ao salvar a semana.","bad")}finally{setBusy(btn,false)}
+  try{const r=await api("/disponibilidade-semanal",{method:"PATCH",body:{weekStart:state.availabilityWeekStartV616,semana,publicationConfirmation:await forjaConfirmAvailabilityWeek(state.availabilityWeekStartV616,semana)}});state.availabilityWeekItemsV616=r.items||{};state.availabilityWeekSavedV616=true;if(r.weekStart===v616CurrentWeek()){state.currentWeekAvailabilityV616=r.items||{};state.weeklyAvailability=r.items||{}}toast("Disponibilidade desta semana salva.","ok");renderPage()}catch(e){toast(e.message||"Erro ao salvar a semana.","bad")}finally{setBusy(btn,false)}
 }
-async function v616CopyPreviousWeek(btn){setBusy(btn,true,"Copiando...");try{const r=await api("/disponibilidade-semanal/copiar-anterior",{method:"POST",body:{weekStart:state.availabilityWeekStartV616}});state.availabilityWeekItemsV616=r.items||{};state.availabilityWeekSavedV616=true;if(r.weekStart===v616CurrentWeek()){state.currentWeekAvailabilityV616=r.items||{};state.weeklyAvailability=r.items||{}}toast("Semana anterior copiada. Revise e salve os horários.","ok");renderPage()}catch(e){toast(e.message||"A semana anterior não possui disponibilidade salva.","warn")}finally{setBusy(btn,false)}}
+async function v616CopyPreviousWeek(btn){setBusy(btn,true,"Copiando...");try{const r=await api("/disponibilidade-semanal/copiar-anterior",{method:"POST",body:{weekStart:state.availabilityWeekStartV616}});state.availabilityWeekItemsV616=r.items||{};state.availabilityWeekSavedV616=true;if(r.weekStart===v616CurrentWeek()){state.currentWeekAvailabilityV616=r.items||{};state.weeklyAvailability=r.items||{}}toast("Semana copiada como rascunho. Revise os períodos e publique para liberar novas aulas.","ok");renderPage()}catch(e){toast(e.message||"A semana anterior não possui disponibilidade salva.","warn")}finally{setBusy(btn,false)}}
 
 // Status de aula é independente do registro pedagógico.
 gStatusMeta=function(l){
@@ -6791,7 +6810,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   }
   async function v621PublishAvailability(button){
     const ws=state.availabilityWeekStartV616||gWeekStart(v621Date('teacher')),semana=v621LocalWeek();setBusy(button,true,'Publicando...');
-    try{const r=await api('/disponibilidade-semanal',{method:'PATCH',body:{weekStart:ws,semana}});v621SetLocalWeek(r.items||{});state.availabilityWeekSavedV616=true;state.v621AvailabilityDirty=false;const gs=r.googleSync||{};if(gs.status==='sincronizado')toast(`Disponibilidade publicada no FORJA e no Google · ${Number(gs.created||0)+Number(gs.updated||0)} evento(s) sincronizado(s).`,'ok');else if(gs.status==='nao_conectado')toast('Disponibilidade publicada no FORJA. Conecte o Google para espelhar os horários.','warn');else toast(`Disponibilidade salva, mas o Google teve ${Number(gs.failed||1)} falha(s). Abra o Diagnóstico.`,'warn');await reloadAndRender()}catch(e){toast(e.message||'Erro ao publicar disponibilidade.','bad')}finally{setBusy(button,false)}
+    try{const r=await api('/disponibilidade-semanal',{method:'PATCH',body:{weekStart:ws,semana,publicationConfirmation:await forjaConfirmAvailabilityWeek(ws,semana)}});v621SetLocalWeek(r.items||{});state.availabilityWeekSavedV616=true;state.v621AvailabilityDirty=false;const gs=r.googleSync||{};if(gs.status==='sincronizado')toast(`Disponibilidade publicada no FORJA e no Google · ${Number(gs.created||0)+Number(gs.updated||0)} evento(s) sincronizado(s).`,'ok');else if(gs.status==='nao_conectado')toast('Disponibilidade publicada no FORJA. Conecte o Google para espelhar os horários.','warn');else toast(`Disponibilidade salva, mas o Google teve ${Number(gs.failed||1)} falha(s). Abra o Diagnóstico.`,'warn');await reloadAndRender()}catch(e){toast(e.message||'Erro ao publicar disponibilidade.','bad')}finally{setBusy(button,false)}
   }
   async function v621CancelAvailability(){const ws=state.availabilityWeekStartV616||gWeekStart(v621Date('teacher'));await loadWeekAvailabilityV616(ws,{render:false});state.v621TeacherWeekCache[ws]=state.availabilityWeekItemsV616||{};state.v621AvailabilityDirty=false;state.v621TeacherAvailabilityOpen=false;renderPage()}
   function v625RangesOverlap(aStart,aEnd,bStart,bEnd){
@@ -6824,14 +6843,14 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     const conflict=v625AvailabilityHasConflict(day,start,end);if(conflict)throw new Error(conflict);
     const ws=gWeekStart(day);let base=state.v621TeacherWeekCache?.[ws];if(!base){const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(ws)}`);base=r.items||{}}
     const items=JSON.parse(JSON.stringify(base||{})),code=v621DayCode(day),periods=[...(items[code]||[]),{inicio:start,fim:end}];items[code]=v625MergePeriods(periods);
-    const saved=await api('/disponibilidade-semanal',{method:'PATCH',body:{weekStart:ws,semana:items}}),gs=saved.googleSync||{};
+    const saved=await api('/disponibilidade-semanal',{method:'PATCH',body:{weekStart:ws,semana:items,publicationConfirmation:await forjaConfirmAvailabilityWeek(ws,items)}}),gs=saved.googleSync||{};
     state.v621TeacherWeekCache[ws]=saved.items||items;if(ws===v616CurrentWeek()){state.currentWeekAvailabilityV616=saved.items||items;state.weeklyAvailability=saved.items||items}
     return gs;
   }
   async function v625RemoveAvailability(day,sourceStart,sourceEnd){
     const ws=gWeekStart(day);let base=state.v621TeacherWeekCache?.[ws];if(!base){const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(ws)}`);base=r.items||{}}
     const items=JSON.parse(JSON.stringify(base||{})),code=v621DayCode(day);items[code]=(items[code]||[]).filter(p=>!(String(p.inicio)===String(sourceStart)&&String(p.fim)===String(sourceEnd)));if(!items[code].length)delete items[code];
-    const saved=await api('/disponibilidade-semanal',{method:'PATCH',body:{weekStart:ws,semana:items}});state.v621TeacherWeekCache[ws]=saved.items||items;if(ws===v616CurrentWeek()){state.currentWeekAvailabilityV616=saved.items||items;state.weeklyAvailability=saved.items||items}renderPage();
+    const saved=await api('/disponibilidade-semanal',{method:'PATCH',body:{weekStart:ws,semana:items,publicationConfirmation:await forjaConfirmAvailabilityWeek(ws,items)}});state.v621TeacherWeekCache[ws]=saved.items||items;if(ws===v616CurrentWeek()){state.currentWeekAvailabilityV616=saved.items||items;state.weeklyAvailability=saved.items||items}renderPage();
   }
   function v625SetSlotType(mode){
     const type=$('#v625SlotType');if(type)type.value=mode;$$('[data-v625-modal-type]').forEach(b=>b.classList.toggle('active',b.dataset.v625ModalType===mode));const note=$('#v625SlotTypeNote');if(note)note.innerHTML=mode==='busy'?'<div class="v625-danger-note"><b>Ocupado</b> bloqueia novos agendamentos. Se houver aula já marcada no período, ela será encaminhada para remarcação.</div>':'<div class="v625-availability-note"><b>Disponível</b> libera o período para a Secretaria e também é espelhado no Google como horário livre do FORJA.</div>';
@@ -7064,7 +7083,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
 <script id="forja-v630-script">
 /* ===== FORJA 6.30 — SECRETARIA / MARCAR AULA PROFISSIONAL ===== */
 (function installForjaSecretaryBooking630(){
-  const VERSION='6.31.0-secretaria-drawer-fluido';
+  const VERSION='6.31.1-secretaria-drawer-fluido';
   const BOOKING_DEFAULTS={open:false,teacherId:'',subjectId:'',studentId:'',date:'',duration:60,slotStart:'',slotEnd:'',mode:'presencial',place:'',meetLink:'',slots:[],loading:false,error:'',preferredStart:''};
   state.v630Booking=Object.assign({},BOOKING_DEFAULTS,state.v630Booking||{});
   let slotRequestSeq=0, linksRequestSeq=0, scrollLock=null, deferredAgendaRender=false, returnFocus=null;
@@ -7268,7 +7287,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     try{
       const q=new URLSearchParams({data:requested.date,role:'teacher',professionalId:requested.teacherId,disciplinaId:requested.subjectId,alunoId:requested.studentId,duracaoMinutos:String(requested.duration)});
       const r=await api(`/profissionais/disponibilidade?${q}`);if(!current())return;
-      if(r.availabilityPolicy!=='published-week-v1')throw new Error('Este backend ainda não valida disponibilidade publicada. Use o Preview atualizado antes de marcar a aula.');
+      if(r.availabilityPolicy!=='confirmed-week-v2')throw new Error('Este backend ainda não valida disponibilidade publicada. Use o Preview atualizado antes de marcar a aula.');
       const item=(r.items||[]).find(x=>x.uid===requested.teacherId);b.slots=(item?.slots||[]).filter(x=>x.status==='disponivel');b.loading=false;
       const wanted=preferredStart||b.preferredStart||'',match=b.slots.find(x=>x.inicio===wanted);
       if(match){b.slotStart=match.inicio;b.slotEnd=match.fim}b.preferredStart='';v630Update(['slots']);

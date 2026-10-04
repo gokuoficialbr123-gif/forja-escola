@@ -50,7 +50,7 @@ const sourceValue=x=>typeof x==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(x)?x:nul
 function weekSummary(snap){
   if(!snap.exists)return {documentId:snap.id,status:'documento/estrutura inexistente'};
   const x=snap.data(),links=x.googleAvailabilityEvents||{};
-  return {documentId:snap.id,professionalId:safeId(x.professionalId),weekStart:x.weekStart||null,weekEnd:x.weekEnd||null,source:sourceValue(x.source),semana:normalizeWeeklyAvailability(x.semana),createdAt:stamp(x.createdAt),updatedAt:stamp(x.updatedAt),firestoreUpdateTime:stamp(snap.updateTime),updatedById:safeId(x.updatedById),googleSyncStatus:sourceValue(x.googleSyncStatus),googleSyncAt:stamp(x.googleSyncAt),googleSyncErrorPresent:!!x.googleSyncErro,googleAvailabilityLinks:Object.values(links).map(y=>({date:y.date||null,dayCode:String(y.dayCode??''),inicio:normalizeTime(y.inicio),fim:normalizeTime(y.fim),eventIdPresent:!!y.eventId})),publicationMetadataKeys:Object.keys(x).filter(k=>/publish|publica|confirm|approval/i.test(k)),publishedAt:stamp(x.publishedAt),publishedById:safeId(x.publishedById)};
+  return {documentId:snap.id,professionalId:safeId(x.professionalId),weekStart:x.weekStart||null,weekEnd:x.weekEnd||null,source:sourceValue(x.source),semana:normalizeWeeklyAvailability(x.semana),createdAt:stamp(x.createdAt),updatedAt:stamp(x.updatedAt),firestoreUpdateTime:stamp(snap.updateTime),updatedById:safeId(x.updatedById),googleSyncStatus:sourceValue(x.googleSyncStatus),googleSyncAt:stamp(x.googleSyncAt),googleSyncErrorPresent:!!x.googleSyncErro,googleAvailabilityLinks:Object.values(links).map(y=>({date:y.date||null,dayCode:String(y.dayCode??''),inicio:normalizeTime(y.inicio),fim:normalizeTime(y.fim),eventIdPresent:!!y.eventId})),publicationMetadataKeys:Object.keys(x).filter(k=>/publish|publica|confirm|approval/i.test(k)),publishedAt:stamp(x.publishedAt),publishedById:safeId(x.publishedById),publicationPresent:!!x.publication,publicationValid:isPublishedAvailabilityWeek(x,{professionalId:x.professionalId,weekStart:x.weekStart}),publication:x.publication?{version:x.publication.version,fingerprint:x.publication.fingerprint,confirmedById:safeId(x.publication.confirmedById),confirmedAt:stamp(x.publication.confirmedAt),action:sourceValue(x.publication.action)}:null};
 }
 async function historyFor(uid){
   const wanted=new Set(['disponibilidade_semana_atualizada','disponibilidade_semana_copiada','disponibilidade_google_alterada','disponibilidade_google_removida']);
@@ -65,7 +65,7 @@ export async function audit(raw){
   db=readOnlyDatabase(raw);
   const collections=(await db.listCollections()).map(c=>c.id);
   const structures=[...roots].map(name=>({name,status:collections.includes(name)?'exists':'documento/estrutura inexistente'}));
-  const report={readOnly:true,incidentDate,incidentWeek,timeZone:APP_TIME_ZONE,backendReference:'3447c0335a01624bf58c7f905178b947605d5895',structures,cases:[]};
+  const report={readOnly:true,incidentDate,incidentWeek,timeZone:APP_TIME_ZONE,backendReference:'a88fb2d7fe5f1aafc32f1794121f0a5b3765ac4f',structures,cases:[]};
   if(!collections.includes('users'))return report;
   const teachers=(await db.collection('users').where('role','==','teacher').select(...userFields).get()).docs.filter(s=>matching(s.data().fullName,'Carlos'));
   const students=(await db.collection('users').where('role','==','student').select(...userFields).get()).docs.filter(s=>matching(s.data().fullName,'João'));
@@ -127,11 +127,14 @@ export async function selfTest(){
   });
   const result=await audit(fixtureRef());
   assert.equal(result.cases[0].queries[0].status,200);
-  assert.deepEqual(result.cases[0].queries[0].items[0].slots.map(x=>x.inicio),['20:00','20:30','21:00']);
-  assert.equal(result.cases[0].queries[0].availabilityPolicy,'published-week-v1');
+  assert.deepEqual(result.cases[0].queries[0].items[0].slots,[]);
+  assert.equal(result.cases[0].queries[0].availabilityPolicy,'confirmed-week-v2');
   assert.equal(result.cases[0].queries[0].items[0].availabilitySource,'google');
   assert.ok(!JSON.stringify(result).includes('canary@private.invalid'));
   assert.ok(!JSON.stringify(result).includes('private-event-canary'));
+  const data=records['disponibilidades_semanais/'+availabilityWeekDocId(tid,incidentWeek)];
+  data.publication=confirmAvailabilityWeek(data,{version:1,fingerprint:availabilityWeekFingerprint(data)},{confirmedById:tid,confirmedAt:{toMillis:()=>1791043200000}});
+  assert.deepEqual((await audit(fixtureRef())).cases[0].queries[0].items[0].slots.map(x=>x.inicio),['20:00','20:30','21:00']);
   const absent=await audit({...fixtureRef(),listCollections:async()=>[]});
   assert.equal(absent.cases.length,0);assert.ok(absent.structures.every(x=>x.status==='documento/estrutura inexistente'));
   console.log('Read-only guard checks passed; no database/network operations.');
@@ -152,7 +155,7 @@ async function main(){
   for(let i=0;i<chunks.length;i++)console.log(`::notice title=FORJA_AUDIT_ENCRYPTED_${i+1}_OF_${chunks.length}::${chunks[i]}`);
   console.log(report.error?'Read-only audit blocked; encrypted diagnostic emitted.':'Read-only audit completed; encrypted result emitted.');
 }
-// Exact read-only backend helper/GET snapshot SHA256 0e7224455db282e998d7a812a7807452fe06c193aec4dc2e41cff29cc82974a6
+// Exact read-only backend helper/GET snapshot SHA256 740a6c9e7ec9b04f3342a686721ff794725983db4810fb4e658cbb3c2a2674cd
 function normalizeWeeklyAvailability(value) {
   const out = {};
   if (!value || typeof value !== "object" || Array.isArray(value)) return out;
@@ -365,13 +368,57 @@ async function googleBusyConflictsForDate(uid, date) {
   }
   return out;
 }
-// Booking requires an explicit weekly publication. Reading a legacy recurring
-// profile must not publish or authorize a new lesson in the Secretaria drawer.
-const BOOKING_AVAILABILITY_POLICY = 'published-week-v1';
-const publishedSources = new Set(['profissional', 'copia_semana_anterior', 'google']);
+
+// A source label is provenance, never a publication receipt. Only the server
+// records a receipt after an authenticated professional confirms this exact week.
+const BOOKING_AVAILABILITY_POLICY = 'confirmed-week-v2';
+const AVAILABILITY_PUBLICATION_VERSION = 1;
+
+function canonicalAvailabilityWeek(semana) {
+  if (!semana || typeof semana !== 'object' || Array.isArray(semana) ||
+      Object.keys(semana).some(day => !/^[0-6]$/.test(day))) throw new Error('DISPONIBILIDADE_INVALIDA');
+  const canonical = {};
+  for (let day = 0; day <= 6; day++) {
+    if (semana[day] === undefined) continue;
+    if (!Array.isArray(semana[day])) throw new Error('DISPONIBILIDADE_INVALIDA');
+    const periods = semana[day].map(period => {
+      const start = minutes(period?.inicio), end = minutes(period?.fim);
+      if (start === null || end === null || end <= start) throw new Error('DISPONIBILIDADE_INVALIDA');
+      return { inicio: period.inicio, fim: period.fim };
+    }).sort((a, b) => a.inicio.localeCompare(b.inicio) || a.fim.localeCompare(b.fim));
+    for (let i = 1; i < periods.length; i++) {
+      if (periods[i].inicio < periods[i - 1].fim) throw new Error('DISPONIBILIDADE_SOBREPOSTA');
+    }
+    if (periods.length) canonical[String(day)] = periods;
+  }
+  return canonical;
+}
+
+function availabilityWeekFingerprint({ professionalId, weekStart, semana }) {
+  if (typeof professionalId !== 'string' || !professionalId || !/^\d{4}-\d{2}-\d{2}$/.test(weekStart || '')) throw new Error('DISPONIBILIDADE_INVALIDA');
+  return createHash('sha256').update(JSON.stringify({ version: AVAILABILITY_PUBLICATION_VERSION,
+    timeZone: 'America/Sao_Paulo', professionalId, weekStart,
+    semana: canonicalAvailabilityWeek(semana) })).digest('hex');
+}
+
+function confirmAvailabilityWeek(data, confirmation, { confirmedById, confirmedAt, action = 'publish', copiedFrom = null }) {
+  if (confirmation === undefined) return null; // Older clients save a draft.
+  const fingerprint = availabilityWeekFingerprint(data);
+  if (confirmation?.version !== AVAILABILITY_PUBLICATION_VERSION || confirmation.fingerprint !== fingerprint ||
+      confirmedById !== data.professionalId || !['publish', 'copy'].includes(action)) throw new Error('DISPONIBILIDADE_CONFIRMACAO_INVALIDA');
+  return { version: AVAILABILITY_PUBLICATION_VERSION, fingerprint, confirmedById, confirmedAt, action, copiedFrom };
+}
 
 function isPublishedAvailabilityWeek(data, { professionalId, weekStart }) {
-  return !!data && data.professionalId === professionalId && data.weekStart === weekStart && publishedSources.has(data.source);
+  try {
+    const receipt = data?.publication;
+    return !!data && data.professionalId === professionalId && data.weekStart === weekStart &&
+      receipt?.version === AVAILABILITY_PUBLICATION_VERSION && receipt.confirmedById === professionalId &&
+      Number.isFinite(receipt.confirmedAt?.toMillis?.()) && receipt.confirmedAt.toMillis() > 0 &&
+      ['publish', 'copy'].includes(receipt.action) &&
+      (receipt.action !== 'copy' || (typeof receipt.copiedFrom?.weekStart === 'string' && /^[a-f0-9]{64}$/.test(receipt.copiedFrom?.fingerprint || ''))) &&
+      receipt.fingerprint === availabilityWeekFingerprint(data);
+  } catch { return false; }
 }
 
 function minutes(value) {
@@ -454,7 +501,7 @@ if (req.method === "GET" && pathname === "/profissionais/disponibilidade") {
       const items = [];
       for (const doc of professionals) {
         const profile = { uid:doc.id, ...doc.data() };
-        if (!profile.forjaId) profile.forjaId = await ensureForjaId(doc.id, doc.data());
+        if (!profile.forjaId && !bookingQuery) profile.forjaId = await ensureForjaId(doc.id, doc.data());
         const weekData = await professionalAvailabilityWeek(doc.id, profile, data, { publishedOnly: bookingQuery }), weekly = weekData.items;
         const hasSchedule = Object.keys(weekly).length > 0;
         const day = String(weekdayForDate(data));

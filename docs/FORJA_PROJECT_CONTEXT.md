@@ -1,5 +1,37 @@
 # FORJA Escola / Projeto Júlio — frontend oficial
 
+## 03/10/2026 — 6.31.1-secretaria-drawer-fluido / publicação confirmada
+
+Backend PR #2 a88fb2d7fe5f1aafc32f1794121f0a5b3765ac4f exige
+confirmed-week-v2. O drawer recusa published-week-v1; não filtra faixas de horário
+no cliente. A fonte real de Carlos contém sábado19:58–23:58 com source profissional,
+que sozinho deixa de autorizar marcação. Não alterado manualmente nenhum dado.
+
+Backend confirma SHA-256 do JSON canônico {version:1,timeZone:"America/Sao_Paulo",
+professionalId,weekStart,semana}, com receipt publication={version,fingerprint,
+confirmedById,confirmedAt,action,copiedFrom}. Salvar sem confirmation é rascunho;
+hash divergente é recusado; alteração Google invalida recibo; cópia de origem sem
+recibo não pode publicar diretamente. GET e POST /aulas usam a mesma prova.
+
+Os cinco chamadores existentes de PATCH /disponibilidade-semanal agora exibem
+confirmação explícita com TODOS os períodos e respectivas datas da semana,
+inclusive herdados. O hash enviado corresponde exatamente a essa configuração.
+Cancelar não faz PATCH nem muda cache. Copiar orienta revisar/publicar e envia
+somente rascunho. Alteração de UI limitada a essa confirmação de publicação;
+sem reformulação da agenda de professor/aluno ou Google central.
+
+Marker 6.31.1-secretaria-drawer-fluido e SHA-256 atualizado conscientemente no
+validate.mjs. Fonte oficial mantém https://forja-api-m1kq.onrender.com; só artefato
+Preview substitui URL pela descrição do PR. Firebase config/Auth/Rules intactos.
+Validação exige health 6.31.1-secretaria-publicacao-confirmada no Render Preview.
+
+17 testes pipeline,20 testes do drawer e5 testes da confirmação em Chromium
+passaram localmente, além de73+32 backend. Atualização dos Previews/resultados
+reais deve ser conferida pelo commit publicado. Sem merge/main/produção.
+Instrumentação temporária read-only será removida após leitura de validação;
+nenhum script de auditoria deve permanecer no conjunto final antes do merge.
+
+
 ## Revisão do PR #2 — horários publicados e CSS real (03/10/2026)
 
 O CSS 6.31 estava indevidamente dentro da string de exportReport. A coleta por

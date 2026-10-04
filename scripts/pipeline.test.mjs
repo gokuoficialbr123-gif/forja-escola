@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { copyFileSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { rootDir, referenceSha256, sha256, validate, validateInlineScripts } from './validate.mjs';
+import { rootDir, referenceVersion, referenceSha256, sha256, validate, validateInlineScripts } from './validate.mjs';
 import { buildHostingArtifact, hostingOptionsFromArgs, prepareHosting, productionApiUrl } from './prepare-hosting.mjs';
 import { verifyHosting } from './verify-hosting.mjs';
 import { previewApiFromEvent, previewConfigFromEvent, validatePreviewApiUrl } from './preview-config.mjs';
@@ -25,7 +25,7 @@ test('base 6.31 passa em marker, hash, configuração e sintaxe', () => {
 });
 test('marker histórico em outro script não mascara uma release ativa errada', t => {
   const root = fixture(t);
-  writeFileSync(join(root, 'index.html'), html.toString().replace("const VERSION='6.31.0-secretaria-drawer-fluido'", "const VERSION='6.29.0'"));
+  writeFileSync(join(root, 'index.html'), html.toString().replace(`const VERSION='${referenceVersion}'`, "const VERSION='6.29.0'"));
   assert.throws(() => validate(root), /Marker da release ativa incorreto/);
 });
 test('mesmo marker com HTML diferente é recusado', t => {

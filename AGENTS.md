@@ -1,22 +1,22 @@
 # FORJA — frontend oficial
 
-INVESTIGAÇÃO ATUAL: o teste real ainda falha. Não concluir que source da semana
-comprova confirmação de cada período. Auditoria temporária scripts/temporary-*
-somente nesta branch, job manual read-only-firestore-audit na validação.
-Hosting Preview está suspenso por false && durante esta auditoria; produção não
-foi alterada. Remover job/scripts/chave pública e restaurar o gate original antes
-de qualquer merge futuro. Não enviar este script ao backend: redeploy inicia
-maintenance/sync. Nenhuma escrita em Firestore/Auth/Google autorizada.
+CORREÇÃO ATUAL:6.31.1-secretaria-drawer-fluido; backend
+6.31.1-secretaria-publicacao-confirmada. Exigir confirmed-week-v2, jamais source
+ou published-week-v1 como prova. Cinco salvamentos só publicam após confirmação
+visível da semana inteira. Cópia é rascunho. Alterar exclusivamente publicação,
+sem ampliar outras telas/regras. Dados de Carlos permanecem preservados.
+Auditoria temporária será removida após validação read-only, antes de merge.
+Não usar Auth/Google/escritas reais para testes. Sem merge/main/produção.
 
 Revisão atual do PR #2: CSS real forja-v630-style e fonte de disponibilidade
 publicada corrigida no PR #2 separado do backend. Não usar mais o modo de Preview
-production-unchanged para esta versão: o drawer exige published-week-v1 e health
-6.31.0-secretaria-disponibilidade-publicada no Render Preview.
+production-unchanged para esta versão: o drawer exige confirmed-week-v2 e health
+6.31.1-secretaria-publicacao-confirmada no Render Preview.
 URL fornecida: https://forja-api-pr-2.onrender.com, configurada na descrição do
 PR #2 para substituir somente o artefato Preview. Exigir checks públicos aprovados;
 nunca copiar temporária para index.html.
 Testes de CSS devem usar parser HTML/DOM real, nunca regex que extraia style de
-strings JavaScript. Execute 20 testes Chromium e 17 testes pipeline. Relatório
+strings JavaScript. Execute 20 testes drawer + 5 publicação Chromium e 17 testes pipeline. Relatório
 exportReport deve manter seu CSS original sem #v630BookingRoot. Preservar demais
 áreas, locks, sync, Auth e Firestore. Sem merge/main/produção.
 
@@ -26,7 +26,7 @@ Leia os três documentos em `docs/` antes de trabalhar. Este checkout é
 
 - Trabalhe no checkout existente; não crie worktrees sem solicitação.
 - Base publicada: 6.30.0; release preparada neste PR:
-  `6.31.0-secretaria-drawer-fluido`. Correção autorizada exclusivamente em
+  `6.31.1-secretaria-drawer-fluido`. Correção autorizada exclusivamente em
   Secretaria → Marcar aula, testes e infraestrutura necessária ao Preview.
   Não reconstruir o portal nem alterar aluno, professor ou Google central.
 - Preserve Firebase Hosting/Auth/Firestore, backend Render e dados reais.
@@ -53,7 +53,7 @@ Leia os três documentos em `docs/` antes de trabalhar. Este checkout é
 - Auth/Firestore continuam conforme o HTML original; Render Preview não comprova
   isolamento de dados. Teste somente leituras/CORS, sem dados falsos em produção.
 - Execute `node scripts/validate.mjs` e `node --test scripts/pipeline.test.mjs`.
-  Execute também `node --test scripts/secretaria-drawer.test.mjs`, usando
+  Execute também `node --test scripts/secretaria-drawer.test.mjs scripts/availability-publication.test.mjs`, usando
   Playwright 1.56.1 e Chromium. Para instalação isolada e comandos, ver DEPLOYMENT.
   Os testes executam o código real do drawer com fixtures isoladas, sem rede
   de produção; não confundir isso com uma sessão administrativa autenticada.

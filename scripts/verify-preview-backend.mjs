@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { validatePreviewApiUrl } from './preview-config.mjs';
 
 const productionVersion = '6.30.1-cors-preview-forja-escola';
-const previewVersion = '6.31.0-secretaria-disponibilidade-publicada';
+const previewVersion = '6.31.1-secretaria-publicacao-confirmada';
 
 export function assertVaryOrigin(headers) {
   const fields = (headers.get('vary') || '').split(',').map(field => field.trim().toLowerCase());

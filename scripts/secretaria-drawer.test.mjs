@@ -78,7 +78,7 @@ async function fixture(t, { mobile = false, linksFail = false, portalSource = ht
 async function choose(page,id,value) { await page.locator('#'+id).focus();await page.locator('#'+id).selectOption(value); }
 async function eligible(page) { await choose(page,'v630Subject','math');await choose(page,'v630Student','s1'); }
 async function respond(page,index=0,slots=[{inicio:'10:00',fim:'11:00',status:'disponivel'},{inicio:'11:00',fim:'12:00',status:'ocupado'}]) {
-  await page.evaluate(({index,slots})=>pending[index].resolve({availabilityPolicy:'published-week-v1',items:[{uid:'t1',slots}]}),{index,slots});
+  await page.evaluate(({index,slots})=>pending[index].resolve({availabilityPolicy:'confirmed-week-v2',items:[{uid:'t1',slots}]}),{index,slots});
   await page.waitForTimeout(20);
 }
 async function identity(page) {
