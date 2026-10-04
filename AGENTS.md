@@ -1,5 +1,12 @@
 # FORJA — frontend oficial
 
+Escopo atual autorizado: unificar disponibilidade da Agenda da Secretaria e
+Marcar aula, mantendo publicação confirmed-week-v2 e legado não confirmado
+sem slots/verdes. Não confirmar/modificar Carlos para testes. Sem merge/main ou
+produção até validação manual e confirmação final. Testes: backend 74+37;
+frontend pipeline21 e Chromium35 (drawer20, publicação5, Agenda10).
+Leia a revisão no topo de docs/FORJA_PROJECT_CONTEXT.md.
+
 CORREÇÃO ATUAL:6.31.1-secretaria-drawer-fluido; backend
 6.31.1-secretaria-publicacao-confirmada. Exigir confirmed-week-v2, jamais source
 ou published-week-v1 como prova. Cinco salvamentos só publicam após confirmação

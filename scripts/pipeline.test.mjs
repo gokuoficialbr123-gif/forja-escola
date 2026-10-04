@@ -73,7 +73,7 @@ test('verificação pública aguarda propagação e recusa bytes errados com mes
 const previewApiUrl = 'https://forja-api-pr-42.onrender.com';
 test('Preview Hosting requires current backend release before publication',async()=>{
   const calls=[];
-  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion}),{status:200})}});
+  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2'}),{status:200})}});
   assert.deepEqual(calls,[previewApiUrl+'/health']);assert.equal(result.version,previewVersion);
 });
 test('old release cannot pass the pre-deploy check',async()=>{
@@ -199,4 +199,8 @@ test('PR só de frontend precisa optar explicitamente pela API oficial exata', (
   assert.throws(() => previewConfigFromEvent(previewEvent('<!-- FORJA_PREVIEW_BACKEND=anything -->')), /inválido/);
   const fork = previewEvent(comment); fork.pull_request.head.repo.full_name = 'other/fork';
   assert.throws(() => previewConfigFromEvent(fork), /próprio repositório/);
+});
+
+test('same 6.31.1 version without unified Secretaria contract cannot publish Preview',async()=>{
+ await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response(JSON.stringify({ok:true,version:previewVersion}),{status:200})}),/não unifica Agenda e booking/);
 });

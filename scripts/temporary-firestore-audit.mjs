@@ -80,7 +80,7 @@ export async function audit(raw){
   db=readOnlyDatabase(raw);
   const collections=(await db.listCollections()).map(c=>c.id);
   const structures=[...roots].map(name=>({name,status:collections.includes(name)?'exists':'documento/estrutura inexistente'}));
-  const report={readOnly:true,incidentDate,incidentWeek,timeZone:APP_TIME_ZONE,backendReference:'c4397768afad8e273fb5a24501a57852e4478e41',structures,cases:[]};
+  const report={readOnly:true,incidentDate,incidentWeek,timeZone:APP_TIME_ZONE,backendReference:'03aa329c83b45f9143db2ec590646233b1a1d987',structures,cases:[]};
   if(!collections.includes('users'))return report;
   const teachers=(await db.collection('users').where('role','==','teacher').select(...userFields).get()).docs.filter(s=>matching(s.data().fullName,'Carlos'));
   const students=(await db.collection('users').where('role','==','student').select(...userFields).get()).docs.filter(s=>matching(s.data().fullName,'João'));
@@ -97,7 +97,7 @@ export async function audit(raw){
     }
     const agenda=await replayAgenda(new URL('https://forja-api-pr-2.onrender.com/admin/disponibilidades-semana?weekStart='+incidentWeek));
     const agendaItem=agenda.body?.items?.find(x=>x.uid===professionalId);
-    item.agendaBefore={status:agenda.status,weekStart:agendaItem?.weekStart,source:agendaItem?.source,periods:agendaItem?.disponibilidade?.[String(weekdayForDate(incidentDate))]||[]};
+    item.agendaAfter={status:agenda.status,weekStart:agendaItem?.weekStart,source:agendaItem?.source,availabilityPolicy:agenda.body?.availabilityPolicy,publicationValid:agendaItem?.publicationValid,periods:agendaItem?.disponibilidade?.[String(weekdayForDate(incidentDate))]||[]};
     const confirmedWeek=await professionalAvailabilityWeek(professionalId,p,incidentDate,{publishedOnly:true});
     item.confirmedDay={publicationValid:confirmedWeek.publicationValid,periods:confirmedWeek.items[String(weekdayForDate(incidentDate))]||[]};
     const lessonDocs=await db.collection('aulas').where('professorId','==',professionalId).select('dataAula','horaAula','horaFim','status').get();
@@ -177,7 +177,7 @@ async function main(){
   }catch(error){report={readOnly:true,phase:'Firestore read audit',error:safeError(error)};process.exitCode=1}
   finally{if(app)await app.firestore().terminate()}
   if(!report.error) {
-    const summary={readOnly:true,incidentDate,backendReference:report.backendReference,matches:report.matches,cases:report.cases.map(c=>({agendaBefore:c.agendaBefore,confirmedDay:c.confirmedDay,teacherLessons:c.teacherLessons,googleBusy:c.googleBusy,schoolBlocks:c.schoolBlocks,week:c.weeks.filter(w=>w.weekStart===incidentWeek).map(w=>({weekStart:w.weekStart,source:w.source,periods:w.semana?.['0']||[],publicationPresent:w.publicationPresent,publicationValid:w.publicationValid})),queries:c.queries.map(q=>({status:q.status,availabilityPolicy:q.availabilityPolicy,items:q.items.map(x=>({publishedPeriods:x.publishedPeriods,slots:x.slots}))}))}))};
+    const summary={readOnly:true,incidentDate,backendReference:report.backendReference,matches:report.matches,cases:report.cases.map(c=>({agendaAfter:c.agendaAfter,confirmedDay:c.confirmedDay,teacherLessons:c.teacherLessons,googleBusy:c.googleBusy,schoolBlocks:c.schoolBlocks,week:c.weeks.filter(w=>w.weekStart===incidentWeek).map(w=>({weekStart:w.weekStart,source:w.source,periods:w.semana?.['0']||[],publicationPresent:w.publicationPresent,publicationValid:w.publicationValid})),queries:c.queries.map(q=>({status:q.status,availabilityPolicy:q.availabilityPolicy,items:q.items.map(x=>({publishedPeriods:x.publishedPeriods,slots:x.slots}))}))}))};
     console.log(`::notice title=FORJA_BOOKING_READ_ONLY_RESULT::${JSON.stringify(summary)}`);
   }
   const encrypted=seal(report),chunks=encrypted.match(/.{1,700}/g)||[];
@@ -637,7 +637,7 @@ async function replayAgenda(url){const req={method:"GET"},pathname="/admin/dispo
       for (const doc of snap.docs) {
         const profile = { uid:doc.id, ...doc.data() };
         if (!roleIsProfessional(profile.role) || profile.active !== true) continue;
-        const week = await professionalAvailabilityWeek(doc.id, profile, weekStart);
+        const week = await professionalAvailabilityWeek(doc.id, profile, weekStart, { publishedOnly:true });
         items.push({
           uid:doc.id,
           fullName:profile.fullName||"Profissional",
@@ -648,9 +648,11 @@ async function replayAgenda(url){const req={method:"GET"},pathname="/admin/dispo
           disponibilidade:week.items,
           configurada:Object.keys(week.items).length>0,
           source:week.source||"",
+          publicationValid:week.publicationValid,
+          availabilityPolicy:BOOKING_AVAILABILITY_POLICY,
         });
       }
-      return jsonResponse(res,200,{ok:true,weekStart,weekEnd,items});
+      return jsonResponse(res,200,{ok:true,weekStart,weekEnd,availabilityPolicy:BOOKING_AVAILABILITY_POLICY,items});
     } catch (error) { return handleError(res,error,"Erro ao carregar disponibilidade da semana"); }
   }
 

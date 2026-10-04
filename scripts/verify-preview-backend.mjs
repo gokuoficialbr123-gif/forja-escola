@@ -15,6 +15,7 @@ export async function verifyPreviewHealth(apiUrl, { mode = 'render-preview', req
   const health = await response.json();
   assert.equal(health.ok, true);
   assert.equal(health.version, mode === 'production-unchanged' ? productionVersion : previewVersion, 'Render Preview ainda não tem a regra atual; Preview Hosting não publicado.');
+  if(mode==='render-preview')assert.equal(health.secretariaAvailabilityPolicy,'confirmed-week-v2','Render Preview ainda não unifica Agenda e booking; Preview Hosting não publicado.');
   return { apiUrl, version: health.version, health: 200 };
 }
 
@@ -41,6 +42,8 @@ export async function verifyPreviewBackend(apiUrl, frontendUrl, { mode = 'render
   const data = await health.json();
   assert.equal(data.ok, true);
   assert.equal(data.version, mode === 'production-unchanged' ? productionVersion : previewVersion, 'Versão incorreta no backend Preview.');
+
+  if(mode==='render-preview')assert.equal(data.secretariaAvailabilityPolicy,'confirmed-week-v2','Agenda e booking ainda não unificados no Render Preview.');
 
   const preflight = await request('/me', {
     method: 'OPTIONS',

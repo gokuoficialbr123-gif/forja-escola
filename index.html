@@ -6678,7 +6678,9 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   function v621AvailabilityForDay(role,uid,day){
     const ws=gWeekStart(day),code=v621DayCode(day);
     if(role==='teacher')return (v621TeacherAvailabilityForWeek(ws)?.[code]||[]).map(x=>({...x}));
-    return (v621AdminWeekEntry(ws,uid)?.disponibilidade?.[code]||[]).map(x=>({...x}));
+    const entry=v621AdminWeekEntry(ws,uid);
+    if(entry?.availabilityPolicy!=='confirmed-week-v2'||entry.publicationValid!==true||entry.weekStart!==ws)return [];
+    return (entry.disponibilidade?.[code]||[]).map(x=>({...x}));
   }
 
   async function v621FetchTeacherWeek(ws){
@@ -6961,7 +6963,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     return `${base};left:calc(${l.toFixed(5)}% + 4px)!important;width:calc(${w.toFixed(5)}% - 8px)!important;right:auto!important;z-index:${5+i}`;
   }
   function v629DayData(uid,day){
-    const raw=v621AvailabilityForDay('admin',uid,day),google=v621GoogleBusy(uid,day),googleTimed=google.filter(x=>!x.allDay),manual=v623ManualBusy(uid,day),lessons=v621Lessons(uid,day),lessonCuts=lessons.filter(x=>!/cancel/i.test(String(x.status||''))).map(l=>({start:l.horaAula,end:l.horaFim||addMinutesTime(l.horaAula,60)})),availability=v623CutAvailability(raw,[...googleTimed,...manual,...lessonCuts]);
+    const raw=v621AvailabilityForDay('admin',uid,day),google=v621GoogleBusy(uid,day),googleTimed=google.filter(x=>!x.allDay),manual=v623ManualBusy(uid,day),lessons=v621Lessons(uid,day),lessonCuts=lessons.filter(x=>!/cancel/i.test(String(x.status||''))).map(l=>({start:l.horaAula,end:l.horaFim||addMinutesTime(l.horaAula,60)})),availability=v623CutAvailability(raw,[...google,...manual,...lessonCuts]);
     return {availability,google,googleTimed,manual,lessons};
   }
   function v629Lane(day){

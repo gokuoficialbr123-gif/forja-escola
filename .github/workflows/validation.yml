@@ -57,6 +57,6 @@ jobs:
       - name: Testar drawer Secretaria em navegador real
         env:
           FORJA_PLAYWRIGHT_MODULE: /tmp/forja-browser-tests/node_modules/playwright/index.mjs
-        run: node --test scripts/secretaria-drawer.test.mjs scripts/availability-publication.test.mjs
+        run: node --test scripts/secretaria-drawer.test.mjs scripts/availability-publication.test.mjs scripts/secretaria-agenda.test.mjs
       - name: Preparar artefato isolado
         run: node scripts/prepare-hosting.mjs

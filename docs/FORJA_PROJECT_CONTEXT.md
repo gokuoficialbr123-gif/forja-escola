@@ -1,5 +1,33 @@
 # FORJA Escola / Projeto Júlio — frontend oficial
 
+## Revisão 6.31.1 — Agenda e booking com a mesma publicação (somente PR #2/Preview)
+
+Causa confirmada por leitura real em 04/10/2026: a Agenda administrativa usava
+professionalAvailabilityWeek no modo de rascunho, enquanto booking exigia
+confirmed-week-v2. Semana de 28/09 sem publication válido contém domingo
+12:33–14:44. Aula 13:00–14:00 e ocupado Google na mesma faixa deixam 27/44 min;
+isso também não permite duração de 60 min, mesmo em fixture confirmada.
+O documento real não foi alterado, confirmado, apagado ou migrado pelo diagnóstico.
+
+Agora /admin/disponibilidades-semana usa publishedOnly:true e retorna
+availabilityPolicy=confirmed-week-v2 e publicationValid por profissional.
+Agenda, consultas administrativas antigas e booking usam a mesma validação
+isPublishedAvailabilityWeek: source profissional sozinho nunca autoriza verde.
+O editor profissional continua lendo rascunhos para revisão explícita.
+O frontend administrativo recusa caches sem a política/recibo válidos ou de
+outra semana; mantém aulas azuis e corta também ocupado Google de dia inteiro.
+Não há publicação automática de legado nem filtro visual de horários específicos.
+/health informa secretariaAvailabilityPolicy=confirmed-week-v2 para comprovar
+que o Render Preview já possui o contrato unificado antes do Hosting Preview.
+
+Verificação real: SDK get com facade que recusa operações de escrita e replay
+exato das rotas sem iniciar servidor/Auth/Google. Não equivale a sessão HTTP
+administrativa autenticada. Testes isolados cobrem domingos confirmados livres,
+duração completa, aulas, Google, recibo invalidado e caches antigos.
+Nenhum merge/main/produção autorizado. Publicação futura depende de validação
+manual e confirmação final do usuário, inclusive PR #2 do backend.
+
+
 ### Validação read-only concluída; auditoria temporária removida
 
 Run37165057555 passou em03/10/2026: leitura real localizou Carlos/Matemática/João

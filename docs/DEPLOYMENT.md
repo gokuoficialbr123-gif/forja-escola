@@ -1,5 +1,17 @@
 # FORJA — Firebase Hosting pelo GitHub
 
+### Revisão Preview — contrato unificado da Secretaria
+
+Manter 6.31.1. Render Preview deve retornar /health com
+secretariaAvailabilityPolicy=confirmed-week-v2, além da versão esperada.
+O workflow Hosting recusa backend antigo com a mesma versão antes do deploy.
+Atualizar somente a branch/serviço Preview do PR #2; nunca main/produção.
+Depois de CI passar, testar manualmente o domingo 04/10: legado sem recibo não
+aparece verde, aula azul preservada, zero slots de 60min. Confirmação legítima
+no fluxo profissional exige revisão de TODOS os períodos; o diagnóstico não
+executa essa escrita. Fixtures isoladas comprovam períodos confirmados livres.
+
+
 ### Validação read-only concluída; auditoria temporária removida
 
 Run37165057555 passou em03/10/2026: leitura real localizou Carlos/Matemática/João
