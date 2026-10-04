@@ -1,3 +1,16 @@
+## Etapa 1 — Google Calendar central da Secretaria (somente PR/Preview)
+
+Autorização atual: conexão central separada, somente admin ativo; status, OIDC,
+conectar/reconectar/desconectar. Sem Calendar API, lista de calendários, busy,
+webhook, importação, escrita de eventos ou alterações Agenda/booking/disponibilidade.
+ETAPA 0 já publicada. Instruções anteriores abaixo são históricas; preservar a
+produção 6.31.1 e trabalhar em feat/secretaria-google-central-etapa-1, sem merge/main.
+Não testar OAuth/sync reais nem escrever em Firebase real: somente demo-forja.
+Central usa cliente OAuth próprio + openid/email; scopes pessoais intactos.
+Credenciais AES-GCM só no backend, nunca no HTML/respostas/logs. Disconnect central
+remove apenas a credencial central local, sem revogar grant Google do projeto.
+Ler a atualização no topo dos três documentos.
+
 # FORJA — frontend oficial
 
 Etapa atual: APENAS apresentação dos eventos na Agenda da Secretaria autorizada.

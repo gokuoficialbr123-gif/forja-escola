@@ -1,3 +1,34 @@
+## 04/10/2026 — Etapa 1 Google Calendar central, ainda não produção
+
+### Etapa 1 — área Google Calendar da Secretaria
+
+Configurações da Secretaria/Admin ativo ganhou um script final isolado
+forja-google-secretaria-script. HTML anterior inteiro, inclusive relatório,
+Agenda, drawer, telas pessoais e FORJA_API_URL oficial preservados byte a byte.
+Marker de disponibilidade 6.31.1 mantido; feature marker separado
+forjaGoogleSecretariaPolicy=identity-only-v1. Hash novo conscientemente fixado:
+c9142dac5d0d0d8b8120e121e23406194ea44cb25cea988bde276e74940dd4da.
+
+Área: Conectado/Não conectado, e-mail mascarado pelo backend, último status/data,
+Conectar/Reconectar, Desconectar e Atualizar status. Carrega somente status central;
+ações não chamam sync/watch/busy nem as rotas pessoais. Falha de status fica local,
+com retry; resposta atrasada após troca de perfil é descartada. Callback usa aviso
+próprio googleSecretaria e abre Configurações sem afirmar sincronização.
+
+API central /admin/google-calendar/central/{status,connect,callback,disconnect}.
+Cliente OAuth/secret/tokens nunca são configuração do frontend. Produção conserva
+https://forja-api-m1kq.onrender.com; Preview substitui somente o artefato gerado com
+URL Render do PR de backend. Gate requer googleSecretariaPolicy=identity-only-v1,
+state-pkce-oidc-v1 e confirmed-week-v2 antes de publicar Preview.
+Desconectar remove apenas credenciais centrais do FORJA; não revoga grant Google,
+para preservar conexões pessoais do mesmo projeto. Sem Calendar API nesta etapa.
+
+Testes isolados: backend unitários93 e integração64 (inclui12 centrais);
+frontend pipeline23 e Chromium67 (inclui14 centrais desktop/mobile).
+Assinatura OIDC real com chaves efêmeras/certificados simulados; Auth/Firestore demo-forja.
+Regressões Google pessoal e6.31.1 preservadas. Não afirmar OAuth real validado.
+PRs/CI/Previews devem ser conferidos separadamente; nenhum merge/produção autorizado.
+
 # FORJA — frontend
 
 ## Revisão visual — eventos da Agenda da Secretaria (somente Preview)
