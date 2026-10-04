@@ -4,7 +4,19 @@ import { fileURLToPath } from 'node:url';
 import { validatePreviewApiUrl } from './preview-config.mjs';
 
 const productionVersion = '6.30.1-cors-preview-forja-escola';
-const previewVersion = '6.31.1-secretaria-publicacao-confirmada';
+export const previewVersion = '6.31.1-secretaria-publicacao-confirmada';
+
+export async function verifyPreviewHealth(apiUrl, { mode = 'render-preview', request = fetch } = {}) {
+  assert.ok(['render-preview', 'production-unchanged'].includes(mode), 'Modo de backend inválido.');
+  if (mode === 'production-unchanged') assert.equal(apiUrl, 'https://forja-api-m1kq.onrender.com');
+  else validatePreviewApiUrl(apiUrl);
+  const response = await request(apiUrl + '/health', { signal: AbortSignal.timeout(30000) });
+  assert.equal(response.status, 200, 'Render Preview não está disponível; Preview Hosting não publicado.');
+  const health = await response.json();
+  assert.equal(health.ok, true);
+  assert.equal(health.version, mode === 'production-unchanged' ? productionVersion : previewVersion, 'Render Preview ainda não tem a regra atual; Preview Hosting não publicado.');
+  return { apiUrl, version: health.version, health: 200 };
+}
 
 export function assertVaryOrigin(headers) {
   const fields = (headers.get('vary') || '').split(',').map(field => field.trim().toLowerCase());
@@ -50,7 +62,11 @@ export async function verifyPreviewBackend(apiUrl, frontendUrl, { mode = 'render
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    console.log(JSON.stringify(await verifyPreviewBackend(process.env.FORJA_PREVIEW_API_URL, process.env.FORJA_VERIFY_URL, { mode: process.env.FORJA_PREVIEW_BACKEND_MODE || 'render-preview' }), null, 2));
+    const mode = process.env.FORJA_PREVIEW_BACKEND_MODE || 'render-preview';
+    const result = process.argv.includes('--health-only')
+      ? await verifyPreviewHealth(process.env.FORJA_PREVIEW_API_URL, { mode })
+      : await verifyPreviewBackend(process.env.FORJA_PREVIEW_API_URL, process.env.FORJA_VERIFY_URL, { mode });
+    console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     // Surface a useful diagnostic through GitHub check annotations even when
     // the separate signed log-download host is inaccessible to the reviewer.

@@ -5,7 +5,9 @@ CORREÇÃO ATUAL:6.31.1-secretaria-drawer-fluido; backend
 ou published-week-v1 como prova. Cinco salvamentos só publicam após confirmação
 visível da semana inteira. Cópia é rascunho. Alterar exclusivamente publicação,
 sem ampliar outras telas/regras. Dados de Carlos permanecem preservados.
-Auditoria temporária será removida após validação read-only, antes de merge.
+Auditoria temporária removida: nenhum job/script/chave de auditoria no PR final.
+Validação real read-only confirmou zero slots para o período não confirmado.
+Preview Hosting restaurado; exigir health atualizado antes de publicar.
 Não usar Auth/Google/escritas reais para testes. Sem merge/main/produção.
 
 Revisão atual do PR #2: CSS real forja-v630-style e fonte de disponibilidade
@@ -16,7 +18,7 @@ URL fornecida: https://forja-api-pr-2.onrender.com, configurada na descrição d
 PR #2 para substituir somente o artefato Preview. Exigir checks públicos aprovados;
 nunca copiar temporária para index.html.
 Testes de CSS devem usar parser HTML/DOM real, nunca regex que extraia style de
-strings JavaScript. Execute 20 testes drawer + 5 publicação Chromium e 17 testes pipeline. Relatório
+strings JavaScript. Execute 20 testes drawer + 5 publicação Chromium e 20 testes pipeline. Relatório
 exportReport deve manter seu CSS original sem #v630BookingRoot. Preservar demais
 áreas, locks, sync, Auth e Firestore. Sem merge/main/produção.
 

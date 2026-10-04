@@ -21,7 +21,6 @@ jobs:
   preview:
     needs: validate
     if: >-
-      false &&
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.actor != 'dependabot[bot]'
@@ -41,6 +40,11 @@ jobs:
       - name: Ler modo do backend da descrição do PR
         id: preview-config
         run: node scripts/preview-config.mjs
+      - name: Exigir release atual no Render antes de publicar Preview
+        env:
+          FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
+          FORJA_PREVIEW_BACKEND_MODE: ${{ steps.preview-config.outputs.mode }}
+        run: node scripts/verify-preview-backend.mjs --health-only
       - name: Preparar somente o artefato Preview
         env:
           FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}

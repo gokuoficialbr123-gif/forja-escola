@@ -8,7 +8,7 @@ import { rootDir, referenceVersion, referenceSha256, sha256, validate, validateI
 import { buildHostingArtifact, hostingOptionsFromArgs, prepareHosting, productionApiUrl } from './prepare-hosting.mjs';
 import { verifyHosting } from './verify-hosting.mjs';
 import { previewApiFromEvent, previewConfigFromEvent, validatePreviewApiUrl } from './preview-config.mjs';
-import { assertVaryOrigin } from './verify-preview-backend.mjs';
+import { assertVaryOrigin, verifyPreviewHealth, previewVersion } from './verify-preview-backend.mjs';
 
 const html = readFileSync(join(rootDir, 'index.html'));
 function fixture(t) {
@@ -71,6 +71,17 @@ test('verificação pública aguarda propagação e recusa bytes errados com mes
 });
 
 const previewApiUrl = 'https://forja-api-pr-42.onrender.com';
+test('Preview Hosting requires current backend release before publication',async()=>{
+  const calls=[];
+  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion}),{status:200})}});
+  assert.deepEqual(calls,[previewApiUrl+'/health']);assert.equal(result.version,previewVersion);
+});
+test('old release cannot pass the pre-deploy check',async()=>{
+  await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response(JSON.stringify({ok:true,version:'6.31.0-secretaria-disponibilidade-publicada'}),{status:200})}),/a regra atual/);
+});
+test('missing Render service blocks Preview publication',async()=>{
+  await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response('Not Found',{status:404})}),/não está disponível/);
+});
 const previewEvent = body => ({
   repository: { full_name: 'gokuoficialbr123-gif/forja-escola' },
   pull_request: { head: { repo: { full_name: 'gokuoficialbr123-gif/forja-escola' } }, body },

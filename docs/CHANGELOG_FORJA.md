@@ -1,8 +1,25 @@
 # FORJA — frontend
 
+### Validação read-only concluída; auditoria temporária removida
+
+Run37165057555 passou em03/10/2026: leitura real localizou Carlos/Matemática/João
+sem ambiguidade. Semana2026-09-28 mantém sábado19:58–23:58, source profissional,
+publicationPresent=false, publicationValid=false. Reprodução interna do GET com
+confirmed-week-v2 retornou status200, publishedPeriods=[] e slots=[] para
+03/10/2026,60min. Sem PATCH, publicação da semana, criação de aula, migração,
+Auth ou Google sync na validação. Distinguir replay com dados reais de chamada
+HTTP autenticada ao Render; esta depende de Preview atualizado e sessão legítima.
+
+Job read-only-firestore-audit, script de identidade, script de auditoria e chave
+pública removidos do conjunto final do PR. Hosting Preview liberado novamente;
+produção continua restrita a main, que não foi alterada. Backend final também
+impede que sync de saída exporte rascunhos/legado como disponibilidade Google;
+74+32 testes passaram localmente. Sem alteração manual do documento real.
+
+
 ## 03/10/2026 — 6.31.1-secretaria-drawer-fluido / publicação confirmada
 
-Backend PR #2 a88fb2d7fe5f1aafc32f1794121f0a5b3765ac4f exige
+Backend PR #2 c4397768afad8e273fb5a24501a57852e4478e41 exige
 confirmed-week-v2. O drawer recusa published-week-v1; não filtra faixas de horário
 no cliente. A fonte real de Carlos contém sábado19:58–23:58 com source profissional,
 que sozinho deixa de autorizar marcação. Não alterado manualmente nenhum dado.
@@ -25,8 +42,8 @@ validate.mjs. Fonte oficial mantém https://forja-api-m1kq.onrender.com; só art
 Preview substitui URL pela descrição do PR. Firebase config/Auth/Rules intactos.
 Validação exige health 6.31.1-secretaria-publicacao-confirmada no Render Preview.
 
-17 testes pipeline,20 testes do drawer e5 testes da confirmação em Chromium
-passaram localmente, além de73+32 backend. Atualização dos Previews/resultados
+20 testes pipeline,20 testes do drawer e5 testes da confirmação em Chromium
+passaram localmente, além de74+32 backend. Atualização dos Previews/resultados
 reais deve ser conferida pelo commit publicado. Sem merge/main/produção.
 Instrumentação temporária read-only será removida após leitura de validação;
 nenhum script de auditoria deve permanecer no conjunto final antes do merge.

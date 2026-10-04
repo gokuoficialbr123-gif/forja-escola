@@ -11,37 +11,6 @@ permissions:
   contents: read
 
 jobs:
-  # TEMPORARY. Remove this job and scripts/temporary-* before merge.
-  # No server import/start, Auth, migration, Google, scheduling or database writes.
-  read-only-firestore-audit:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/fix/secretaria-drawer-6.31.0'
-    runs-on: ubuntu-latest
-    timeout-minutes: 8
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: '22'
-      - name: Instalar SDK isolado sem alterar portal
-        run: npm install --prefix /tmp/forja-readonly-tools --no-save --package-lock=false --no-audit --no-fund firebase-admin@13.10.0
-      - name: Conferir barreiras de leitura e redação
-        run: node scripts/temporary-firestore-audit.mjs --self-test
-      - name: Conferir somente client_email e project_id do secret
-        id: audit-identity
-        env:
-          FORJA_AUDIT_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA }}
-        run: node scripts/temporary-audit-identity.mjs
-      - name: Auditar somente leituras do projeto existente
-        if: steps.audit-identity.outputs.same_account == 'true' && steps.audit-identity.outputs.project_ok == 'true'
-        env:
-          FORJA_AUDIT_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA }}
-          FORJA_ADMIN_MODULE: /tmp/forja-readonly-tools/node_modules/firebase-admin/lib/index.js
-        run: node scripts/temporary-firestore-audit.mjs
-
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
