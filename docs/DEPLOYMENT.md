@@ -1,3 +1,29 @@
+### Configuração manual — somente serviço Render Preview desta etapa
+
+Não alterar o cliente OAuth pessoal existente. No Google Cloud Console / Google Auth
+Platform → Clients (ou APIs e serviços → Credenciais) → Create client / Criar
+credenciais → OAuth client ID → Web application. Nome sugerido: FORJA Secretaria.
+Cliente separado; não adicionar scopes Calendar. O consentimento solicita openid/email.
+Se aplicativo estiver em Testing, incluir somente conta de teste autorizada em Audience
+→ Test users. Não criar chave de service account nem conceder IAM/Firestore novos.
+
+Authorized redirect URIs: https://<host-render-preview>/admin/google-calendar/central/callback
+Use o host HTTPS real do PR. Não alterar o redirect pessoal nem produção.
+No Render → serviço Preview → Environment, configurar nomes:
+GOOGLE_SECRETARIA_OAUTH_CLIENT_ID (client ID desse novo cliente);
+GOOGLE_SECRETARIA_OAUTH_CLIENT_SECRET (secret desse novo cliente, só no Render);
+GOOGLE_SECRETARIA_OAUTH_REDIRECT_URI (URI exata acima);
+GOOGLE_SECRETARIA_FRONTEND_URL (origem HTTPS exata do Firebase Preview, sem query/path).
+Reutilizar os segredos AES/HMAC existentes, sem mudar seus valores. Configuração ausente,
+cliente igual ao pessoal, callback inválido ou frontend estranho mantém configured=false.
+
+Este ambiente Codex não tem credencial de controle do Render. Se Preview não for criado
+automaticamente, criar somente o serviço do PR em Pull Request Previews ou Manual Deploy
+→ Deploy latest commit. Conferir health com googleSecretariaPolicy=identity-only-v1.
+Depois conectar Firebase Preview via FORJA_PREVIEW_API_URL na descrição do PR frontend.
+Não executar OAuth real automaticamente: Preview compartilha Firestore real.
+Nenhum merge/main/produção nesta etapa.
+
 # FORJA — Firebase Hosting pelo GitHub
 
 ## Revisão visual — eventos da Agenda da Secretaria (somente Preview)

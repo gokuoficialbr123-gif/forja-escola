@@ -7358,5 +7358,75 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
 })();
 </script>
 
+<script id="forja-google-secretaria-script">
+/* Google Calendar central — Etapa 1: identity only, no Calendar operations. */
+(function(){
+  const CENTRAL_API='/admin/google-calendar/central';
+  const CENTRAL_POLICY='identity-only-v1';
+  let requestSeq=0;
+  const centralAdmin=()=>state.role==='admin'&&state.profile?.active===true;
+  const fresh=()=>({loading:false,configured:false,item:{connected:false},error:''});
+  state.googleSecretaria=fresh();
+  function centralCard(){
+    if(!centralAdmin())return '';
+    const g=state.googleSecretaria,item=g.item||{},connected=item.connected===true;
+    return `<section id="googleSecretariaCard" class="p2-card" aria-busy="${g.loading?'true':'false'}"><div class="p2-card-head"><div><small>CONTA CENTRAL DA ESCOLA</small><h3>Google Calendar da Secretaria</h3></div><span class="status ${connected?'ok':'warn'}">${connected?'Conectado':'Não conectado'}</span></div><p>Conexão da conta central da escola. A sincronização de calendários será disponibilizada em uma próxima etapa.</p><div class="p2-meta"><span>Conta <b>${esc(item.maskedEmail||'—')}</b></span><span>Último status <b>${esc(g.loading?'Consultando…':g.error?'Consulta indisponível':connected?'Conectado':'Não conectado')}</b></span>${item.lastStatusAt?`<span>Atualizado <b>${esc(fmtDateTime(item.lastStatusAt))}</b></span>`:''}</div><div role="status" aria-live="polite">${g.error?'<p>Não foi possível consultar a conexão. Tente novamente.</p>':!g.loading&&!g.configured?'<p>A conexão ainda não está disponível.</p>':''}</div><div class="quick-row"><button class="btn gold" data-secretaria-google="connect" ${g.loading||g.error||!g.configured?'disabled':''}>${connected?'Reconectar':'Conectar'}</button>${connected?`<button class="small-btn danger-btn" data-secretaria-google="disconnect" ${g.loading?'disabled':''}>Desconectar</button>`:''}<button class="small-btn" data-secretaria-google="status" ${g.loading?'disabled':''}>Atualizar status</button></div></section>`;
+  }
+  function paintCentral(){
+    const card=document.getElementById('googleSecretariaCard');
+    if(!card||!centralAdmin())return;
+    card.outerHTML=centralCard();bindCentral();
+  }
+  function centralNotice(){
+    if(!centralAdmin())return;
+    const url=new URL(location.href),result=url.searchParams.get('googleSecretaria');
+    if(!result)return;
+    url.searchParams.delete('googleSecretaria');history.replaceState({},'',url.pathname+url.search+url.hash);
+    state.page='configuracoes';
+    toast(result==='connected'?'Conta central da Secretaria conectada.':'Não foi possível conectar a conta central. A conexão anterior foi preservada.',result==='connected'?'ok':'bad');
+  }
+  async function loadCentral(){
+    const seq=++requestSeq,uid=state.user?.uid;
+    state.googleSecretaria=fresh();
+    if(!centralAdmin())return;
+    state.googleSecretaria.loading=true;paintCentral();
+    try{
+      const r=await api(CENTRAL_API+'/status');
+      if(seq!==requestSeq||uid!==state.user?.uid||!centralAdmin())return;
+      if(r.policy!==CENTRAL_POLICY)throw new Error('Política central indisponível');
+      const item=r.item||{};
+      state.googleSecretaria={loading:false,configured:r.configured===true,error:'',item:{connected:item.connected===true,maskedEmail:typeof item.maskedEmail==='string'&&item.maskedEmail.includes('***@')?item.maskedEmail:'',lastStatusAt:item.lastStatusAt||null}};
+    }catch(_){if(seq===requestSeq&&uid===state.user?.uid&&centralAdmin())state.googleSecretaria={...fresh(),error:'Consulta indisponível'}}
+    paintCentral();
+  }
+  async function centralAction(action,button){
+    if(!centralAdmin()||!['connect','disconnect','status'].includes(action))return;
+    setBusy(button,true,'Processando…');
+    try{
+      if(action==='connect'){
+        const r=await api(CENTRAL_API+'/connect',{method:'POST',body:{}}),url=new URL(r.authUrl);
+        if(url.origin!=='https://accounts.google.com'||url.pathname!=='/o/oauth2/v2/auth'||url.username||url.password||url.searchParams.get('scope')!=='openid email')throw new Error('URL inválida');
+        location.assign(url.toString());return;
+      }
+      if(action==='disconnect'){
+        if(!confirm('Desconectar somente a conta central da Secretaria? As conexões dos profissionais serão preservadas.'))return;
+        await api(CENTRAL_API+'/disconnect',{method:'POST',body:{}});
+        toast('Conta central da Secretaria desconectada.','ok');
+      }
+      await loadCentral();
+    }catch(_){toast('Não foi possível concluir a ação da conta central.','bad')}
+    finally{setBusy(button,false)}
+  }
+  function bindCentral(){$$('[data-secretaria-google]').forEach(button=>button.onclick=()=>centralAction(button.dataset.secretariaGoogle,button))}
+  const previousSettings=settingsPage;
+  settingsPage=function(){return previousSettings()+centralCard()};
+  const previousLoad=loadRoleData;
+  loadRoleData=async function(){await previousLoad();await loadCentral();centralNotice()};
+  const previousBind=bindPage;
+  bindPage=function(){previousBind();bindCentral()};
+  document.documentElement.dataset.forjaGoogleSecretariaPolicy=CENTRAL_POLICY;
+})();
+</script>
+
 </body>
 </html>
