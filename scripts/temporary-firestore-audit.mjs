@@ -93,7 +93,7 @@ function seal(report){
   const key=randomBytes(32),iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,iv);
   const data=Buffer.concat([cipher.update(deflateSync(Buffer.from(JSON.stringify(report)))),cipher.final()]);
   const publicKey=readFileSync(new URL('./temporary-audit-public-key.txt',import.meta.url));
-  return Buffer.from(JSON.stringify({algorithm:'RSA-OAEP-SHA256/AES-256-GCM',encoding:'deflate',sealedKey:publicEncrypt({key:publicKey,oaepHash:'sha256',padding:constants.RSA_PKCS1_OAEP_PADDING},key).toString('base64'),iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),ciphertext:data.toString('base64')})).toString('base64');
+  return Buffer.from(JSON.stringify({algorithm:'RSA-OAEP-SHA256/AES-256-GCM',encoding:'deflate',sealedKey:publicEncrypt({key:publicKey,oaepHash:'sha256',padding:constants.RSA_PKCS1_OAEP_PADDING},key).toString('base64'),iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),ciphertext:data.toString('base64')})).toString('hex');
 }
 export async function selfTest(){
   let writes=0;
@@ -151,7 +151,11 @@ async function main(){
     report=await audit(app.firestore());
   }catch(error){report={readOnly:true,phase:'Firestore read audit',error:safeError(error)};process.exitCode=1}
   finally{if(app)await app.firestore().terminate()}
-  const encrypted=seal(report),chunks=encrypted.match(/.{1,500}/g)||[];
+  if(!report.error) {
+    const summary={readOnly:true,backendReference:report.backendReference,matches:report.matches,cases:report.cases.map(c=>({week:c.weeks.filter(w=>w.weekStart===incidentWeek).map(w=>({weekStart:w.weekStart,source:w.source,periods:w.semana?.['6']||[],publicationPresent:w.publicationPresent,publicationValid:w.publicationValid})),queries:c.queries.map(q=>({status:q.status,availabilityPolicy:q.availabilityPolicy,items:q.items.map(x=>({publishedPeriods:x.publishedPeriods,slots:x.slots}))}))}))};
+    console.log(`::notice title=FORJA_BOOKING_READ_ONLY_RESULT::${JSON.stringify(summary)}`);
+  }
+  const encrypted=seal(report),chunks=encrypted.match(/.{1,700}/g)||[];
   for(let i=0;i<chunks.length;i++)console.log(`::notice title=FORJA_AUDIT_ENCRYPTED_${i+1}_OF_${chunks.length}::${chunks[i]}`);
   console.log(report.error?'Read-only audit blocked; encrypted diagnostic emitted.':'Read-only audit completed; encrypted result emitted.');
 }
