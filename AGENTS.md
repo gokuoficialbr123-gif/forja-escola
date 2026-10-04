@@ -1,5 +1,11 @@
 # FORJA — frontend oficial
 
+Etapa atual: APENAS apresentação dos eventos na Agenda da Secretaria autorizada.
+Não alterar regras/publicação/booking/horários/backend/dados. Escopo CSS e conteúdo
+visual v629; funções de geometria e fontes v621/v629DayData preservadas. Executar
+21pipeline e53Chromium, incluindo scripts/secretaria-agenda-visual.test.mjs.
+Mesmo PR#2/branch de revisão. Sem merge/main/produção.
+
 Escopo atual autorizado: unificar disponibilidade da Agenda da Secretaria e
 Marcar aula, mantendo publicação confirmed-week-v2 e legado não confirmado
 sem slots/verdes. Não confirmar/modificar Carlos para testes. Sem merge/main ou

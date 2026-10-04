@@ -3231,10 +3231,21 @@ body:has(#workspaceContent .v629-secretary-agenda) .workspace-content{padding:14
 #workspaceContent .v629-calendar-card .v621-week{grid-template-columns:54px repeat(var(--v621-days,7),minmax(132px,1fr));min-width:980px}
 #workspaceContent .v629-calendar-card .v621-all-day{grid-template-columns:54px repeat(var(--v621-days,7),minmax(132px,1fr));min-width:980px}
 #workspaceContent .v629-calendar-card .v621-time-axis,#workspaceContent .v629-calendar-card .v621-lane{height:960px!important}
-#workspaceContent .v629-calendar-card .v621-block.v629-block{right:auto!important;border-radius:7px;padding:5px 6px;overflow:hidden;box-shadow:0 1px 2px rgba(40,55,65,.06);text-align:left;transition:transform .12s ease,box-shadow .12s ease;min-width:0}
-#workspaceContent .v629-calendar-card button.v629-block:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(40,55,65,.12);z-index:20!important}
-#workspaceContent .v629-calendar-card .v629-block b{display:block;font-size:9px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#workspaceContent .v629-calendar-card .v629-block small{display:block;font-size:7.5px;line-height:1.25;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Secretaria event presentation only. Minute geometry remains in v629SlotStyle. */
+#workspaceContent .v629-secretary-agenda .v629-calendar-card .v621-lane{background:repeating-linear-gradient(to bottom,#fff 0,#fff 23px,#f2f4f5 23px,#f2f4f5 24px,#fff 24px,#fff 47px,#dde2e5 47px,#dde2e5 48px)}
+#workspaceContent .v629-secretary-agenda .v629-calendar-card .v621-lane.today{background:repeating-linear-gradient(to bottom,#fbfdff 0,#fbfdff 23px,#eef4fb 23px,#eef4fb 24px,#fbfdff 24px,#fbfdff 47px,#dbe7f5 47px,#dbe7f5 48px)}
+#workspaceContent .v629-secretary-agenda .v629-calendar-card .v626-day-mode .v621-week,
+#workspaceContent .v629-secretary-agenda .v629-calendar-card .v626-day-mode .v621-all-day{min-width:0;grid-template-columns:54px minmax(0,1fr)}
+
+#workspaceContent .v629-secretary-agenda .v629-calendar-card .v621-block.v629-block{display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-start;gap:1px;box-sizing:border-box;min-width:0;min-height:0;right:auto!important;border-radius:7px;padding:4px 6px;margin:0;overflow:hidden;box-shadow:0 1px 2px rgba(40,55,65,.06);text-align:left;transition:box-shadow .12s ease}
+#workspaceContent .v629-secretary-agenda .v629-calendar-card button.v629-block:hover{transform:none;box-shadow:0 3px 9px rgba(40,55,65,.12);z-index:20!important}
+#workspaceContent .v629-secretary-agenda .v629-calendar-card .v629-block b{display:block;flex:0 0 auto;width:100%;min-width:0;margin:0;font-size:10px;line-height:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#workspaceContent .v629-secretary-agenda .v629-calendar-card .v629-block small{display:flex;align-items:baseline;flex:0 0 auto;width:100%;min-width:0;gap:4px;margin:0;font-size:8.5px;line-height:11px;white-space:nowrap;overflow:hidden}
+#workspaceContent .v629-secretary-agenda .v629-calendar-card .v629-event-kind{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#workspaceContent .v629-secretary-agenda .v629-calendar-card .v629-block time{flex:0 0 auto;font:inherit;font-variant-numeric:tabular-nums;white-space:nowrap}
+#workspaceContent .v629-secretary-agenda .v629-calendar-card .v629-block.compact{padding:2px 6px}
+#workspaceContent .v629-secretary-agenda .v629-calendar-card .v629-block.compact b{font-size:8.5px;line-height:9px}
+#workspaceContent .v629-secretary-agenda .v629-calendar-card .v629-block.compact small{font-size:7.5px;line-height:9px;gap:3px}
 #workspaceContent .v629-calendar-card .v629-block.lesson{background:#1a73e8!important;color:#fff!important;border-left:4px solid #155fc0!important}
 #workspaceContent .v629-calendar-card .v629-block.availability{background:#e6f4ea!important;color:#116b31!important;border-left:4px solid #188038!important}
 #workspaceContent .v629-calendar-card .v629-block.busy{background:#fce8e6!important;color:#a50e0e!important;border-left:4px solid #d93025!important}
@@ -3245,7 +3256,7 @@ body:has(#workspaceContent .v629-secretary-agenda) .workspace-content{padding:14
 #workspaceContent .v629-calendar-card .v621-month-head{min-width:900px;position:sticky;top:0;z-index:10}
 #workspaceContent .v629-calendar-card .v621-month-cell{min-height:124px;padding:6px;cursor:pointer}
 #workspaceContent .v629-calendar-card .v621-month-cell:hover{background:#fafcff}
-#workspaceContent .v629-calendar-card .v629-month-tag{display:block;width:100%;border:0;text-align:left;border-radius:4px;padding:4px 5px;margin-top:3px;font-size:8px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#workspaceContent .v629-secretary-agenda .v629-calendar-card .v629-month-tag{display:block;box-sizing:border-box;width:100%;border:0;text-align:left;border-radius:7px;padding:4px 6px;margin-top:3px;font-size:8px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #workspaceContent .v629-calendar-card .v629-month-tag.lesson{background:#e8f0fe;color:#174ea6}.v629-month-tag.availability{background:#e6f4ea;color:#116b31}.v629-month-tag.busy{background:#fce8e6;color:#a50e0e}
 #workspaceContent .v629-empty-overlay{min-height:560px;display:grid;place-items:center;padding:40px;text-align:center;background:#fff;color:#6d7880}
 #workspaceContent .v629-empty-overlay div{max-width:380px}.v629-empty-overlay b{display:block;color:#17384b;font-size:15px;margin-bottom:5px}.v629-empty-overlay span{font-size:10px;line-height:1.5}
@@ -6966,14 +6977,22 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     const raw=v621AvailabilityForDay('admin',uid,day),google=v621GoogleBusy(uid,day),googleTimed=google.filter(x=>!x.allDay),manual=v623ManualBusy(uid,day),lessons=v621Lessons(uid,day),lessonCuts=lessons.filter(x=>!/cancel/i.test(String(x.status||''))).map(l=>({start:l.horaAula,end:l.horaFim||addMinutesTime(l.horaAula,60)})),availability=v623CutAvailability(raw,[...google,...manual,...lessonCuts]);
     return {availability,google,googleTimed,manual,lessons};
   }
+  function v629EventPresentationClass(start,end){
+    const a=v621TimeMinutes(start),b=v621TimeMinutes(end);
+    return a!=null&&b!=null&&b-a<45?'compact':'';
+  }
+  function v629EventContent(name,type,start,end){
+    const range=`${start||'—'}${end?`–${end}`:''}`;
+    return `<b>${esc(name)}</b><small><span class="v629-event-kind">${esc(type)}</span> <time>${esc(range)}</time></small>`;
+  }
   function v629Lane(day){
     const selected=v629SelectedTeachers(),filters=state.v629SecretaryFilters||{lesson:true,availability:true,busy:true},count=Math.max(1,selected.length);let html=v623NowLine(day);
     selected.forEach((teacher,index)=>{
       const uid=teacher.uid,name=teacher.fullName||'Professor',data=v629DayData(uid,day);
-      if(filters.availability!==false)for(const p of data.availability){const duration=Math.min(60,Math.max(30,(v621TimeMinutes(p.fim)||0)-(v621TimeMinutes(p.inicio)||0)));html+=`<button type="button" class="v621-block v629-block availability bookable" style="${v629SlotStyle(p.inicio,p.fim,index,count)}" data-v621-book-slot="${esc(uid)}" data-date="${esc(day)}" data-start="${esc(p.inicio)}" data-duration="${duration}" title="Agendar aula com ${esc(name)}"><b>${esc(name)}</b><small>${esc(`Disponível · ${p.inicio}–${p.fim}`)}</small></button>`}
-      if(filters.busy!==false)for(const b of data.googleTimed)html+=`<div class="v621-block v629-block busy google" style="${v629SlotStyle(b.start,b.end,index,count)}" title="Compromisso privado do Google"><b>${esc(name)}</b><small>${esc(`Ocupado · ${b.start}–${b.end} · Google`)}</small></div>`;
-      if(filters.busy!==false)for(const b of data.manual)html+=`<div class="v621-block v629-block busy forja" style="${v629SlotStyle(b.start,b.end,index,count)}"><b>${esc(name)}</b><small>${esc(`Ocupado · ${b.start}–${b.end} · FORJA`)}</small></div>`;
-      if(filters.lesson!==false)for(const l of data.lessons){const end=l.horaFim||addMinutesTime(l.horaAula,60)||'';html+=`<button type="button" class="v621-block v629-block lesson ${v621LessonClass(l)}" style="${v629SlotStyle(l.horaAula,end,index,count)}" data-lesson="${esc(l.id)}" title="${esc(`${name} · ${l.nomeAluno||'Aluno'}`)}"><b>${esc(`${name} · ${l.nomeAluno||'Aluno'}`)}</b><small>${esc(`Aula · ${lessonTitle(l)} · ${l.horaAula||'—'}${end?`–${end}`:''}`)}</small></button>`}
+      if(filters.availability!==false)for(const p of data.availability){const duration=Math.min(60,Math.max(30,(v621TimeMinutes(p.fim)||0)-(v621TimeMinutes(p.inicio)||0)));html+=`<button type="button" class="v621-block v629-block availability bookable ${v629EventPresentationClass(p.inicio,p.fim)}" style="${v629SlotStyle(p.inicio,p.fim,index,count)}" data-v621-book-slot="${esc(uid)}" data-date="${esc(day)}" data-start="${esc(p.inicio)}" data-duration="${duration}" title="Agendar aula com ${esc(name)}">${v629EventContent(name,"Disponível",p.inicio,p.fim)}</button>`}
+      if(filters.busy!==false)for(const b of data.googleTimed)html+=`<div class="v621-block v629-block busy google ${v629EventPresentationClass(b.start,b.end)}" style="${v629SlotStyle(b.start,b.end,index,count)}" title="Compromisso privado do Google">${v629EventContent(name,"Ocupado · Google",b.start,b.end)}</div>`;
+      if(filters.busy!==false)for(const b of data.manual)html+=`<div class="v621-block v629-block busy forja ${v629EventPresentationClass(b.start,b.end)}" style="${v629SlotStyle(b.start,b.end,index,count)}">${v629EventContent(name,"Ocupado · FORJA",b.start,b.end)}</div>`;
+      if(filters.lesson!==false)for(const l of data.lessons){const end=l.horaFim||addMinutesTime(l.horaAula,60)||'';html+=`<button type="button" class="v621-block v629-block lesson ${v621LessonClass(l)} ${v629EventPresentationClass(l.horaAula,end)}" style="${v629SlotStyle(l.horaAula,end,index,count)}" data-lesson="${esc(l.id)}" title="${esc(`${name} · ${l.nomeAluno||'Aluno'}`)}">${v629EventContent(name,`Aula · ${lessonTitle(l)}`,l.horaAula,end)}</button>`}
     });
     return html;
   }

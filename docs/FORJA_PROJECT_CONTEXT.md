@@ -1,5 +1,31 @@
 # FORJA Escola / Projeto Júlio — frontend oficial
 
+## Revisão visual — eventos da Agenda da Secretaria (somente Preview)
+
+Ajuste de apresentação autorizado, sem mudança de disponibilidade, publicação,
+backend, dados ou regras. Botões/divs agora usam o mesmo layout no topo esquerdo:
+professor primeiro; tipo/matéria e horário exato na segunda linha. Padding lateral,
+borda/radius uniformes, overflow hidden e tipo truncado antes do horário.
+Eventos curtos recebem compactação apenas visual, sem arredondar horários.
+Hover não move eventos. Dia/Semana/Mês preservam legibilidade; Dia se adapta à
+largura do celular. Fundo da grade agora usa48px/hora, mesma escala já existente
+no posicionamento, em vez dos60px/hora herdados que causavam desalinhamento.
+
+v621EventStyle e v629SlotStyle permanecem byte a byte iguais, inclusive altura
+mínima existente; fontes/regras v621AvailabilityForDay e v629DayData e script
+completo do drawer6.31.1 intactos. Horários12:33–13:00,14:00–14:44 e19:58–21:52
+não foram arredondados. API oficial e backend03aa329 permanecem inalterados.
+
+Chromium:18 novas regressões visuais (30min,60min,2h,4h, horários quebrados,
+aula entre dois verdes, margens/cores, Dia/Mês, desktop/mobile). O teste4h
+reproduziu a centralização vertical antes da correção. Após correção,21testes
+pipeline e53Chromium passaram (20drawer,5publicação,10Agenda,18visuais).
+Capturas geradas com fixtures locais, sem contato com banco/Auth/Google reais.
+SHA-256 de origem atualizado conscientemente: f14755958947c9eb4742f35083ef75493cca1d15a11202608f4472571327b5ed.
+Versão permanece6.31.1. Atualizar somente PR#2/Hosting Preview; sem merge/main
+ou produção até confirmação final após validação manual.
+
+
 ## Revisão 6.31.1 — Agenda e booking com a mesma publicação (somente PR #2/Preview)
 
 Leitura real antes/depois: runs37167019477 e37167340138 (SDK read-only),
