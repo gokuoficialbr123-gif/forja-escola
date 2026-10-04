@@ -2,6 +2,14 @@
 
 ## Revisão 6.31.1 — Agenda e booking com a mesma publicação (somente PR #2/Preview)
 
+Leitura real antes/depois: runs37167019477 e37167340138 (SDK read-only),
+profissional/aluno/matéria localizados sem UID manual. Após correção, Agenda
+retornou publicationValid=false, disponibilidade vazia e confirmed-week-v2;
+booking retornou publishedPeriods=[] e slots=[] para04/10/2026/60min.
+Aula real13:00–14:00 permaneceu armazenada. Scripts/job/chave pública temporários
+foram removidos do estado final do PR; nenhum caminho de diagnóstico permanece.
+
+
 Causa confirmada por leitura real em 04/10/2026: a Agenda administrativa usava
 professionalAvailabilityWeek no modo de rascunho, enquanto booking exigia
 confirmed-week-v2. Semana de 28/09 sem publication válido contém domingo
