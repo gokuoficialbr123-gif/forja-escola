@@ -4,11 +4,11 @@ import { createServer } from 'node:http';
 import { copyFileSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { rootDir, referenceSha256, sha256, validate, validateInlineScripts } from './validate.mjs';
+import { rootDir, referenceVersion, referenceSha256, sha256, validate, validateInlineScripts } from './validate.mjs';
 import { buildHostingArtifact, hostingOptionsFromArgs, prepareHosting, productionApiUrl } from './prepare-hosting.mjs';
 import { verifyHosting } from './verify-hosting.mjs';
-import { previewApiFromEvent, validatePreviewApiUrl } from './preview-config.mjs';
-import { assertVaryOrigin } from './verify-preview-backend.mjs';
+import { previewApiFromEvent, previewConfigFromEvent, validatePreviewApiUrl } from './preview-config.mjs';
+import { assertVaryOrigin, verifyPreviewHealth, previewVersion } from './verify-preview-backend.mjs';
 
 const html = readFileSync(join(rootDir, 'index.html'));
 function fixture(t) {
@@ -18,14 +18,14 @@ function fixture(t) {
   return root;
 }
 
-test('base 6.30 passa em marker, hash, configuração e sintaxe', () => {
+test('base 6.31 passa em marker, hash, configuração e sintaxe', () => {
   const result = validate();
   assert.ok(result.inlineScripts > 0);
-  assert.equal(result.bytes, 1661612);
+  assert.equal(result.bytes, html.length);
 });
 test('marker histórico em outro script não mascara uma release ativa errada', t => {
   const root = fixture(t);
-  writeFileSync(join(root, 'index.html'), html.toString().replace("const VERSION='6.30.0-bloco-a-secretaria-marcar-aula'", "const VERSION='6.29.0'"));
+  writeFileSync(join(root, 'index.html'), html.toString().replace(`const VERSION='${referenceVersion}'`, "const VERSION='6.29.0'"));
   assert.throws(() => validate(root), /Marker da release ativa incorreto/);
 });
 test('mesmo marker com HTML diferente é recusado', t => {
@@ -71,6 +71,17 @@ test('verificação pública aguarda propagação e recusa bytes errados com mes
 });
 
 const previewApiUrl = 'https://forja-api-pr-42.onrender.com';
+test('Preview Hosting requires current backend release before publication',async()=>{
+  const calls=[];
+  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2'}),{status:200})}});
+  assert.deepEqual(calls,[previewApiUrl+'/health']);assert.equal(result.version,previewVersion);
+});
+test('old release cannot pass the pre-deploy check',async()=>{
+  await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response(JSON.stringify({ok:true,version:'6.31.0-secretaria-disponibilidade-publicada'}),{status:200})}),/a regra atual/);
+});
+test('missing Render service blocks Preview publication',async()=>{
+  await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response('Not Found',{status:404})}),/não está disponível/);
+});
 const previewEvent = body => ({
   repository: { full_name: 'gokuoficialbr123-gif/forja-escola' },
   pull_request: { head: { repo: { full_name: 'gokuoficialbr123-gif/forja-escola' } }, body },
@@ -175,4 +186,21 @@ test('Vary inclui Origin mesmo quando o proxy acrescenta Accept-Encoding', () =>
     assert.throws(() => assertVaryOrigin(new Headers({ Vary: value })), /Vary deve incluir Origin/);
   }
   assert.throws(() => assertVaryOrigin(new Headers()), /Vary deve incluir Origin/);
+});
+
+
+test('PR só de frontend precisa optar explicitamente pela API oficial exata', () => {
+  const comment = '<!-- FORJA_PREVIEW_BACKEND=production-unchanged -->';
+  assert.deepEqual(previewConfigFromEvent(previewEvent(comment)), { mode: 'production-unchanged', apiUrl: productionApiUrl });
+  assert.deepEqual(previewConfigFromEvent(previewEvent(`<!-- FORJA_PREVIEW_API_URL=${previewApiUrl} -->`)), { mode: 'render-preview', apiUrl: previewApiUrl });
+  assert.throws(() => previewConfigFromEvent(previewEvent('')), /exatamente um/);
+  assert.throws(() => previewConfigFromEvent(previewEvent(comment + comment)), /único/);
+  assert.throws(() => previewConfigFromEvent(previewEvent(comment + `<!-- FORJA_PREVIEW_API_URL=${previewApiUrl} -->`)), /Não combine/);
+  assert.throws(() => previewConfigFromEvent(previewEvent('<!-- FORJA_PREVIEW_BACKEND=anything -->')), /inválido/);
+  const fork = previewEvent(comment); fork.pull_request.head.repo.full_name = 'other/fork';
+  assert.throws(() => previewConfigFromEvent(fork), /próprio repositório/);
+});
+
+test('same 6.31.1 version without unified Secretaria contract cannot publish Preview',async()=>{
+ await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response(JSON.stringify({ok:true,version:previewVersion}),{status:200})}),/não unifica Agenda e booking/);
 });

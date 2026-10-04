@@ -3,15 +3,31 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validatePreviewApiUrl } from './preview-config.mjs';
 
-const expectedVersion = '6.30.1-cors-preview-forja-escola';
+const productionVersion = '6.30.1-cors-preview-forja-escola';
+export const previewVersion = '6.31.1-secretaria-publicacao-confirmada';
+
+export async function verifyPreviewHealth(apiUrl, { mode = 'render-preview', request = fetch } = {}) {
+  assert.ok(['render-preview', 'production-unchanged'].includes(mode), 'Modo de backend inválido.');
+  if (mode === 'production-unchanged') assert.equal(apiUrl, 'https://forja-api-m1kq.onrender.com');
+  else validatePreviewApiUrl(apiUrl);
+  const response = await request(apiUrl + '/health', { signal: AbortSignal.timeout(30000) });
+  assert.equal(response.status, 200, 'Render Preview não está disponível; Preview Hosting não publicado.');
+  const health = await response.json();
+  assert.equal(health.ok, true);
+  assert.equal(health.version, mode === 'production-unchanged' ? productionVersion : previewVersion, 'Render Preview ainda não tem a regra atual; Preview Hosting não publicado.');
+  if(mode==='render-preview')assert.equal(health.secretariaAvailabilityPolicy,'confirmed-week-v2','Render Preview ainda não unifica Agenda e booking; Preview Hosting não publicado.');
+  return { apiUrl, version: health.version, health: 200 };
+}
 
 export function assertVaryOrigin(headers) {
   const fields = (headers.get('vary') || '').split(',').map(field => field.trim().toLowerCase());
   assert.ok(fields.includes('origin'), 'Vary deve incluir Origin; proxies podem acrescentar Accept-Encoding.');
 }
 
-export async function verifyPreviewBackend(apiUrl, frontendUrl) {
-  validatePreviewApiUrl(apiUrl);
+export async function verifyPreviewBackend(apiUrl, frontendUrl, { mode = 'render-preview' } = {}) {
+  assert.ok(['render-preview', 'production-unchanged'].includes(mode), 'Modo de backend inválido.');
+  if (mode === 'production-unchanged') assert.equal(apiUrl, 'https://forja-api-m1kq.onrender.com', 'API oficial deve ser exata.');
+  else validatePreviewApiUrl(apiUrl);
   const origin = new URL(frontendUrl).origin;
   assert.match(origin, /^https:\/\/forja-escola--[a-z0-9-]+-[a-z0-9]{8}\.web\.app$/, 'Origem deve ser um Firebase Preview da FORJA.');
   const request = (path, options = {}) => fetch(apiUrl + path, {
@@ -25,7 +41,9 @@ export async function verifyPreviewBackend(apiUrl, frontendUrl) {
   assertVaryOrigin(health.headers);
   const data = await health.json();
   assert.equal(data.ok, true);
-  assert.equal(data.version, expectedVersion, 'Versão incorreta no backend Preview.');
+  assert.equal(data.version, mode === 'production-unchanged' ? productionVersion : previewVersion, 'Versão incorreta no backend Preview.');
+
+  if(mode==='render-preview')assert.equal(data.secretariaAvailabilityPolicy,'confirmed-week-v2','Agenda e booking ainda não unificados no Render Preview.');
 
   const preflight = await request('/me', {
     method: 'OPTIONS',
@@ -47,7 +65,11 @@ export async function verifyPreviewBackend(apiUrl, frontendUrl) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    console.log(JSON.stringify(await verifyPreviewBackend(process.env.FORJA_PREVIEW_API_URL, process.env.FORJA_VERIFY_URL), null, 2));
+    const mode = process.env.FORJA_PREVIEW_BACKEND_MODE || 'render-preview';
+    const result = process.argv.includes('--health-only')
+      ? await verifyPreviewHealth(process.env.FORJA_PREVIEW_API_URL, { mode })
+      : await verifyPreviewBackend(process.env.FORJA_PREVIEW_API_URL, process.env.FORJA_VERIFY_URL, { mode });
+    console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     // Surface a useful diagnostic through GitHub check annotations even when
     // the separate signed log-download host is inaccessible to the reviewer.

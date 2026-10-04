@@ -1,5 +1,213 @@
 # FORJA Escola / Projeto Júlio — frontend oficial
 
+## Revisão visual — eventos da Agenda da Secretaria (somente Preview)
+
+Ajuste de apresentação autorizado, sem mudança de disponibilidade, publicação,
+backend, dados ou regras. Botões/divs agora usam o mesmo layout no topo esquerdo:
+professor primeiro; tipo/matéria e horário exato na segunda linha. Padding lateral,
+borda/radius uniformes, overflow hidden e tipo truncado antes do horário.
+Eventos curtos recebem compactação apenas visual, sem arredondar horários.
+Hover não move eventos. Dia/Semana/Mês preservam legibilidade; Dia se adapta à
+largura do celular. Fundo da grade agora usa48px/hora, mesma escala já existente
+no posicionamento, em vez dos60px/hora herdados que causavam desalinhamento.
+
+v621EventStyle e v629SlotStyle permanecem byte a byte iguais, inclusive altura
+mínima existente; fontes/regras v621AvailabilityForDay e v629DayData e script
+completo do drawer6.31.1 intactos. Horários12:33–13:00,14:00–14:44 e19:58–21:52
+não foram arredondados. API oficial e backend03aa329 permanecem inalterados.
+
+Chromium:18 novas regressões visuais (30min,60min,2h,4h, horários quebrados,
+aula entre dois verdes, margens/cores, Dia/Mês, desktop/mobile). O teste4h
+reproduziu a centralização vertical antes da correção. Após correção,21testes
+pipeline e53Chromium passaram (20drawer,5publicação,10Agenda,18visuais).
+Capturas geradas com fixtures locais, sem contato com banco/Auth/Google reais.
+SHA-256 de origem atualizado conscientemente: f14755958947c9eb4742f35083ef75493cca1d15a11202608f4472571327b5ed.
+Versão permanece6.31.1. Atualizar somente PR#2/Hosting Preview; sem merge/main
+ou produção até confirmação final após validação manual.
+
+
+## Revisão 6.31.1 — Agenda e booking com a mesma publicação (somente PR #2/Preview)
+
+Leitura real antes/depois: runs37167019477 e37167340138 (SDK read-only),
+profissional/aluno/matéria localizados sem UID manual. Após correção, Agenda
+retornou publicationValid=false, disponibilidade vazia e confirmed-week-v2;
+booking retornou publishedPeriods=[] e slots=[] para04/10/2026/60min.
+Aula real13:00–14:00 permaneceu armazenada. Scripts/job/chave pública temporários
+foram removidos do estado final do PR; nenhum caminho de diagnóstico permanece.
+
+
+Causa confirmada por leitura real em 04/10/2026: a Agenda administrativa usava
+professionalAvailabilityWeek no modo de rascunho, enquanto booking exigia
+confirmed-week-v2. Semana de 28/09 sem publication válido contém domingo
+12:33–14:44. Aula 13:00–14:00 e ocupado Google na mesma faixa deixam 27/44 min;
+isso também não permite duração de 60 min, mesmo em fixture confirmada.
+O documento real não foi alterado, confirmado, apagado ou migrado pelo diagnóstico.
+
+Agora /admin/disponibilidades-semana usa publishedOnly:true e retorna
+availabilityPolicy=confirmed-week-v2 e publicationValid por profissional.
+Agenda, consultas administrativas antigas e booking usam a mesma validação
+isPublishedAvailabilityWeek: source profissional sozinho nunca autoriza verde.
+O editor profissional continua lendo rascunhos para revisão explícita.
+O frontend administrativo recusa caches sem a política/recibo válidos ou de
+outra semana; mantém aulas azuis e corta também ocupado Google de dia inteiro.
+Não há publicação automática de legado nem filtro visual de horários específicos.
+/health informa secretariaAvailabilityPolicy=confirmed-week-v2 para comprovar
+que o Render Preview já possui o contrato unificado antes do Hosting Preview.
+
+Verificação real: SDK get com facade que recusa operações de escrita e replay
+exato das rotas sem iniciar servidor/Auth/Google. Não equivale a sessão HTTP
+administrativa autenticada. Testes isolados cobrem domingos confirmados livres,
+duração completa, aulas, Google, recibo invalidado e caches antigos.
+Nenhum merge/main/produção autorizado. Publicação futura depende de validação
+manual e confirmação final do usuário, inclusive PR #2 do backend.
+
+
+### Validação read-only concluída; auditoria temporária removida
+
+Run37165057555 passou em03/10/2026: leitura real localizou Carlos/Matemática/João
+sem ambiguidade. Semana2026-09-28 mantém sábado19:58–23:58, source profissional,
+publicationPresent=false, publicationValid=false. Reprodução interna do GET com
+confirmed-week-v2 retornou status200, publishedPeriods=[] e slots=[] para
+03/10/2026,60min. Sem PATCH, publicação da semana, criação de aula, migração,
+Auth ou Google sync na validação. Distinguir replay com dados reais de chamada
+HTTP autenticada ao Render; esta depende de Preview atualizado e sessão legítima.
+
+Job read-only-firestore-audit, script de identidade, script de auditoria e chave
+pública removidos do conjunto final do PR. Hosting Preview liberado novamente;
+produção continua restrita a main, que não foi alterada. Backend final também
+impede que sync de saída exporte rascunhos/legado como disponibilidade Google;
+74+32 testes passaram localmente. Sem alteração manual do documento real.
+
+
+## 03/10/2026 — 6.31.1-secretaria-drawer-fluido / publicação confirmada
+
+Backend PR #2 c4397768afad8e273fb5a24501a57852e4478e41 exige
+confirmed-week-v2. O drawer recusa published-week-v1; não filtra faixas de horário
+no cliente. A fonte real de Carlos contém sábado19:58–23:58 com source profissional,
+que sozinho deixa de autorizar marcação. Não alterado manualmente nenhum dado.
+
+Backend confirma SHA-256 do JSON canônico {version:1,timeZone:"America/Sao_Paulo",
+professionalId,weekStart,semana}, com receipt publication={version,fingerprint,
+confirmedById,confirmedAt,action,copiedFrom}. Salvar sem confirmation é rascunho;
+hash divergente é recusado; alteração Google invalida recibo; cópia de origem sem
+recibo não pode publicar diretamente. GET e POST /aulas usam a mesma prova.
+
+Os cinco chamadores existentes de PATCH /disponibilidade-semanal agora exibem
+confirmação explícita com TODOS os períodos e respectivas datas da semana,
+inclusive herdados. O hash enviado corresponde exatamente a essa configuração.
+Cancelar não faz PATCH nem muda cache. Copiar orienta revisar/publicar e envia
+somente rascunho. Alteração de UI limitada a essa confirmação de publicação;
+sem reformulação da agenda de professor/aluno ou Google central.
+
+Marker 6.31.1-secretaria-drawer-fluido e SHA-256 atualizado conscientemente no
+validate.mjs. Fonte oficial mantém https://forja-api-m1kq.onrender.com; só artefato
+Preview substitui URL pela descrição do PR. Firebase config/Auth/Rules intactos.
+Validação exige health 6.31.1-secretaria-publicacao-confirmada no Render Preview.
+
+20 testes pipeline,20 testes do drawer e5 testes da confirmação em Chromium
+passaram localmente, além de74+32 backend. Atualização dos Previews/resultados
+reais deve ser conferida pelo commit publicado. Sem merge/main/produção.
+Instrumentação temporária read-only será removida após leitura de validação;
+nenhum script de auditoria deve permanecer no conjunto final antes do merge.
+
+
+## Revisão do PR #2 — horários publicados e CSS real (03/10/2026)
+
+O CSS 6.31 estava indevidamente dentro da string de exportReport. A coleta por
+regex dos testes incluía esse style de JavaScript, mascarando a ausência no portal.
+A verificação visual anterior era um falso positivo. Agora o bloco inteiro está
+no style real forja-v630-style, com escopo #v630BookingRoot, e foi removido do
+relatório. Seu CSS de impressão original é validado separadamente sem alteração.
+
+Os testes parseiam o HTML com DOMParser do Chromium e clonam somente styles
+reais. Há um controle negativo: mover novamente o bloco para exportReport deve
+produzir largura470/4 colunas, não a largura440/6 colunas correta. Testes reais
+verificam desktop/mobile, padding, grid de seis passos, scroll, limite180px da
+grade, overflow e cores/aria-pressed do slot selecionado. 20 testes passaram,
+além de 17 proteções do pipeline. Fixtures são isoladas; não substituem login real.
+
+Auditoria dos slots: v630LoadSlots usa /profissionais/disponibilidade. Não há
+fallback visual gerando horários. No backend, professionalAvailabilityWeek podia
+migrar disponibilidade recorrente do perfil para a semana atual durante o GET.
+Sem publicação semanal, um legado de sábado20–22 reproduziu exatamente os três
+slots relatados. O documento real do Carlos ainda não foi consultado de forma
+autenticada; não afirmar que sua origem é essa sem resposta/semana sanitizada.
+
+Correção da fonte em PR separado: gokuoficialbr123-gif/forja-backend #2,
+fix/secretaria-slots-publicados-6.31.0, versão6.31.0-secretaria-disponibilidade-publicada.
+Fonte explícita: disponibilidades_semanais, professionalId|segunda-feira em
+base64url, semana[dia]. Exige origem de publicação válida e metadados corretos,
+sem migrar legado ao consultar marcação. Slots derivam somente das janelas,
+com duração completa e remoção por conflitos/bloqueios/locks. POST /aulas revalida
+publicação dentro dos locks. Auth, professor/aluno, Calendar/sync e demais rotas
+mantêm regras anteriores. Legados não são apagados; publicação pelo fluxo
+existente é necessária para autorizar novas aulas.
+
+O frontend exige availabilityPolicy=published-week-v1 e mostra erro explícito
+se conectado a backend antigo; não inventa nem esconde slots com filtro de faixa
+local. Preview deve usar Render Preview do PR backend, via comentário
+FORJA_PREVIEW_API_URL da descrição do PR, alterando só o artefato gerado.
+index.html continua com a API oficial; configuração Firebase não foi alterada.
+O usuário forneceu Render Preview https://forja-api-pr-2.onrender.com.
+A descrição do PR #2 aponta para ele via FORJA_PREVIEW_API_URL; o workflow
+verifica health 6.31.0-secretaria-disponibilidade-publicada, CORS/Auth e HTML.
+O acesso direto deste ambiente recebeu CONNECT403; a verificação pública ocorre
+no runner GitHub. Nenhum merge ou produção autorizado; não tocar main.
+
+Após a atualização do Preview: exigir sucesso da verificação de
+hash/marker e CORS/Auth pelo workflow; testar manualmente Carlos, João, Matemática,
+03/10/2026, 60min. Sem disponibilidade explicitamente publicada naquele dia,
+nenhum slot deve aparecer. Dados de Preview continuam reais, sem criar aulas
+nem ampliar permissões para teste automático.
+
+
+## Estado atual — 6.31.0 preparada para revisão
+
+Produção conferida antes da correção: frontend 6.30.0 com SHA-256
+447bef249c8e4ea839b133739311fcf68d271c0c6d8b4c482a650fcf35a22868,
+API oficial https://forja-api-m1kq.onrender.com e backend
+6.30.1-cors-preview-forja-escola. Ambos os PRs anteriores foram integrados
+pelo usuário; main frontend está em 4f03b7dea4b2646ab0887a51b3278882059110b6.
+Produção automática foi habilitada na etapa anterior. Os registros abaixo
+sobre restrições e PRs antigos são históricos.
+
+O novo trabalho usa fix/secretaria-drawer-6.31.0, sem merge/push em main.
+Alteração funcional exclusivamente no script final do drawer e CSS limitado
+por #v630BookingRoot. O restante do frontend foi comparado byte a byte com main.
+Backend, rotas, locks, Calendar, Auth, Rules e dados não foram modificados.
+
+Causa: v630Render substituía drawer.innerHTML em seleções e em cada fase de
+v630LoadSlots, recriando scroll/foco. Reset de dependências não invalidava toda
+consulta pendente; respostas antigas podiam preencher filtros novos. O fallback
+studentSubjects permitia catálogo/série sem vínculo de pacote. active !== false
+permitia perfis sem active true, recusados pelo servidor.
+
+A estrutura do drawer agora monta uma vez. Professor atualiza matérias/alunos/
+horários; matéria atualiza alunos/horários; aluno, data e duração atualizam
+horários. Resumo/estado dos passos atualizam localmente. Campos compatíveis ficam
+selecionados; incompatíveis são limpos. Loading somente no bloco de horários,
+respostas obsoletas descartadas, botões delegados, confirmação final preservada.
+Pacotes são relidos ao abrir e o aluno fica bloqueado até validar a resposta.
+
+Aluno elegível: student + active true; disciplina presente/ativa; seriesIds
+normalizados sem restrição ou contendo a série do aluno; vínculo correspondente
+em aluno_materias com status diferente de inativo. Mesmas condições dos helpers
+assertDisciplineForStudent/assertStudentHasActiveSubject e da disponibilidade
+6.30.1. O servidor continua autoridade final caso os dados mudem depois da leitura.
+
+Scroll: body fixado conservando posição/largura, fundo inert e overscroll contido.
+Área dos horários mantém sua altura durante troca/loading; grade tem altura
+limitada. Renderizações da agenda são adiadas enquanto o drawer estiver aberto,
+mas timer, consultas e sincronização de cinco minutos continuam executando.
+Fechar libera o fundo, aplica atualização pendente e restaura scroll/foco.
+
+O Render Preview anterior /forja-api-pr-1 retorna 404. Como não há mudança de
+backend, este PR opta explicitamente por production-unchanged e usa a API oficial
+no Firebase Preview. Não precisa criar um novo serviço Render. Auth/Firestore
+seguem serviços reais; automação verifica somente leituras/CORS/Auth sem token.
+Fluxo real de login/confirmação Google continua exigindo teste manual autorizado.
+
+
 Registro de 03/10/2026, fuso America/Sao_Paulo. O usuário definiu
 `gokuoficialbr123-gif/forja-escola` como repositório oficial do frontend.
 O código foi preparado no checkout `/workspace/forja-escola`. A continuação foi

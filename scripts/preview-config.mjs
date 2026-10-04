@@ -18,9 +18,23 @@ export function previewApiFromEvent(event) {
   return validatePreviewApiUrl(matches[0][1].trim());
 }
 
+// Frontend-only PRs explicitly opt into the unchanged official API. Missing or
+// conflicting metadata must fail, never silently fall back to production.
+export function previewConfigFromEvent(event) {
+  assert.ok(event.repository?.full_name, 'Repositório do evento ausente.');
+  assert.equal(event.pull_request?.head?.repo?.full_name, event.repository.full_name, 'Preview só aceita PR do próprio repositório.');
+  const body = String(event.pull_request?.body || '');
+  const modes = [...body.matchAll(/<!--\s*FORJA_PREVIEW_BACKEND=([^\r\n]*?)\s*-->/g)];
+  if (!modes.length) return { mode: 'render-preview', apiUrl: previewApiFromEvent(event) };
+  assert.equal(modes.length, 1, 'Modo do backend precisa ser único.');
+  assert.equal(modes[0][1].trim(), 'production-unchanged', 'Modo do backend inválido.');
+  assert.ok(!body.includes('FORJA_PREVIEW_API_URL='), 'Não combine API temporária e backend oficial.');
+  return { mode: 'production-unchanged', apiUrl: 'https://forja-api-m1kq.onrender.com' };
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   assert.ok(process.env.GITHUB_EVENT_PATH && process.env.GITHUB_OUTPUT, 'Evento e outputs do GitHub obrigatórios.');
-  const apiUrl = previewApiFromEvent(JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')));
-  appendFileSync(process.env.GITHUB_OUTPUT, `api_url=${apiUrl}\n`);
-  console.log('Backend temporário do Preview validado a partir da descrição do PR.');
+  const { apiUrl, mode } = previewConfigFromEvent(JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')));
+  appendFileSync(process.env.GITHUB_OUTPUT, `api_url=${apiUrl}\nmode=${mode}\n`);
+  console.log('Modo e backend do Preview validados a partir da descrição do PR.');
 }
