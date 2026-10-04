@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const referenceVersion = '6.31.1-secretaria-drawer-fluido';
-export const referenceSha256 = 'c9142dac5d0d0d8b8120e121e23406194ea44cb25cea988bde276e74940dd4da';
+export const referenceSha256 = 'ecbbd77eeaea3b1511c13f70cc544406ce5b437f7b74dbb7195d1f7d7e890f77';
 export const sha256 = data => createHash('sha256').update(data).digest('hex');
 
 export function validateInlineScripts(html) {
@@ -43,7 +43,7 @@ export function validate(root = rootDir) {
   assert.equal(sha256(bytes), referenceSha256, 'HTML diferente da base 6.31 preparada para revisão.');
   assert.ok(!/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(html), 'Chave privada não pode entrar no frontend.');
   const central=html.match(/<script id="forja-google-secretaria-script">([\s\S]*?)<\/script>/)?.[1];
-  assert.ok(central?.includes("const CENTRAL_POLICY='identity-only-v1'"), 'Marker da conexão central ausente.');
+  assert.ok(central?.includes("const CENTRAL_POLICY='calendarlist-association-v1'"), 'Marker da conexão central ausente.');
   const config = JSON.parse(readFileSync(join(root, 'firebase.json'), 'utf8'));
   const aliases = JSON.parse(readFileSync(join(root, '.firebaserc'), 'utf8'));
   assert.equal(aliases.projects?.default, 'forja-escola', 'Projeto Firebase incorreto.');

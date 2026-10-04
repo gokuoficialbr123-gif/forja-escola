@@ -16,7 +16,7 @@ export async function verifyPreviewHealth(apiUrl, { mode = 'render-preview', req
   assert.equal(health.ok, true);
   assert.equal(health.version, mode === 'production-unchanged' ? productionVersion : previewVersion, 'Render Preview ainda não tem a regra atual; Preview Hosting não publicado.');
   if(mode==='render-preview')assert.equal(health.secretariaAvailabilityPolicy,'confirmed-week-v2','Render Preview ainda não unifica Agenda e booking; Preview Hosting não publicado.');
-  if(mode==='render-preview'){assert.equal(health.googleOAuthSecurityPolicy,'state-pkce-oidc-v1','Hardening OAuth ausente.');assert.equal(health.googleSecretariaPolicy,'identity-only-v1','Etapa 1 central ausente; Preview não publicado.')}
+  if(mode==='render-preview'){assert.equal(health.googleOAuthSecurityPolicy,'state-pkce-oidc-v1','Hardening OAuth ausente.');assert.equal(health.googleSecretariaPolicy,'calendarlist-association-v1','Etapa 2 central ausente; Preview não publicado.')}
   return { apiUrl, version: health.version, health: 200 };
 }
 
@@ -45,7 +45,7 @@ export async function verifyPreviewBackend(apiUrl, frontendUrl, { mode = 'render
   assert.equal(data.version, mode === 'production-unchanged' ? productionVersion : previewVersion, 'Versão incorreta no backend Preview.');
 
   if(mode==='render-preview')assert.equal(data.secretariaAvailabilityPolicy,'confirmed-week-v2','Agenda e booking ainda não unificados no Render Preview.');
-  if(mode==='render-preview'){assert.equal(data.googleOAuthSecurityPolicy,'state-pkce-oidc-v1');assert.equal(data.googleSecretariaPolicy,'identity-only-v1')}
+  if(mode==='render-preview'){assert.equal(data.googleOAuthSecurityPolicy,'state-pkce-oidc-v1');assert.equal(data.googleSecretariaPolicy,'calendarlist-association-v1')}
 
   const preflight = await request('/me', {
     method: 'OPTIONS',

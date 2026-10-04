@@ -1,3 +1,54 @@
+## 04/10/2026 — Etapa 2 CalendarList central (em revisão, não produção)
+
+### Etapa 2 — CalendarList central, configuração para uso futuro
+
+Conta central existente; política `calendarlist-association-v1`. Conexão em
+`google_secretaria_connections/escola`, separada de todas as conexões pessoais.
+OAuth solicita somente openid/email + calendar.calendarlist.readonly. Prova do
+scope efetivamente concedido no token endpoint + grantVersion=2. Grant antigo
+exige Reconectar; consentimento/identidade/refresh token inválidos preservam
+integralmente a credencial anterior. Reconexão válida mantém configurações, mas
+exige Atualizar calendários para confirmar novamente o acesso.
+
+Nova coleção `google_calendar_admin_calendars`: IDs SHA-256(accountKey + calendarId),
+accountKey=SHA-256(sub OIDC verificado). Campos operacionais: connectionId=escola,
+connectionType=secretaria, calendarId, displayName sanitizado, accessRole, primary,
+accessStatus (accessible/no_permission/removed), teacherId, enabled, createdAt,
+lastSeenAt, updatedAt, associationUpdatedAt/associatedByUid, enabledUpdatedAt/
+enabledByUid e updatedByUid. Nenhum evento, descrição, location ou credencial.
+Trocar conta central não reaproveita associações de outra identidade.
+
+Rotas administrativas: GET /admin/google-calendar/central/calendars (somente
+snapshot armazenado + professores ativos); POST .../calendars/refresh (paginação
+Google CalendarList); PATCH .../calendars/{id-opaco} (teacherId e/ou enabled).
+Conexão central conserva status/connect/callback/disconnect. Google recebe somente
+GET CalendarList; fields reduzidos, showHidden/showDeleted, páginas completas.
+Falha parcial não substitui a lista. Snapshot com no máximo 400 configurações
+por conta é gravado atomicamente; acima do limite falha explícita, sem apagar.
+Revision da conexão/lista bloqueia commits após desconexão/refresh concorrente.
+
+Um calendário por professor nesta etapa, validado em transação; associação não
+habilita, mudança de professor desabilita salvo pedido explícito. enabled é a
+intenção salva; effectiveEnabled exige conexão/grant/acesso confirmados e professor
+ativo. Perda de acesso/remoção preserva vínculo/intent, bloqueia uso e mostra aviso;
+falha de refresh bloqueia effectiveEnabled até leitura completa bem-sucedida.
+Nenhum destes campos alimenta Agenda/booking/sync nesta etapa.
+
+UI Configurações → Google Calendar da Secretaria: conexão mascarada, aviso de
+reautorização, Atualizar calendários, principal/próprio/compartilhado, acesso,
+professor ativo + Salvar associação, Habilitado no FORJA e avisos de acesso perdido.
+Ler a área não dispara refresh Google. Escopos solicitados conferidos também na UI.
+Respostas/logs usam whitelist e erros fixos; tokens somente no backend.
+
+Script/style centrais isolados; todo HTML pré-central, inclusive relatório,
+permanece byte a byte igual. SHA-256 atual index.html: ecbbd77eeaea3b1511c13f70cc544406ce5b437f7b74dbb7195d1f7d7e890f77.
+Marker frontend6.31.1 mantido; API oficial intacta.
+
+Validação local: 96 testes backend unitários + 75 testes HTTP/Auth/Firestore
+demo-forja; 23 testes pipeline frontend + 73 Chromium desktop/mobile.
+Todos aprovados (267 ao todo). Checks dos PRs/Previews conferidos separadamente. Nenhum OAuth real ou
+escrita no Firebase real executados. ETAPA1 consta como publicada pelo usuário.
+
 ## 04/10/2026 — Etapa 1 Google Calendar central, ainda não produção
 
 ### Etapa 1 — área Google Calendar da Secretaria

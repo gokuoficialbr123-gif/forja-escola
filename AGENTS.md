@@ -1,3 +1,20 @@
+## Etapa 2 — descoberta/associação CalendarList central (somente PR/Preview)
+
+Autorização atual: ETAPA 0 e ETAPA 1 publicadas. Trabalhar na branch
+`feat/secretaria-calendar-list-etapa-2`, sem merge/main nem produção.
+Conexão central: scopes somente `openid email` mais
+`https://www.googleapis.com/auth/calendar.calendarlist.readonly`.
+Não alterar scopes/conexões pessoais, Agenda, booking, publicação, locks ou sync.
+Não consultar busy/eventos, criar webhooks, importar ou escrever eventos centrais.
+Somente admin ativo pode descobrir e configurar calendários. Associação explícita
+somente a usuários teacher ativos; nunca inferir pelo título/e-mail. Novos registros
+sem associação e desabilitados. Troca de professor desabilita por padrão.
+Testes somente mocks/emuladores demo-forja, sem OAuth/Google/Firebase reais.
+Preview compartilha Firebase real: não executar ações mutáveis para teste automático.
+Credenciais AES-GCM/backend, PKCE, state atômico e OIDC mantidos.
+Os registros das etapas anteriores abaixo são históricos; esta seção prevalece.
+Ler o topo dos três documentos em docs antes de continuar.
+
 ## Etapa 1 — Google Calendar central da Secretaria (somente PR/Preview)
 
 Autorização atual: conexão central separada, somente admin ativo; status, OIDC,

@@ -1,3 +1,39 @@
+### Etapa 2 — preparação manual Google Cloud / somente Preview
+
+Reutilizar o cliente OAuth CENTRAL existente; não criar cliente/chave nova e não
+alterar o cliente pessoal. No projeto desse cliente: Google Auth Platform →
+Data Access → Add or remove scopes (Acesso aos dados → Adicionar/remover escopos).
+Adicionar SOMENTE `https://www.googleapis.com/auth/calendar.calendarlist.readonly`;
+manter openid/email. Não adicionar calendar, calendar.events/events.readonly ou
+freebusy. Habilitar Google Calendar API em APIs e serviços → Biblioteca somente
+se ainda não estiver habilitada. Se o Console exigir revisão/verificação de
+consentimento externo, concluir antes de uso amplo; em Testing conferir Audience
+→ Test users. Documentação oficial: https://developers.google.com/workspace/calendar/api/auth
+ e https://developers.google.com/workspace/calendar/api/v3/reference/calendarList/list.
+
+O grant antigo não ganha scope por editar o Console. Admin deve Reconectar a conta
+central, consentir novamente e depois Atualizar calendários. Consentimento negado
+ou scope ausente não substitui a credencial/configuração antiga. Nenhuma ação real
+OAuth/refresh será executada automaticamente pelo Codex neste Preview.
+
+Preview deve apontar GOOGLE_SECRETARIA_OAUTH_REDIRECT_URI ao callback do NOVO
+Render Preview e GOOGLE_SECRETARIA_FRONTEND_URL à origem do NOVO Firebase Preview.
+Adicionar URI exata apenas ao cliente central no Google Cloud; manter URIs anteriores.
+CLIENT_ID e CLIENT_SECRET existentes ficam somente no serviço Preview; não tocar
+Environment do serviço de produção, Environment Group compartilhado ou Blueprint.
+Se o Dashboard Previews não oferece Environment, usar a API Render read-only
+GET /v1/services?includePreviews=true&limit=100, conferir URL exata e id/dashboardUrl
+do serviço Preview, e abrir o painel próprio. Alteração por API, se necessária,
+usa PUT /v1/services/{PREVIEW_ID}/env-vars/{NOME} individual; nunca PUT bulk da lista.
+Não compartilhar tokens/valores. Codex não dispõe de credencial de controle Render.
+
+/health deve confirmar googleSecretariaPolicy=calendarlist-association-v1,
+googleOAuthSecurityPolicy=state-pkce-oidc-v1 e availabilityPolicy=confirmed-week-v2.
+Descrição do PR frontend usa FORJA_PREVIEW_API_URL somente para o artefato Preview;
+index.html oficial mantém https://forja-api-m1kq.onrender.com. Firebase health gate
+não aceita backend antigo/fallback de produção. Push somente na branch feature.
+Nenhum merge/main/deploy de produção autorizado.
+
 ### Configuração manual — somente serviço Render Preview desta etapa
 
 Não alterar o cliente OAuth pessoal existente. No Google Cloud Console / Google Auth
