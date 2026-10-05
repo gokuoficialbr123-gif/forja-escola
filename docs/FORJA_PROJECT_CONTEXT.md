@@ -1,3 +1,107 @@
+## 05/10/2026 — ETAPA 2: gatilho de entrada real em Configurações (PR4/Preview)
+
+A navegação real usa navigate → renderPage → bindPage e page=configuracoes.
+Auditoria reproduziu no HTML completo: memória da carga inicial escondia mudanças
+no timestamp/grant do backend; listError antigo não era relido ao voltar; F5
+reabria inicio porque activateUser reinicializa a página. Reconexão funcionava
+por invalidar a memória. Testes anteriores extraíam apenas o script central.
+
+Agora cada entrada real identifica um ciclo de visita, consulta status+snapshot
+read-only e só depois avalia freshness para POST automático uma única vez.
+Rebindings da mesma visita não reiniciam o ciclo. Reentrada compartilha leituras
+pendentes e espera ação em andamento; timestamp/grant/erro são relidos do backend.
+Se sair durante a leitura, não há POST em background. Falha preserva configuração;
+novo acesso à tela pode recuperar a leitura. Backoff60s aplica-se a falhas, não
+bloqueia sucesso seguido de timestamp comprovadamente vencido em outra entrada.
+
+F5 restaura somente Configurações para o mesmo admin ativo autenticado, com marker
+não secreto em sessionStorage vinculado ao UID. Sair da área remove o marker;
+marker de outro admin não restaura. Nenhuma rota/URL ou Auth é alterado.
+OAuth return continua abrindo a área e usa o mesmo ciclo de entrada.
+
+Backend funcional permanece eb73b9e e calendarlist-association-v2: freshness5min,
+manual forçado, compartilhamento in-flight e transações intactos. Sem novo scope,
+coleção, timer/polling, eventos/freeBusy, Etapa3 ou alteração em Agenda/booking.
+Testes de navegação executam todo index.html, Firebase Auth/HTTP simulados apenas
+na borda, sem acesso Google/Firebase real; não substituir navigate/render/bind.
+Na versão anterior, cinco regressões reais falharam (desktop/mobile reentrada,
+listError, grant antigo, F5). A seção mais recente prevalece sobre o histórico.
+
+## 05/10/2026 — ETAPA 2: refresh automático da CalendarList (somente PR/Preview)
+
+Ajuste autorizado pelo usuário nos mesmos PRs backend#5/frontend#4 e branch
+feat/secretaria-calendar-list-etapa-2. Sem merge/main/produção. Ao montar
+Configurações → Google Calendar da Secretaria, a conexão autorizada atualiza
+CalendarList se não houver sucesso nos últimos cinco minutos. Nada é importado:
+somente metadados operacionais da lista, mantendo associações/enabled existentes.
+
+Frontend chama POST .../calendars/refresh com {automatic:true}; botão manual
+continua enviando {} e ignora freshness. GET continua read-only. Backend confere
+último sucesso no Firestore, compartilha requisições simultâneas por conexão na
+mesma instância e preserva revisão/transação contra corridas entre instâncias.
+Erro permite nova tentativa automática depois de60s; manual permanece disponível.
+Frontend também evita repetições enquanto há request ou tentativa recente.
+Sem setInterval/setTimeout novo, job ou timer global: atualização ocorre somente
+com a área montada, após carregamento/status ou reabertura da tela.
+
+OAuth bem-sucedido muda revisão e marca not_refreshed; ao voltar a Configurações,
+a atualização ocorre automaticamente mesmo se havia sucesso recente na revisão
+anterior. Consentimento falho conserva conexão/configuração. Não há novo scope
+nem nova configuração Google Cloud neste ajuste. Policy de health/UI passa a
+calendarlist-association-v2 para exigir Render atualizado antes do Firebase Preview.
+
+Falha/parcialidade não marca calendários removidos, não elimina períodos, não
+indica horário livre. Lista/vínculos/intent ficam visíveis; effectiveEnabled fica
+suspenso e há aviso local. Mesmo se a leitura de recuperação falhar, a UI preserva
+os registros e mostra acesso não confirmado. Agenda/booking/disponibilidade,
+pessoais, Google ocupado/eventos/freeBusy/watch e ETAPA3 continuam intactos.
+O seletor continua estritamente teacher+active; um único professor é válido e
+não exige correção nem cadastro automático. As seções anteriores são históricas.
+
+### Etapa 2 — CalendarList central, configuração para uso futuro
+
+Conta central existente; política `calendarlist-association-v1`. Conexão em
+`google_secretaria_connections/escola`, separada de todas as conexões pessoais.
+OAuth solicita somente openid/email + calendar.calendarlist.readonly. Prova do
+scope efetivamente concedido no token endpoint + grantVersion=2. Grant antigo
+exige Reconectar; consentimento/identidade/refresh token inválidos preservam
+integralmente a credencial anterior. Reconexão válida mantém configurações, mas
+exige Atualizar calendários para confirmar novamente o acesso.
+
+Nova coleção `google_calendar_admin_calendars`: IDs SHA-256(accountKey + calendarId),
+accountKey=SHA-256(sub OIDC verificado). Campos operacionais: connectionId=escola,
+connectionType=secretaria, calendarId, displayName sanitizado, accessRole, primary,
+accessStatus (accessible/no_permission/removed), teacherId, enabled, createdAt,
+lastSeenAt, updatedAt, associationUpdatedAt/associatedByUid, enabledUpdatedAt/
+enabledByUid e updatedByUid. Nenhum evento, descrição, location ou credencial.
+Trocar conta central não reaproveita associações de outra identidade.
+
+Rotas administrativas: GET /admin/google-calendar/central/calendars (somente
+snapshot armazenado + professores ativos); POST .../calendars/refresh (paginação
+Google CalendarList); PATCH .../calendars/{id-opaco} (teacherId e/ou enabled).
+Conexão central conserva status/connect/callback/disconnect. Google recebe somente
+GET CalendarList; fields reduzidos, showHidden/showDeleted, páginas completas.
+Falha parcial não substitui a lista. Snapshot com no máximo 400 configurações
+por conta é gravado atomicamente; acima do limite falha explícita, sem apagar.
+Revision da conexão/lista bloqueia commits após desconexão/refresh concorrente.
+
+Um calendário por professor nesta etapa, validado em transação; associação não
+habilita, mudança de professor desabilita salvo pedido explícito. enabled é a
+intenção salva; effectiveEnabled exige conexão/grant/acesso confirmados e professor
+ativo. Perda de acesso/remoção preserva vínculo/intent, bloqueia uso e mostra aviso;
+falha de refresh bloqueia effectiveEnabled até leitura completa bem-sucedida.
+Nenhum destes campos alimenta Agenda/booking/sync nesta etapa.
+
+UI Configurações → Google Calendar da Secretaria: conexão mascarada, aviso de
+reautorização, Atualizar calendários, principal/próprio/compartilhado, acesso,
+professor ativo + Salvar associação, Habilitado no FORJA e avisos de acesso perdido.
+Ler a área não dispara refresh Google. Escopos solicitados conferidos também na UI.
+Respostas/logs usam whitelist e erros fixos; tokens somente no backend.
+
+Script/style centrais isolados; todo HTML pré-central, inclusive relatório,
+permanece byte a byte igual. SHA-256 atual index.html: ecbbd77eeaea3b1511c13f70cc544406ce5b437f7b74dbb7195d1f7d7e890f77.
+Marker frontend6.31.1 mantido; API oficial intacta.
+
 ### Etapa 1 — área Google Calendar da Secretaria
 
 Configurações da Secretaria/Admin ativo ganhou um script final isolado

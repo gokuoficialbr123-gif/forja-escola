@@ -73,7 +73,7 @@ test('verificação pública aguarda propagação e recusa bytes errados com mes
 const previewApiUrl = 'https://forja-api-pr-42.onrender.com';
 test('Preview Hosting requires current backend release before publication',async()=>{
   const calls=[];
-  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googleSecretariaPolicy:'identity-only-v1'}),{status:200})}});
+  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googleSecretariaPolicy:'calendarlist-association-v2'}),{status:200})}});
   assert.deepEqual(calls,[previewApiUrl+'/health']);assert.equal(result.version,previewVersion);
 });
 test('old release cannot pass the pre-deploy check',async()=>{
@@ -205,11 +205,11 @@ test('same 6.31.1 version without unified Secretaria contract cannot publish Pre
  await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response(JSON.stringify({ok:true,version:previewVersion}),{status:200})}),/não unifica Agenda e booking/);
 });
 
-test('backend sem Etapa 1 central não pode autorizar o novo Preview',async()=>{
- await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1'}),{status:200})}),/Etapa 1 central ausente/);
+test('backend sem Etapa 2 central não pode autorizar o novo Preview',async()=>{
+ await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1'}),{status:200})}),/Etapa 2 central ausente/);
 });
 
-test('Etapa 1 adiciona somente script central; HTML anterior e relatório continuam byte a byte preservados',()=>{
- const previous=html.toString().replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
+test('Etapas centrais alteram somente seu script/style; HTML anterior e relatório continuam byte a byte preservados',()=>{
+ const previous=html.toString().replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
  assert.equal(sha256(Buffer.from(previous)),'f14755958947c9eb4742f35083ef75493cca1d15a11202608f4472571327b5ed');
 });
