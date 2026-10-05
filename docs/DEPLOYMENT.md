@@ -1,3 +1,102 @@
+### Preparação/teste manual — somente Preview da Etapa 3
+
+Render Preview fornecido: https://forja-api-pr-6.onrender.com. Conferir /health
+com googleSecretariaFreeBusyPolicy=central-freebusy-query-v1. Não usar produção.
+Google Auth Platform → Data Access → Add or remove scopes: adicionar SOMENTE
+https://www.googleapis.com/auth/calendar.events.freebusy, conservar openid/email/
+calendar.calendarlist.readonly e scopes pessoais. No cliente OAuth central,
+Authorized redirect URIs deve incluir exatamente
+https://forja-api-pr-6.onrender.com/admin/google-calendar/central/callback.
+Não substituir URI de produção. Somente Environment da instância Render Preview:
+GOOGLE_SECRETARIA_OAUTH_REDIRECT_URI = callback acima e
+GOOGLE_SECRETARIA_FRONTEND_URL = origem HTTPS do Firebase Preview deste PR.
+Nenhum secret novo ou valor de cliente deve ser solicitado/exposto no Git.
+
+Admin ativo: entrar Configurações; verificar que CalendarList anterior continua
+utilizável e nenhuma consulta busy automática acontece. Autorizar ocupado é ação
+explícita: OAuth exige grant4, preserva associações/enabled e mantém conexão anterior
+se consentimento falhar. Preview usa Firebase compartilhado: essa ação manual
+pode modificar a conexão central; não testar OAuth/configuração automaticamente.
+Após retorno, CalendarList atualiza; consultar um dia/professor já associado e
+habilitado. Conferir Ocupado com horas/minutos exatos, sem títulos/conteúdo privado.
+Desabilitados/removidos/inativos são ignored; falhas são unavailable, nunca livres.
+Janela >31dias é recusada. Agenda/booking continuam intactos nesta etapa.
+
+Testes: source /workspace/forja-local/env.sh; node scripts/validate.mjs;
+node --test scripts/pipeline.test.mjs; regressões Chromium da workflow validation
+com FORJA_PLAYWRIGHT_MODULE e FORJA_CHROMIUM_PATH configurados. Backend usa somente
+mocks/emuladores demo-forja. Actions publica apenas Preview de PR e verifica
+health/policy, HTML/hash, CORS/Auth; production fica skipped em pull_request.
+
+## 05/10/2026 — BLOCO A / ETAPA 3: freeBusy central (somente PR/Preview)
+
+Base atual publicada: backend main f1399db e frontend main 1ba3458. A Etapa 2
+está publicada, inclusive refresh automático de CalendarList. Histórico abaixo
+não significa frontend pendente. Etapa 3 autorizada em branch própria
+feat/secretaria-central-freebusy-etapa-3. Sem merge/main/produção ou Etapa 4.
+
+Consulta administrativa sob demanda POST /admin/google-calendar/central/freebusy.
+Somente admin ativo, conexão central/OIDC/grant válido e catálogo com sucesso há
+menos de5min. Seleção no backend de associações explícitas, enabled=true, acesso
+válido e teacher active=true. Removidos/sem acesso/desabilitados/inativos/sem
+associação ficam ignored. Sem importar dados para Agenda/booking/disponibilidade,
+locks, coleções pessoais ou Google Calendar pessoal. Sem webhooks/eventos.list.
+
+/connect {} conserva scopes openid/email/CalendarList. /connect
+{purpose:"central-freebusy-v1"} acrescenta SOMENTE calendar.events.freebusy;
+purpose é salvo no state protegido e callback exige scope efetivamente concedido.
+State atômico/PKCE/OIDC/AES-GCM preservados. GrantVersion=2 mantém CalendarList;
+freeBusyGrantVersion=1 +freeBusyGrantedAt comprovam consentimento adicional.
+Reconexão invalida snapshot de acesso mas preserva associações/enabled. Consentimento
+falho conserva credenciais/configuração. Nenhuma migração/promocão automática.
+Política CalendarList continua v2; capability nova central-freebusy-query-v1 em
+status e health googleSecretariaFreeBusyPolicy. Conexão antiga continua utilizável.
+
+Janela RFC3339 com timezone explícito até31dias, Google America/Sao_Paulo,
+intervalos [start,end) sem arredondamento. Lotes <=50, concorrência2, timeout20s
+por request/deadline60s, retries HTTP transitórios limitados. Consulta de token e
+freeBusy somente no backend. JSON Google limitado2MiB/lote; limites1000 intervalos
+por calendário/10000 normalizados por consulta, nunca truncar para indicar livre.
+No máximo400 configurações (Etapa2), body16KiB,10 consultas distintas/minuto por
+conta/instância. Cache memória <=60s/32 entradas; in-flight compartilhado <=10.
+Releitura transacional read-only antes/depois; fingerprint inclui conexão,
+associação/habilitação/acesso/teacher ativo. Mudanças invalidam inclusive cache.
+Limites/cache são locais por instância; não prometer quota global distribuída.
+
+Resultado whitelist de IDs operacionais opacos e status success/ignored/unavailable;
+intervalos start/end/label=Ocupado somente em success. Erro/timeout/parcial/HTTP200
+com errors nunca produz busy=[] bem-sucedido. Response no-store; sem payload bruto,
+tokens, nomes/títulos de eventos, participantes ou IDs de evento. Nenhuma escrita
+Firestore pelo endpoint; grant muda somente no OAuth explícito. Sem coleção busy
+central. FreeBusy não identifica aulas FORJA: não deduplicar eventos por coincidência
+com aulas; integração futura exige desenho separado aprovado (Etapa4).
+
+Testes somente mocks/emuladores demo-forja. Preview usa Firebase compartilhado:
+nenhum OAuth/CalendarList/alteração real é executado automaticamente para testar.
+Manual admin deve consentir conscientemente se testar OAuth no Preview.
+
+
+### Frontend da Etapa 3 — diagnóstico sob demanda
+
+Configurações → Google Calendar da Secretaria conserva status/CalendarList da Etapa2.
+Com backend central-freebusy-query-v1, mostra autorização explícita de ocupado
+ou diagnóstico de intervalo por professor. Não consulta busy ao entrar/navegar:
+o admin escolhe datas inclusivas em America/Sao_Paulo (até31dias) e clica Consultar.
+Resultado mostra somente Ocupado e status operacional, nunca disponibilidade.
+Falha/partial não significa livre. Alteração de configuração/role/navegação invalida
+resposta pendente; ações concorrentes compartilham a chamada no backend.
+Servidor antigo esconde esse diagnóstico e conserva a conexão anterior com3scopes.
+Reconectar uma conta já autorizada para busy mantém seus4scopes; primeiro grant
+exige ação explícita. Sem timers/polling/Etapa4, mudanças de Agenda ou booking.
+
+Somente script/style forja-google-secretaria-* alterados no HTML; restante do
+portal e relatório são byte a byte preservados (hash anterior sem bloco central
+f14755958947c9eb4742f35083ef75493cca1d15a11202608f4472571327b5ed).
+Hash da fonte atual foi atualizado conscientemente no validador; API oficial
+continua https://forja-api-m1kq.onrender.com. URL RenderPR6 somente na descrição
+do PR e artefato Preview, nunca na fonte oficial. Gate Preview exige nova policy.
+Produção/main não recebem push/merge. ETAPA2 publicada; histórico abaixo é legado.
+
 ## 05/10/2026 — ETAPA 2: gatilho de entrada real em Configurações (PR4/Preview)
 
 A navegação real usa navigate → renderPage → bindPage e page=configuracoes.

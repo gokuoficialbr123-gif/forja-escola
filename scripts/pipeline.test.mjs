@@ -73,7 +73,7 @@ test('verificação pública aguarda propagação e recusa bytes errados com mes
 const previewApiUrl = 'https://forja-api-pr-42.onrender.com';
 test('Preview Hosting requires current backend release before publication',async()=>{
   const calls=[];
-  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googleSecretariaPolicy:'calendarlist-association-v2'}),{status:200})}});
+  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googleSecretariaPolicy:'calendarlist-association-v2',googleSecretariaFreeBusyPolicy:'central-freebusy-query-v1'}),{status:200})}});
   assert.deepEqual(calls,[previewApiUrl+'/health']);assert.equal(result.version,previewVersion);
 });
 test('old release cannot pass the pre-deploy check',async()=>{
@@ -212,4 +212,9 @@ test('backend sem Etapa 2 central não pode autorizar o novo Preview',async()=>{
 test('Etapas centrais alteram somente seu script/style; HTML anterior e relatório continuam byte a byte preservados',()=>{
  const previous=html.toString().replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
  assert.equal(sha256(Buffer.from(previous)),'f14755958947c9eb4742f35083ef75493cca1d15a11202608f4472571327b5ed');
+});
+
+
+test('backend com Etapa 2 mas sem freeBusy não pode publicar Preview da Etapa 3',async()=>{
+ await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googleSecretariaPolicy:'calendarlist-association-v2'}),{status:200})}),/Etapa 3 freeBusy central ausente/);
 });

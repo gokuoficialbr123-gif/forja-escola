@@ -18,7 +18,7 @@ const firebaseDouble=`(()=>{const user={uid:'LOCAL_ADMIN',email:'admin@forja.inv
  const authFactory=()=>auth;authFactory.Auth={Persistence:{SESSION:'session'}};
  window.firebase={apps:[],initializeApp:()=>firebase.apps.push({}),auth:authFactory};})();`;
 
-async function fixture(t,{mobile=false,ageMs=301000,reauth=false,failList=0,oauth=false,status='success'}={}){
+async function fixture(t,{mobile=false,ageMs=301000,reauth=false,failList=0,oauth=false,status='success',busy=false}={}){
  const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:900}});t.after(()=>page.close());
  const requests=[],errors=[];
  const provider={lastRefreshAt:{seconds:(Date.now()-ageMs)/1000},lastRefreshStatus:status,reauth,failList,gate:null,revision:1};
@@ -34,8 +34,12 @@ async function fixture(t,{mobile=false,ageMs=301000,reauth=false,failList=0,oaut
   requests.push({path:url.pathname,method:req.method(),body:req.postData()?JSON.parse(req.postData()):null});
   if(req.method()==='OPTIONS')return route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':local,'Access-Control-Allow-Headers':'authorization,content-type,x-forja-otp','Access-Control-Allow-Methods':'GET,POST,PATCH,OPTIONS'}});
   if(url.pathname==='/me')return json({ok:true,profile:{uid:'LOCAL_ADMIN',email:'admin@forja.invalid',fullName:'Admin local',role:'admin',active:true}});
-  if(url.pathname===base+'/status')return json({configured:true,policy:'calendarlist-association-v2',item:{connected:true,requiresReauthorization:provider.reauth,maskedEmail:'s***@f***.invalid'}});
-  const list=()=>({connected:true,connectionRevision:provider.revision,requiresReauthorization:provider.reauth,lastRefreshAt:provider.lastRefreshAt,lastRefreshStatus:provider.lastRefreshStatus,items:[{id:'a'.repeat(64),displayName:'Calendário local',accessRole:'reader',primary:false,teacherId:'',enabled:false,effectiveEnabled:false,accessStatus:'accessible'}],teachers:[{id:'LOCAL_TEACHER',fullName:'Professor local',role:'teacher',active:true}]});
+  if(url.pathname===base+'/status')return json({configured:true,policy:'calendarlist-association-v2',...(busy?{freeBusyPolicy:'central-freebusy-query-v1'}:{}),item:{freeBusyAuthorized:busy,connected:true,requiresReauthorization:provider.reauth,maskedEmail:'s***@f***.invalid'}});
+  const list=()=>({connected:true,connectionRevision:provider.revision,requiresReauthorization:provider.reauth,lastRefreshAt:provider.lastRefreshAt,lastRefreshStatus:provider.lastRefreshStatus,items:[{id:'a'.repeat(64),displayName:'Calendário local',accessRole:'reader',primary:false,teacherId:busy?'LOCAL_TEACHER':'',enabled:busy,effectiveEnabled:busy,accessStatus:'accessible'}],teachers:[{id:'LOCAL_TEACHER',fullName:'Professor local',role:'teacher',active:true}]});
+  if(url.pathname===base+'/freebusy'){
+   const body=JSON.parse(req.postData());
+   return json({policy:'central-freebusy-query-v1',status:'success',complete:true,timeMin:body.timeMin,timeMax:body.timeMax,timeZone:'America/Sao_Paulo',checkedAt:'2026-10-05T18:00:00Z',items:[{teacherId:'LOCAL_TEACHER',status:'success',busy:[{start:body.timeMin.slice(0,10)+'T16:33:00.000Z',end:body.timeMin.slice(0,10)+'T17:44:00.000Z',label:'Ocupado'}]}]});
+  }
   if(url.pathname===base+'/calendars'){
    if(provider.failList-->0)return json({error:'Falha local de leitura'},502);
    return json(list());
@@ -107,4 +111,13 @@ test('real portal: repeated binding and reentry during automatic refresh never d
  await f.page.evaluate(()=>navigate('configuracoes'));await f.page.waitForFunction(()=>state.googleSecretaria.listLoading);
  await f.page.evaluate(()=>{bindPage();bindPage();navigate('inicio');navigate('configuracoes');bindPage()});
  assert.equal(f.posts().length,1);finish();await f.page.waitForFunction(()=>!state.googleSecretaria.loading&&!state.googleSecretaria.listLoading);assert.equal(f.posts().length,1);
+});
+
+for(const mobile of [false,true])test(`real portal ${mobile?'mobile':'desktop'}: central occupied diagnostic preserves actual timezone and does not alter Agenda`,async t=>{
+ const f=await fixture(t,{mobile,busy:true,ageMs:60000});await f.enter();const baselineWrites=f.requests.filter(x=>x.method==='POST'&&!x.path.startsWith(base)).length;assert.equal(f.requests.filter(x=>x.path===base+'/freebusy').length,0);
+ await f.page.locator('[data-central-busy=from]').fill('2026-10-03');await f.page.locator('[data-central-busy=to]').fill('2026-10-03');await f.page.locator('[data-central-busy=teacher]').selectOption('LOCAL_TEACHER');await f.page.click('[data-secretaria-google=busy]');
+ await f.page.waitForFunction(()=>!state.googleSecretaria.freeBusyLoading&&state.googleSecretaria.busyResult);
+ const calls=f.requests.filter(x=>x.path===base+'/freebusy');assert.equal(calls.length,1);assert.deepEqual(calls[0].body,{timeMin:'2026-10-03T03:00:00.000Z',timeMax:'2026-10-04T03:00:00.000Z',teacherIds:['LOCAL_TEACHER']});
+ const text=await f.page.locator('#centralFreeBusyResults').textContent();assert.match(text,/Ocupado/);assert.match(text,/13:33/);assert.match(text,/14:44/);assert.deepEqual(f.errors,[]);
+ assert.equal(f.requests.filter(x=>x.method==='POST'&&!x.path.startsWith(base)).length,baselineWrites);await f.leave();await f.enter();assert.equal(f.requests.filter(x=>x.path===base+'/freebusy').length,1);
 });

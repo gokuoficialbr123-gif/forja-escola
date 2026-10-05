@@ -9,12 +9,12 @@ let browser;
 before(async()=>browser=await chromium.launch({headless:true,...(process.env.FORJA_CHROMIUM_PATH?{executablePath:process.env.FORJA_CHROMIUM_PATH}:{})}));
 after(async()=>browser?.close());
 const base='/admin/google-calendar/central';
-async function fixture(t,{mobile=false,role='admin',active=true,connected=false,error=false,configured=true,unsafeUrl=false,reauth=false,calendars=[],ageMs=0,refreshStatus='success',calendarError=false,initialPage='configuracoes',revision=1,oauthReturn=false}={}){
+async function fixture(t,{mobile=false,role='admin',active=true,connected=false,error=false,configured=true,unsafeUrl=false,reauth=false,calendars=[],ageMs=0,refreshStatus='success',calendarError=false,initialPage='configuracoes',revision=1,oauthReturn=false,freeBusySupported=false,freeBusyAuthorized=false}={}){
  const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:900}});t.after(()=>page.close());
  await page.route('**/*',r=>r.abort());
  if(oauthReturn){await page.route('https://forja-fixture.invalid/**',r=>r.fulfill({contentType:'text/html',body:'<main id="settings"></main><div id="feedback" role="status"></div>'}));await page.goto('https://forja-fixture.invalid/?googleSecretaria=connected')}
  else await page.setContent('<main id="settings"></main><div id="feedback" role="status"></div>');
- await page.evaluate(({html,role,active,connected,error,configured,unsafeUrl,reauth,calendars,base,ageMs,refreshStatus,calendarError,initialPage,revision})=>{
+ await page.evaluate(({html,role,active,connected,error,configured,unsafeUrl,reauth,calendars,base,ageMs,refreshStatus,calendarError,initialPage,revision,freeBusySupported,freeBusyAuthorized})=>{
   const parsed=new DOMParser().parseFromString(html,'text/html');
   for(const original of parsed.querySelectorAll('style')){const style=document.createElement('style');style.textContent=original.textContent;document.head.appendChild(style)}
   const code=parsed.getElementById('forja-google-secretaria-script')?.textContent;if(!code)throw Error('Central script missing');
@@ -24,14 +24,14 @@ async function fixture(t,{mobile=false,role='admin',active=true,connected=false,
   window.setBusy=(b,v)=>{if(b)b.disabled=v};window.toast=x=>document.getElementById('feedback').textContent=x;
   window.confirm=()=>true;window.settingsPage=()=>'<section id="personal">Conexões dos profissionais</section>';
   window.loadRoleData=async()=>{};window.bindPage=()=>{};
-  window.provider={connected,error,configured,unsafeUrl,reauth,calendars,calendarError,lastRefreshStatus:refreshStatus,lastRefreshAt:{seconds:(Date.now()-ageMs)/1000},revision};
+  window.provider={freeBusySupported,freeBusyAuthorized,busyMode:'success',connected,error,configured,unsafeUrl,reauth,calendars,calendarError,lastRefreshStatus:refreshStatus,lastRefreshAt:{seconds:(Date.now()-ageMs)/1000},revision};
   const teachers=[{id:'TEACHER_A',fullName:'Professor A',role:'teacher',active:true},{id:'TEACHER_B',fullName:'Professor B',role:'teacher',active:true},{id:'TEACHER_INACTIVE',fullName:'Inativo',role:'teacher',active:false},{id:'PSYCH',fullName:'Psicólogo',role:'psychologist',active:true}];
   const calendarData=()=>({connected:provider.connected,requiresReauthorization:provider.reauth,items:provider.calendars,teachers,lastRefreshStatus:provider.lastRefreshStatus,lastRefreshAt:provider.lastRefreshAt,connectionRevision:provider.revision});
   window.api=async(path,options={})=>{
    calls.push({path,method:options.method||'GET',body:options.body});
    if(path===base+'/status'){
     if(provider.error)throw Error('TEST_ONLY_CREDENTIAL_IN_ERROR');
-    return {configured:provider.configured,policy:'calendarlist-association-v2',item:{connected:provider.connected,requiresReauthorization:provider.reauth,maskedEmail:provider.connected?'s***@f***.example':'',lastStatusAt:'2026-10-04T15:00:00Z'}};
+    return {configured:provider.configured,policy:'calendarlist-association-v2',...(provider.freeBusySupported?{freeBusyPolicy:'central-freebusy-query-v1'}:{}),item:{connected:provider.connected,requiresReauthorization:provider.reauth,freeBusyAuthorized:provider.freeBusyAuthorized,maskedEmail:provider.connected?'s***@f***.example':'',lastStatusAt:'2026-10-04T15:00:00Z'}};
    }
    if(path===base+'/calendars')return calendarData();
    if(path===base+'/calendars/refresh'){
@@ -48,12 +48,18 @@ async function fixture(t,{mobile=false,role='admin',active=true,connected=false,
     if(options.body.enabled!==undefined)row.enabled=options.body.enabled;
     row.effectiveEnabled=row.enabled&&row.accessStatus==='accessible';return calendarData();
    }
+   if(path===base+'/freebusy'){
+    if(provider.busyGate)await provider.busyGate;
+    if(provider.busyMode==='error')throw Error('PRIVATE_TEST_GOOGLE_ERROR_WITH_TOKEN');
+    const unavailable=provider.busyMode==='unavailable',ignored=provider.busyMode==='ignored';
+    return {policy:provider.busyMode==='old-policy'?'OLD_POLICY':'central-freebusy-query-v1',status:unavailable?'unavailable':ignored?'ignored':'success',complete:!unavailable,timeMin:options.body.timeMin,timeMax:options.body.timeMax,timeZone:'America/Sao_Paulo',checkedAt:'2026-10-05T18:00:00Z',items:[{teacherId:'TEACHER_A',status:unavailable?'unavailable':ignored?'ignored':'success',reason:ignored?'disabled':'PRIVATE_REASON',...(unavailable||ignored?{}:{busy:provider.busyMode==='empty'?[]:[{start:new Date(Date.parse(options.body.timeMin)+13*3600000+33*60000).toISOString(),end:new Date(Date.parse(options.body.timeMin)+14*3600000+44*60000).toISOString(),label:'Ocupado',summary:'PRIVATE_EVENT_TITLE'}]}),description:'PRIVATE_EVENT_DESCRIPTION'}],access_token:'PRIVATE_TEST_TOKEN'};
+   }
    if(path===base+'/disconnect'){provider.connected=false;return {ok:true}}
-   if(path===base+'/connect')return {authUrl:provider.unsafeUrl?'https://attacker.invalid/':'https://accounts.google.com/o/oauth2/v2/auth?scope=openid+email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcalendar.calendarlist.readonly&state=TEST_ONLY_STATE'};
+   if(path===base+'/connect'){if(window.onConnect)await window.onConnect(options.body);return {authUrl:provider.unsafeUrl?'https://attacker.invalid/':'https://accounts.google.com/o/oauth2/v2/auth?scope='+encodeURIComponent('openid email https://www.googleapis.com/auth/calendar.calendarlist.readonly'+(options.body?.purpose==='central-freebusy-v1'?' https://www.googleapis.com/auth/calendar.events.freebusy':''))+'&state=TEST_ONLY_STATE'};}
    throw Error('Unexpected personal/Calendar endpoint');
   };
   (0,eval)(code);
- },{html,role,active,connected,error,configured,unsafeUrl,reauth,calendars,base,ageMs,refreshStatus,calendarError,initialPage,revision});
+ },{html,role,active,connected,error,configured,unsafeUrl,reauth,calendars,base,ageMs,refreshStatus,calendarError,initialPage,revision,freeBusySupported,freeBusyAuthorized});
  await page.evaluate(async()=>{await loadRoleData();document.getElementById('settings').innerHTML=settingsPage();bindPage()});
  await page.waitForFunction(()=>!state.googleSecretaria.loading&&!state.googleSecretaria.listLoading);
  return page;
@@ -104,7 +110,7 @@ test('stale admin response cannot expose central status after switching role',as
  await page.waitForFunction(()=>window.resolveStatus!==null);
  await page.evaluate(async()=>{
   state.role='teacher';state.user={uid:'LOCAL_TEACHER'};
-  resolveStatus({configured:true,policy:'calendarlist-association-v2',item:{connected:true,maskedEmail:'a***@f***.invalid'}});
+  resolveStatus({configured:true,policy:'calendarlist-association-v2',...(provider.freeBusySupported?{freeBusyPolicy:'central-freebusy-query-v1'}:{}),item:{connected:true,maskedEmail:'a***@f***.invalid'}});
   await Promise.resolve();document.getElementById('settings').innerHTML=settingsPage();bindPage();
  });
  assert.equal(await page.locator('#googleSecretariaCard').count(),0);
@@ -234,4 +240,46 @@ test('automatic failure plus failed recovery read preserves the visible list and
  assert.equal(await page.locator('.central-calendar').count(),1);assert.equal(await page.locator('.central-calendar select').inputValue(),'TEACHER_A');assert.equal(await page.locator('.central-calendar input').isChecked(),true);
  assert.equal(await page.evaluate(()=>state.googleSecretaria.calendars[0].effectiveEnabled),false);assert.equal(await page.evaluate(()=>state.googleSecretaria.calendars[0].accessStatus),'accessible');
  assert.match(await page.locator('#googleSecretariaCard').textContent(),/uso estão suspensos/);assert.ok(!(await page.locator('body').textContent()).includes('PRIVATE_TEST'));
+});
+
+for(const mobile of [false,true])test(`freeBusy ${mobile?'mobile':'desktop'}: explicit consent preserves CalendarList until grant`,async t=>{
+ const page=await fixture(t,{mobile,connected:true,freeBusySupported:true});
+ assert.equal(await page.locator('[data-secretaria-google=authorize-busy]').count(),1);assert.equal(await page.locator('[data-secretaria-google=busy]').count(),0);
+ assert.ok(!(await page.evaluate(()=>calls)).some(x=>x.path===base+'/freebusy'));
+ let body;await page.exposeFunction('onConnect',value=>body=value);const navigation=page.waitForRequest(r=>r.url().startsWith('https://accounts.google.com/'));await page.click('[data-secretaria-google=authorize-busy]');
+ const url=new URL((await navigation).url());assert.equal(url.searchParams.get('scope'),'openid email https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/calendar.events.freebusy');
+ assert.deepEqual(body,{purpose:'central-freebusy-v1'});
+});
+for(const mobile of [false,true])test(`freeBusy ${mobile?'mobile':'desktop'}: on-demand query is private, bounded and separate from Agenda`,async t=>{
+ const page=await fixture(t,{mobile,connected:true,freeBusySupported:true,freeBusyAuthorized:true});
+ assert.ok(!(await page.evaluate(()=>calls)).some(x=>x.path===base+'/freebusy'));
+ await page.locator('[data-central-busy=from]').fill('2026-10-04');await page.locator('[data-central-busy=to]').fill('2026-10-04');await page.locator('[data-central-busy=teacher]').selectOption('TEACHER_A');
+ await page.click('[data-secretaria-google=busy]');await page.waitForFunction(()=>!state.googleSecretaria.freeBusyLoading&&state.googleSecretaria.busyResult);
+ const call=await page.evaluate(()=>calls.find(x=>x.path.endsWith('/freebusy')));assert.deepEqual(call.body,{timeMin:'2026-10-04T03:00:00.000Z',timeMax:'2026-10-05T03:00:00.000Z',teacherIds:['TEACHER_A']});
+ assert.match(await page.locator('#centralFreeBusyResults').textContent(),/Ocupado/);
+ const result=await page.evaluate(()=>state.googleSecretaria.busyResult);assert.deepEqual(result.items[0].busy,[{start:'2026-10-04T16:33:00.000Z',end:'2026-10-04T17:44:00.000Z',label:'Ocupado'}]);assert.ok(!JSON.stringify(result).includes('PRIVATE'));
+ assert.ok(!(await page.locator('#googleSecretariaCard').textContent()).includes('PRIVATE'));
+ const bounds=await page.locator('.central-freebusy').boundingBox();assert.ok(bounds.width<=(mobile?390:1280));assert.equal(await page.locator('#personal').count(),1);
+});
+for(const mode of ['unavailable','ignored','empty','error','old-policy'])test('freeBusy UI handles '+mode+' without claiming available',async t=>{
+ const page=await fixture(t,{connected:true,freeBusySupported:true,freeBusyAuthorized:true});await page.evaluate(mode=>provider.busyMode=mode,mode);await page.click('[data-secretaria-google=busy]');
+ await page.waitForFunction(()=>!state.googleSecretaria.freeBusyLoading);const text=await page.locator('#centralFreeBusyResults').textContent();assert.ok(!text.includes('PRIVATE'));
+ if(mode==='empty')assert.match(text,/Nenhum ocupado retornado/);else if(mode==='ignored')assert.match(text,/Ignorado/);else assert.match(text,/indisponível|Não foi possível/);
+ assert.ok(!text.includes('Disponível'));assert.ok(!text.includes('Nenhum horário disponível'));
+});
+test('freeBusy request does not repeat while pending; changing calendar config clears previous result',async t=>{
+ const page=await fixture(t,{connected:true,freeBusySupported:true,freeBusyAuthorized:true});
+ await page.evaluate(()=>{provider.busyGate=new Promise(r=>window.releaseBusy=r)});await page.click('[data-secretaria-google=busy]');
+ await page.evaluate(()=>document.querySelector('[data-secretaria-google=busy]').click());assert.equal((await page.evaluate(()=>calls)).filter(x=>x.path.endsWith('/freebusy')).length,1);
+ await page.evaluate(()=>releaseBusy());await page.waitForFunction(()=>!state.googleSecretaria.freeBusyLoading);assert.ok(await page.evaluate(()=>state.googleSecretaria.busyResult));
+ await page.click('[data-secretaria-google=calendars]');await page.waitForFunction(()=>!state.googleSecretaria.listLoading);assert.equal(await page.evaluate(()=>state.googleSecretaria.busyResult),null);
+});
+test('freeBusy invalid window is stopped before any provider call',async t=>{
+ const page=await fixture(t,{connected:true,freeBusySupported:true,freeBusyAuthorized:true});await page.locator('[data-central-busy=from]').fill('2026-10-01');await page.locator('[data-central-busy=to]').fill('2026-12-01');await page.click('[data-secretaria-google=busy]');
+ await page.waitForFunction(()=>!state.googleSecretaria.freeBusyLoading);assert.match(await page.locator('#centralFreeBusyResults').textContent(),/31 dias/);assert.ok(!(await page.evaluate(()=>calls)).some(x=>x.path.endsWith('/freebusy')));
+});
+test('late freeBusy response cannot expose intervals after role switch',async t=>{
+ const page=await fixture(t,{connected:true,freeBusySupported:true,freeBusyAuthorized:true});await page.evaluate(()=>{provider.busyGate=new Promise(r=>window.releaseBusy=r)});await page.click('[data-secretaria-google=busy]');
+ await page.evaluate(async()=>{state.role='teacher';state.profile.active=true;state.user={uid:'OTHER'};await loadRoleData();document.getElementById('settings').innerHTML=settingsPage();bindPage();releaseBusy()});await page.evaluate(async()=>{await Promise.resolve();await Promise.resolve()});
+ assert.equal(await page.locator('#googleSecretariaCard').count(),0);assert.equal(await page.evaluate(()=>state.googleSecretaria.busyResult),null);
 });
