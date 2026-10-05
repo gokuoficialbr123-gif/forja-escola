@@ -1,3 +1,34 @@
+## 05/10/2026 — ETAPA 2: refresh automático da CalendarList (somente PR/Preview)
+
+Ajuste autorizado pelo usuário nos mesmos PRs backend#5/frontend#4 e branch
+feat/secretaria-calendar-list-etapa-2. Sem merge/main/produção. Ao montar
+Configurações → Google Calendar da Secretaria, a conexão autorizada atualiza
+CalendarList se não houver sucesso nos últimos cinco minutos. Nada é importado:
+somente metadados operacionais da lista, mantendo associações/enabled existentes.
+
+Frontend chama POST .../calendars/refresh com {automatic:true}; botão manual
+continua enviando {} e ignora freshness. GET continua read-only. Backend confere
+último sucesso no Firestore, compartilha requisições simultâneas por conexão na
+mesma instância e preserva revisão/transação contra corridas entre instâncias.
+Erro permite nova tentativa automática depois de60s; manual permanece disponível.
+Frontend também evita repetições enquanto há request ou tentativa recente.
+Sem setInterval/setTimeout novo, job ou timer global: atualização ocorre somente
+com a área montada, após carregamento/status ou reabertura da tela.
+
+OAuth bem-sucedido muda revisão e marca not_refreshed; ao voltar a Configurações,
+a atualização ocorre automaticamente mesmo se havia sucesso recente na revisão
+anterior. Consentimento falho conserva conexão/configuração. Não há novo scope
+nem nova configuração Google Cloud neste ajuste. Policy de health/UI passa a
+calendarlist-association-v2 para exigir Render atualizado antes do Firebase Preview.
+
+Falha/parcialidade não marca calendários removidos, não elimina períodos, não
+indica horário livre. Lista/vínculos/intent ficam visíveis; effectiveEnabled fica
+suspenso e há aviso local. Mesmo se a leitura de recuperação falhar, a UI preserva
+os registros e mostra acesso não confirmado. Agenda/booking/disponibilidade,
+pessoais, Google ocupado/eventos/freeBusy/watch e ETAPA3 continuam intactos.
+O seletor continua estritamente teacher+active; um único professor é válido e
+não exige correção nem cadastro automático. As seções anteriores são históricas.
+
 ### Etapa 2 — preparação manual Google Cloud / somente Preview
 
 Reutilizar o cliente OAuth CENTRAL existente; não criar cliente/chave nova e não

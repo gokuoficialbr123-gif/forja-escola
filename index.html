@@ -7377,11 +7377,13 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
 /* Google Calendar central — Etapa 2: CalendarList metadata and explicit associations. */
 (function(){
   const CENTRAL_API='/admin/google-calendar/central';
-  const CENTRAL_POLICY='calendarlist-association-v1';
+  const CENTRAL_POLICY='calendarlist-association-v2';
   const CALENDAR_SCOPE='https://www.googleapis.com/auth/calendar.calendarlist.readonly';
   let requestSeq=0;
+  let autoAttempt=null;
+  const FRESH_MS=5*60*1000,RETRY_MS=60*1000;
   const centralAdmin=()=>state.role==='admin'&&state.profile?.active===true;
-  const fresh=()=>({loading:false,configured:false,item:{connected:false},error:'',calendars:[],teachers:[],listLoading:false,listError:'',requiresReauthorization:false,lastRefreshAt:null,lastRefreshStatus:'not_refreshed'});
+  const fresh=()=>({loading:false,configured:false,item:{connected:false},error:'',calendars:[],teachers:[],listLoading:false,listError:'',requiresReauthorization:false,lastRefreshAt:null,lastRefreshStatus:'not_refreshed',connectionRevision:0});
   state.googleSecretaria=fresh();
   const actionMessages=new Set(['Este professor já está associado a outro calendário. Remova o vínculo anterior antes de associar.','Selecione um professor ativo do FORJA.','Atualize a lista e confirme o acesso ao calendário antes de habilitar.','Reconecte a conta central e autorize a leitura da lista de calendários.']);
   function calendarRows(g){
@@ -7417,6 +7419,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     g.teachers=(r.teachers||[]).filter(t=>t.role==='teacher'&&t.active===true).map(t=>({id:String(t.id||''),fullName:String(t.fullName||'Professor')}));
     g.calendars=(r.items||[]).filter(row=>/^[a-f0-9]{64}$/.test(row.id)).map(row=>({id:row.id,displayName:String(row.displayName||'Calendário'),accessRole:row.accessRole,primary:row.primary===true,teacherId:String(row.teacherId||''),enabled:row.enabled===true,effectiveEnabled:row.effectiveEnabled===true,accessStatus:row.accessStatus}));
     g.requiresReauthorization=g.item.requiresReauthorization||r.requiresReauthorization===true;
+    g.connectionRevision=Number.isSafeInteger(r.connectionRevision)?r.connectionRevision:0;
     g.lastRefreshAt=r.lastRefreshAt||null;g.lastRefreshStatus=r.lastRefreshStatus||'not_refreshed';g.listError='';
   }
   async function loadCentral(){
@@ -7432,19 +7435,33 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
       Object.assign(state.googleSecretaria,{loading:false,configured:r.configured===true,item:{connected:item.connected===true,maskedEmail:typeof item.maskedEmail==='string'&&item.maskedEmail.includes('***@')?item.maskedEmail:'',lastStatusAt:item.lastStatusAt||null,requiresReauthorization:item.requiresReauthorization===true},requiresReauthorization:item.requiresReauthorization===true});
       if(item.connected){try{const data=await api(CENTRAL_API+'/calendars');if(current())applyCalendars(data)}catch(_){if(current())state.googleSecretaria.listError='Consulta indisponível'}}
     }catch(_){if(current())state.googleSecretaria={...fresh(),error:'Consulta indisponível'}}
-    paintCentral();
+    paintCentral();autoRefreshCentral();
   }
-  async function calendarAction(action,id,element){
+  function timestampMs(value){
+    if(value&&typeof value==='object'){const seconds=value.seconds??value._seconds;return typeof seconds==='number'?seconds*1000:NaN}
+    return typeof value==='string'?Date.parse(value):NaN;
+  }
+  async function autoRefreshCentral(){
+    const g=state.googleSecretaria;
+    if(!centralAdmin()||state.page!=='configuracoes'||!document.getElementById('googleSecretariaCard')||g.loading||g.listLoading||g.listError||!g.configured||!g.item.connected||g.requiresReauthorization)return;
+    const now=Date.now(),age=now-timestampMs(g.lastRefreshAt),key=state.user?.uid+':'+g.connectionRevision;
+    if(g.lastRefreshStatus==='success'&&Number.isFinite(age)&&age>=0&&age<FRESH_MS)return;
+    if(autoAttempt?.key===key&&now-autoAttempt.at>=0&&now-autoAttempt.at<RETRY_MS)return;
+    autoAttempt={key,at:now};
+    await calendarAction('refresh',null,null,true);
+  }
+  async function calendarAction(action,id,element,automatic=false){
     if(!centralAdmin()||state.googleSecretaria.listLoading)return;
     const seq=requestSeq,uid=state.user?.uid,current=()=>seq===requestSeq&&uid===state.user?.uid&&centralAdmin();
     state.googleSecretaria.listLoading=true;paintCentral();
     try{
       const body=action==='associate'?{teacherId:element}:action==='enabled'?{enabled:element}:{};
-      const r=action==='refresh'?await api(CENTRAL_API+'/calendars/refresh',{method:'POST',body:{}}):await api(CENTRAL_API+'/calendars/'+id,{method:'PATCH',body});
-      if(current()){applyCalendars(r);toast(action==='refresh'?'Lista de calendários atualizada.':action==='associate'?'Associação salva.':'Habilitação atualizada.','ok')}
+      const r=action==='refresh'?await api(CENTRAL_API+'/calendars/refresh',{method:'POST',body:automatic?{automatic:true}:{}}):await api(CENTRAL_API+'/calendars/'+id,{method:'PATCH',body});
+      if(current()){applyCalendars(r);if(!automatic)toast(action==='refresh'?'Lista de calendários atualizada.':action==='associate'?'Associação salva.':'Habilitação atualizada.','ok')}
     }catch(e){
       if(current()){
-        toast(actionMessages.has(e.message)?e.message:'Não foi possível concluir a configuração dos calendários.','bad');
+        if(action==='refresh'){state.googleSecretaria.lastRefreshStatus='error';state.googleSecretaria.calendars.forEach(row=>row.effectiveEnabled=false)}
+        if(!automatic)toast(actionMessages.has(e.message)?e.message:'Não foi possível concluir a configuração dos calendários.','bad');
         try{const data=await api(CENTRAL_API+'/calendars');if(current())applyCalendars(data)}catch(_){if(current())state.googleSecretaria.listError='Consulta indisponível'}
       }
     }finally{if(current()){state.googleSecretaria.listLoading=false;paintCentral()}}
@@ -7477,7 +7494,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   const previousLoad=loadRoleData;
   loadRoleData=async function(){await previousLoad();await loadCentral();centralNotice()};
   const previousBind=bindPage;
-  bindPage=function(){previousBind();bindCentral()};
+  bindPage=function(){previousBind();bindCentral();autoRefreshCentral()};
   document.documentElement.dataset.forjaGoogleSecretariaPolicy=CENTRAL_POLICY;
 })();
 </script>

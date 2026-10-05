@@ -73,7 +73,7 @@ test('verificação pública aguarda propagação e recusa bytes errados com mes
 const previewApiUrl = 'https://forja-api-pr-42.onrender.com';
 test('Preview Hosting requires current backend release before publication',async()=>{
   const calls=[];
-  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googleSecretariaPolicy:'calendarlist-association-v1'}),{status:200})}});
+  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googleSecretariaPolicy:'calendarlist-association-v2'}),{status:200})}});
   assert.deepEqual(calls,[previewApiUrl+'/health']);assert.equal(result.version,previewVersion);
 });
 test('old release cannot pass the pre-deploy check',async()=>{
