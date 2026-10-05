@@ -1,3 +1,38 @@
+## 05/10/2026 — ETAPA 2: gatilho de entrada real em Configurações (PR4/Preview)
+
+A navegação real usa navigate → renderPage → bindPage e page=configuracoes.
+Auditoria reproduziu no HTML completo: memória da carga inicial escondia mudanças
+no timestamp/grant do backend; listError antigo não era relido ao voltar; F5
+reabria inicio porque activateUser reinicializa a página. Reconexão funcionava
+por invalidar a memória. Testes anteriores extraíam apenas o script central.
+
+Agora cada entrada real identifica um ciclo de visita, consulta status+snapshot
+read-only e só depois avalia freshness para POST automático uma única vez.
+Rebindings da mesma visita não reiniciam o ciclo. Reentrada compartilha leituras
+pendentes e espera ação em andamento; timestamp/grant/erro são relidos do backend.
+Se sair durante a leitura, não há POST em background. Falha preserva configuração;
+novo acesso à tela pode recuperar a leitura. Backoff60s aplica-se a falhas, não
+bloqueia sucesso seguido de timestamp comprovadamente vencido em outra entrada.
+
+F5 restaura somente Configurações para o mesmo admin ativo autenticado, com marker
+não secreto em sessionStorage vinculado ao UID. Sair da área remove o marker;
+marker de outro admin não restaura. Nenhuma rota/URL ou Auth é alterado.
+OAuth return continua abrindo a área e usa o mesmo ciclo de entrada.
+
+Backend funcional permanece eb73b9e e calendarlist-association-v2: freshness5min,
+manual forçado, compartilhamento in-flight e transações intactos. Sem novo scope,
+coleção, timer/polling, eventos/freeBusy, Etapa3 ou alteração em Agenda/booking.
+Testes de navegação executam todo index.html, Firebase Auth/HTTP simulados apenas
+na borda, sem acesso Google/Firebase real; não substituir navigate/render/bind.
+Na versão anterior, cinco regressões reais falharam (desktop/mobile reentrada,
+listError, grant antigo, F5). A seção mais recente prevalece sobre o histórico.
+
+Validação desta revisão: 97 unitários backend +77 HTTP/Auth/Firestore demo-forja;
+23 pipeline frontend +95 Chromium (inclui13 navegações no portal completo) =292
+aprovados. Fonte frontend SHA2566d11b17bd7c067e500577f1b8f720224b59595bb534c45a0ef7e6e4bef55d224;
+HTML pré-central/Agenda/booking/relatório e API oficial preservados byte a byte.
+Backend funcional não mudou. Testes em fixtures, sem OAuth/banco/Google reais.
+
 ## 05/10/2026 — ETAPA 2: refresh automático da CalendarList (somente PR/Preview)
 
 Ajuste autorizado pelo usuário nos mesmos PRs backend#5/frontend#4 e branch

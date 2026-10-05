@@ -55,7 +55,7 @@ async function fixture(t,{mobile=false,role='admin',active=true,connected=false,
   (0,eval)(code);
  },{html,role,active,connected,error,configured,unsafeUrl,reauth,calendars,base,ageMs,refreshStatus,calendarError,initialPage,revision});
  await page.evaluate(async()=>{await loadRoleData();document.getElementById('settings').innerHTML=settingsPage();bindPage()});
- await page.waitForFunction(()=>!state.googleSecretaria.listLoading);
+ await page.waitForFunction(()=>!state.googleSecretaria.loading&&!state.googleSecretaria.listLoading);
  return page;
 }
 for(const mobile of [false,true]){
@@ -99,13 +99,13 @@ test('stale admin response cannot expose central status after switching role',as
  const page=await fixture(t);
  await page.evaluate(()=>{
   window.resolveStatus=null;window.api=()=>new Promise(resolve=>window.resolveStatus=resolve);
-  window.pending=loadRoleData();
+  state.page='inicio';bindPage();state.page='configuracoes';bindPage();
  });
  await page.waitForFunction(()=>window.resolveStatus!==null);
  await page.evaluate(async()=>{
   state.role='teacher';state.user={uid:'LOCAL_TEACHER'};
   resolveStatus({configured:true,policy:'calendarlist-association-v2',item:{connected:true,maskedEmail:'a***@f***.invalid'}});
-  await pending;document.getElementById('settings').innerHTML=settingsPage();
+  await Promise.resolve();document.getElementById('settings').innerHTML=settingsPage();bindPage();
  });
  assert.equal(await page.locator('#googleSecretariaCard').count(),0);
  assert.ok(!(await page.locator('body').textContent()).includes('a***@'));
@@ -182,20 +182,20 @@ for(const mobile of [false,true])test(`automatic CalendarList ${mobile?'mobile':
  let refreshes=await page.evaluate(()=>calls.filter(x=>x.path.endsWith('/calendars/refresh')));assert.equal(refreshes.length,1);assert.deepEqual(refreshes[0].body,{automatic:true});
  await page.evaluate(()=>{bindPage();bindPage();state.page='agenda';state.page='configuracoes';bindPage()});
  assert.equal(await page.evaluate(()=>calls.filter(x=>x.path.endsWith('/calendars/refresh')).length),1);
- await page.click('[data-secretaria-google=calendars]');await page.waitForFunction(()=>!state.googleSecretaria.listLoading);
+ await page.click('[data-secretaria-google=calendars]');await page.waitForFunction(()=>!state.googleSecretaria.loading&&!state.googleSecretaria.listLoading);
  refreshes=await page.evaluate(()=>calls.filter(x=>x.path.endsWith('/calendars/refresh')));assert.equal(refreshes.length,2);assert.deepEqual(refreshes[1].body,{});
 });
 test('freshness expires on next view opening, without any background timer',async t=>{
- const page=await fixture(t,{connected:true,ageMs:299000,calendars:[calendar('a')]});
+ const page=await fixture(t,{connected:true,ageMs:60000,calendars:[calendar('a')]});
  assert.equal(await page.evaluate(()=>calls.filter(x=>x.path.endsWith('/refresh')).length),0);
- await page.evaluate(()=>{state.googleSecretaria.lastRefreshAt={_seconds:(Date.now()-301000)/1000};bindPage()});
- await page.waitForFunction(()=>!state.googleSecretaria.listLoading);
+ await page.evaluate(()=>{provider.lastRefreshAt={_seconds:(Date.now()-301000)/1000};state.page='inicio';bindPage();state.page='configuracoes';bindPage()});
+ await page.waitForFunction(()=>!state.googleSecretaria.loading&&!state.googleSecretaria.listLoading);
  assert.equal(await page.evaluate(()=>calls.filter(x=>x.path.endsWith('/refresh')).length),1);
 });
 test('stale list refreshes only in Secretaria settings, never on Agenda or background role load',async t=>{
  const page=await fixture(t,{connected:true,ageMs:301000,initialPage:'agenda',calendars:[calendar('a')]});
  assert.equal(await page.evaluate(()=>calls.filter(x=>x.path.endsWith('/refresh')).length),0);
- await page.evaluate(()=>{state.page='configuracoes';bindPage()});await page.waitForFunction(()=>!state.googleSecretaria.listLoading);
+ await page.evaluate(()=>{state.page='configuracoes';bindPage()});await page.waitForFunction(()=>!state.googleSecretaria.loading&&!state.googleSecretaria.listLoading);
  assert.equal(await page.evaluate(()=>calls.filter(x=>x.path.endsWith('/refresh')).length),1);
 });
 test('successful OAuth return invalidates old freshness and automatically loads list for the new connection',async t=>{
@@ -210,7 +210,7 @@ test('automatic failure preserves associations and enabled intent, suppresses re
  assert.match(await page.locator('#googleSecretariaCard').textContent(),/uso estão suspensos/);assert.ok(!(await page.locator('body').textContent()).includes('PRIVATE_TEST_GOOGLE_ERROR'));
  await page.evaluate(async()=>{bindPage();bindPage();await loadRoleData();bindPage()});
  assert.equal(await page.evaluate(()=>calls.filter(x=>x.path.endsWith('/refresh')).length),1);
- await page.evaluate(()=>provider.calendarError=false);await page.click('[data-secretaria-google=calendars]');await page.waitForFunction(()=>!state.googleSecretaria.listLoading);
+ await page.evaluate(()=>provider.calendarError=false);await page.click('[data-secretaria-google=calendars]');await page.waitForFunction(()=>!state.googleSecretaria.loading&&!state.googleSecretaria.listLoading);
  assert.equal(await page.evaluate(()=>calls.filter(x=>x.path.endsWith('/refresh')).length),2);assert.equal(await page.evaluate(()=>state.googleSecretaria.lastRefreshStatus),'success');
 });
 test('automatic refresh never runs without a configured, connected and authorized account',async t=>{
@@ -220,7 +220,8 @@ test('automatic refresh never runs without a configured, connected and authorize
 });
 test('in-flight automatic refresh is shared by rebindings and cannot expose data after switching profile',async t=>{
  const page=await fixture(t,{connected:true,calendars:[calendar('a')]});
- await page.evaluate(()=>{provider.refreshGate=new Promise(resolve=>window.finishRefresh=resolve);state.googleSecretaria.lastRefreshAt={seconds:(Date.now()-301000)/1000};bindPage();bindPage();bindPage()});
+ await page.evaluate(()=>{provider.refreshGate=new Promise(resolve=>window.finishRefresh=resolve);provider.lastRefreshAt={seconds:(Date.now()-301000)/1000};state.page='inicio';bindPage();state.page='configuracoes';bindPage();bindPage();bindPage()});
+ await page.waitForFunction(()=>state.googleSecretaria.listLoading);
  assert.equal(await page.evaluate(()=>calls.filter(x=>x.path.endsWith('/refresh')).length),1);
  await page.evaluate(async()=>{state.role='teacher';state.user={uid:'LOCAL_TEACHER'};document.getElementById('settings').innerHTML=settingsPage();finishRefresh()});
  assert.equal(await page.locator('#googleSecretariaCard').count(),0);assert.ok(!(await page.locator('body').textContent()).includes('Calendário a'));
@@ -228,8 +229,8 @@ test('in-flight automatic refresh is shared by rebindings and cannot expose data
 
 test('automatic failure plus failed recovery read preserves the visible list and suspends effective use',async t=>{
  const page=await fixture(t,{connected:true,calendars:[calendar('a',{teacherId:'TEACHER_A',enabled:true,effectiveEnabled:true})]});
- await page.evaluate(()=>{const previous=api;window.api=(path,options)=>{if(path.endsWith('/calendars'))throw Error('PRIVATE_TEST_RECOVERY_ERROR');return previous(path,options)};provider.calendarError=true;state.googleSecretaria.lastRefreshAt={seconds:(Date.now()-301000)/1000};bindPage()});
- await page.waitForFunction(()=>!state.googleSecretaria.listLoading);
+ await page.evaluate(()=>{const previous=api;window.api=(path,options)=>{if(path.endsWith('/calendars')&&calls.some(x=>x.path.endsWith('/refresh')))throw Error('PRIVATE_TEST_RECOVERY_ERROR');return previous(path,options)};provider.calendarError=true;provider.lastRefreshAt={seconds:(Date.now()-301000)/1000};state.page='inicio';bindPage();state.page='configuracoes';bindPage()});
+ await page.waitForFunction(()=>!state.googleSecretaria.loading&&!state.googleSecretaria.listLoading);
  assert.equal(await page.locator('.central-calendar').count(),1);assert.equal(await page.locator('.central-calendar select').inputValue(),'TEACHER_A');assert.equal(await page.locator('.central-calendar input').isChecked(),true);
  assert.equal(await page.evaluate(()=>state.googleSecretaria.calendars[0].effectiveEnabled),false);assert.equal(await page.evaluate(()=>state.googleSecretaria.calendars[0].accessStatus),'accessible');
  assert.match(await page.locator('#googleSecretariaCard').textContent(),/uso estão suspensos/);assert.ok(!(await page.locator('body').textContent()).includes('PRIVATE_TEST'));
