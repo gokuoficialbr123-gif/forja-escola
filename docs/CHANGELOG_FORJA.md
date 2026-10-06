@@ -1,5 +1,11 @@
 ## Isolamento do Preview da Etapa 3 — PR6 backend / PR5 frontend
 
+Validação local: 138 unitários backend +97 HTTP/Auth/Firestore +25 pipeline +116
+Chromium desktop/mobile, todos aprovados. Inclui preservação de conexão anterior
+em falha de status de produção, sem relaxar bloqueio no Preview. CI/backend
+aprovada; Render novo está bloqueado por namespace ainda ausente. Hosting Preview
+aguarda configuração exclusiva, sem remover gate nem executar OAuth real.
+
 Autorizado somente isolamento antes de OAuth real. Sem merge/main/produção.
 Produção por padrão preserva google_secretaria_connections/escola,
 _google_secretaria_oauth_states/{nonce} e google_calendar_admin_calendars/{hash}.

@@ -7497,7 +7497,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
       Object.assign(state.googleSecretaria,{configured:r.configured===true,item:{connected:item.connected===true,maskedEmail:typeof item.maskedEmail==='string'&&item.maskedEmail.includes('***@')?item.maskedEmail:'',lastStatusAt:item.lastStatusAt||null,requiresReauthorization:item.requiresReauthorization===true},requiresReauthorization:item.requiresReauthorization===true});
       if(item.connected){try{const data=await api(CENTRAL_API+'/calendars');if(current())applyCalendars(data)}catch(_){if(current()){state.googleSecretaria.listError='Consulta indisponível';state.googleSecretaria.calendars.forEach(row=>row.effectiveEnabled=false)}}}
       else{Object.assign(state.googleSecretaria,{calendars:[],teachers:[],lastRefreshAt:null,lastRefreshStatus:'not_refreshed'})}
-    }catch(_){if(current()){state.googleSecretaria.error='Consulta indisponível';state.googleSecretaria.configured=false;state.googleSecretaria.item={connected:false};state.googleSecretaria.storage=null;state.googleSecretaria.freeBusyAuthorized=false;state.googleSecretaria.calendars.forEach(row=>row.effectiveEnabled=false)}}
+    }catch(_){if(current()){state.googleSecretaria.error='Consulta indisponível';if(PREVIEW_API){state.googleSecretaria.configured=false;state.googleSecretaria.item={connected:false};state.googleSecretaria.storage=null;state.googleSecretaria.freeBusyAuthorized=false}state.googleSecretaria.calendars.forEach(row=>row.effectiveEnabled=false)}}
     finally{if(current()){state.googleSecretaria.loading=false;paintCentral()}}
   }
   const centralVisible=()=>centralAdmin()&&state.page==='configuracoes'&&!!document.getElementById('googleSecretariaCard');

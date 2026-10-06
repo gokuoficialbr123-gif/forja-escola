@@ -300,3 +300,12 @@ for(const storage of [null,{policy:'central-preview-isolation-v1',environment:'p
  assert.ok(!(await page.locator('#googleSecretariaCard').textContent()).includes('s***@'));
  assert.deepEqual(await page.evaluate(()=>calls.map(x=>x.path)),[base+'/status']);
 });
+
+
+test('production status failure preserves prior connection while disabling actions, as in Etapa2',async t=>{
+ const page=await fixture(t,{connected:true});
+ await page.evaluate(async()=>{provider.error=true;await loadRoleData()});
+ const g=await page.evaluate(()=>state.googleSecretaria);assert.equal(g.item.connected,true);assert.equal(g.configured,true);assert.ok(g.error);
+ assert.match(await page.locator('#googleSecretariaCard').textContent(),/s\*\*\*@f\*\*\*.example/);
+ assert.equal(await page.locator('[data-secretaria-google=connect]').isDisabled(),true);
+});
