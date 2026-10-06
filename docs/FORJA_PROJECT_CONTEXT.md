@@ -1,3 +1,47 @@
+## Isolamento do Preview da Etapa 3 — PR6 backend / PR5 frontend
+
+Autorizado somente isolamento antes de OAuth real. Sem merge/main/produção.
+Produção por padrão preserva google_secretaria_connections/escola,
+_google_secretaria_oauth_states/{nonce} e google_calendar_admin_calendars/{hash}.
+Resolvedor src/google-secretaria-storage.js recebe APENAS configuração servidor.
+Preview exige FORJA_GOOGLE_ENVIRONMENT=preview e namespace estrito pr-N em
+GOOGLE_SECRETARIA_STORAGE_NAMESPACE; IS_PULL_REQUEST=true e hostname oficial
+forja-api-pr-N.onrender.com detectam Preview mesmo se configuração estiver ausente.
+Namespace deve coincidir com hostname. Ausente/inválido/conflitante: CENTRAL_STORAGE_BLOCKED,
+503, nenhum caminho de produção como fallback e Google pessoal desabilitado.
+
+PR6 usa raiz google_secretaria_preview_envs/pr-6: connections/escola,
+oauth_states/{nonce}, calendars/{hash}. Conexão/status/grants/freshness, state/PKCE/
+nonce, CalendarList/PATCH/freeBusy usam o mesmo contexto. Não copiar dados/credenciais/
+grants/associações. Preview inicia vazio; produção só compartilha users para leitura
+de perfis admin/teacher ativos. IDs de calendário podem coincidir, mas paths não.
+Tokens AES-GCM apenas backend; nenhum busy/evento persistido. Namespace nunca vem
+de request, query ou frontend. Cache/requests pertencem à instância/contexto.
+
+Novo state central assinado +documento gravado incluem oauthBinding SHA256 do
+namespace/ambiente/clientId/redirectUri exatos. Validar assinatura/binding antes de
+consumir, revalidar binding dentro da transação atômica. State cruzado ou binding
+modificado não é consumido. PKCE/OIDC mantidos. Estados centrais legados sem binding
+continuam aceitos APENAS em produção, até expiração original10min; Preview recusa.
+Não alterar helper/payload pessoal por padrão nem desconectar/reconectar produção.
+
+Preview usa somente GOOGLE_SECRETARIA_PREVIEW_* para cliente/secret/callback/frontend,
+sem fallback aos GOOGLE_SECRETARIA_* de produção. ClientPreview deve ser exclusivo
+e diferente do cliente central herdado e do pessoal. Callback/origem próprios.
+Google pessoal: nenhum timer startup/manutenção de sync/watch registrado no Preview;
+rotas pessoais callback/connect/sync/webhook/watch/connection/admin-sync bloqueadas;
+funções internas sync/backfill/watch/cancel não executam operações pessoais no Preview.
+Produção mantém as quatro agendas de execução e fluxo pessoal existentes.
+
+Health/status expõem somente policy central-preview-isolation-v1, environment,
+namespace, ready, personalGoogleEnabled. Gate Firebase exige Preview ready=true,
+namespace correspondente ao Render selecionado, Google pessoal/webhook desabilitados.
+UI Preview recusa backend antigo/produção/configuração incompleta antes de ler lista
+ou oferecer ações. Badge identifica ambiente de teste; API oficial na fonte intacta.
+Instruções antigas de OAuth Preview compartilhando conexão abaixo são OBSOLETAS.
+Não executar OAuth/Google reais. Testes mutáveis exclusivamente demo-forja/mocks.
+Nenhuma configuração/produção real modificada por esta implementação.
+
 ## 05/10/2026 — BLOCO A / ETAPA 3: freeBusy central (somente PR/Preview)
 
 Base atual publicada: backend main f1399db e frontend main 1ba3458. A Etapa 2

@@ -1,3 +1,89 @@
+### Render Preview #6 — configuração isolada (somente instância Preview)
+
+Não alterar serviço forja-api de produção, Environment Group compartilhado nem
+Blueprint de produção. Este projeto não possui render.yaml. Se Dashboard só mostra
+link/URL do PR, use API oficial Render para localizar e modificar SOMENTE serviceId
+do serviço cujo serviceDetails.url é https://forja-api-pr-6.onrender.com.
+GET https://api.render.com/v1/services, percorrer páginas e confirmar nome/URL/id.
+GET /v1/services/{serviceId}/env-vars para preservar todas as variáveis existentes;
+atualizar a variável individual via PUT /v1/services/{serviceId}/env-vars/{key}.
+Nunca substituir toda a lista por lista parcial, copiar secrets em chat/logs ou
+usar id do serviço pai. Credencial de controle Render não está neste ambiente.
+Atualizações devem ser feitas pelo proprietário em ferramenta segura; não enviar valores.
+
+Definir exclusivamente na instância Preview as seis variáveis:
+- FORJA_GOOGLE_ENVIRONMENT: preview.
+- GOOGLE_SECRETARIA_STORAGE_NAMESPACE: pr-6.
+- GOOGLE_SECRETARIA_PREVIEW_OAUTH_CLIENT_ID: cliente OAuth exclusivo de Preview.
+- GOOGLE_SECRETARIA_PREVIEW_OAUTH_CLIENT_SECRET: segredo desse cliente, somente Render.
+- GOOGLE_SECRETARIA_PREVIEW_OAUTH_REDIRECT_URI:
+  https://forja-api-pr-6.onrender.com/admin/google-calendar/central/callback
+- GOOGLE_SECRETARIA_PREVIEW_FRONTEND_URL:
+  https://forja-escola--pr5-feat-secretaria-cent-9vkunnff.web.app
+
+Infra já existente do backend é necessária, sem valores no Git: Firebase Admin
+configurado para projeto forja-escola e GOOGLE_CALENDAR_TOKEN_SECRET /
+GOOGLE_CALENDAR_STATE_SECRET para AES-GCM/HMAC. Não trocar chaves de produção.
+IS_PULL_REQUEST e RENDER_EXTERNAL_HOSTNAME são fornecidas pelo Render; não forjar
+para contornar bloqueio. Ausência de configuração Preview NÃO permite fallback.
+
+Google Cloud: criar/reutilizar cliente OAuth Web EXCLUSIVO Preview, sem modificar
+clientes central/pessoal de produção. URI autorizada exatamente callback acima.
+Scopes somente openid/email/CalendarList read-only/calendar.events.freebusy.
+Não executar consentimento nesta entrega. Nenhuma revogação Google project-wide.
+
+Após aplicar configuração/redeploy exclusivamente Preview, /health deve mostrar
+googleSecretariaStorage.policy=central-preview-isolation-v1, environment=preview,
+namespace=pr-6, ready=true, personalGoogleEnabled=false; googleCalendarConfigured e
+googleCalendarWebhookConfigured false. /status admin deve começar desconectado/vazio.
+Sem OAuth real, sem copiar documentos/calendários/grants/freshness existentes.
+Firebase workflow só atualiza canal Preview após confirmar esse health. Se faltar
+configuração, gate falha fechado; corrigir Environment Preview, não remover o gate.
+
+## Isolamento do Preview da Etapa 3 — PR6 backend / PR5 frontend
+
+Autorizado somente isolamento antes de OAuth real. Sem merge/main/produção.
+Produção por padrão preserva google_secretaria_connections/escola,
+_google_secretaria_oauth_states/{nonce} e google_calendar_admin_calendars/{hash}.
+Resolvedor src/google-secretaria-storage.js recebe APENAS configuração servidor.
+Preview exige FORJA_GOOGLE_ENVIRONMENT=preview e namespace estrito pr-N em
+GOOGLE_SECRETARIA_STORAGE_NAMESPACE; IS_PULL_REQUEST=true e hostname oficial
+forja-api-pr-N.onrender.com detectam Preview mesmo se configuração estiver ausente.
+Namespace deve coincidir com hostname. Ausente/inválido/conflitante: CENTRAL_STORAGE_BLOCKED,
+503, nenhum caminho de produção como fallback e Google pessoal desabilitado.
+
+PR6 usa raiz google_secretaria_preview_envs/pr-6: connections/escola,
+oauth_states/{nonce}, calendars/{hash}. Conexão/status/grants/freshness, state/PKCE/
+nonce, CalendarList/PATCH/freeBusy usam o mesmo contexto. Não copiar dados/credenciais/
+grants/associações. Preview inicia vazio; produção só compartilha users para leitura
+de perfis admin/teacher ativos. IDs de calendário podem coincidir, mas paths não.
+Tokens AES-GCM apenas backend; nenhum busy/evento persistido. Namespace nunca vem
+de request, query ou frontend. Cache/requests pertencem à instância/contexto.
+
+Novo state central assinado +documento gravado incluem oauthBinding SHA256 do
+namespace/ambiente/clientId/redirectUri exatos. Validar assinatura/binding antes de
+consumir, revalidar binding dentro da transação atômica. State cruzado ou binding
+modificado não é consumido. PKCE/OIDC mantidos. Estados centrais legados sem binding
+continuam aceitos APENAS em produção, até expiração original10min; Preview recusa.
+Não alterar helper/payload pessoal por padrão nem desconectar/reconectar produção.
+
+Preview usa somente GOOGLE_SECRETARIA_PREVIEW_* para cliente/secret/callback/frontend,
+sem fallback aos GOOGLE_SECRETARIA_* de produção. ClientPreview deve ser exclusivo
+e diferente do cliente central herdado e do pessoal. Callback/origem próprios.
+Google pessoal: nenhum timer startup/manutenção de sync/watch registrado no Preview;
+rotas pessoais callback/connect/sync/webhook/watch/connection/admin-sync bloqueadas;
+funções internas sync/backfill/watch/cancel não executam operações pessoais no Preview.
+Produção mantém as quatro agendas de execução e fluxo pessoal existentes.
+
+Health/status expõem somente policy central-preview-isolation-v1, environment,
+namespace, ready, personalGoogleEnabled. Gate Firebase exige Preview ready=true,
+namespace correspondente ao Render selecionado, Google pessoal/webhook desabilitados.
+UI Preview recusa backend antigo/produção/configuração incompleta antes de ler lista
+ou oferecer ações. Badge identifica ambiente de teste; API oficial na fonte intacta.
+Instruções antigas de OAuth Preview compartilhando conexão abaixo são OBSOLETAS.
+Não executar OAuth/Google reais. Testes mutáveis exclusivamente demo-forja/mocks.
+Nenhuma configuração/produção real modificada por esta implementação.
+
 ### Preparação/teste manual — somente Preview da Etapa 3
 
 Render Preview fornecido: https://forja-api-pr-6.onrender.com. Conferir /health

@@ -6,6 +6,14 @@ import { validatePreviewApiUrl } from './preview-config.mjs';
 const productionVersion = '6.30.1-cors-preview-forja-escola';
 export const previewVersion = '6.31.1-secretaria-publicacao-confirmada';
 
+export function assertPreviewIsolation(health,apiUrl) {
+  const expected='pr-'+new URL(apiUrl).hostname.match(/^forja-api-pr-([1-9][0-9]*)\.onrender\.com$/)?.[1];
+  const storage=health.googleSecretariaStorage;
+  assert.ok(storage?.policy==='central-preview-isolation-v1'&&storage.environment==='preview'&&storage.ready===true&&storage.namespace===expected&&storage.personalGoogleEnabled===false,'Render Preview sem isolamento central confirmado; Hosting Preview bloqueado.');
+  assert.equal(health.googleCalendarConfigured,false,'Google pessoal deve ficar desabilitado no Preview.');
+  assert.equal(health.googleCalendarWebhookConfigured,false,'Webhook pessoal deve ficar desabilitado no Preview.');
+}
+
 export async function verifyPreviewHealth(apiUrl, { mode = 'render-preview', request = fetch } = {}) {
   assert.ok(['render-preview', 'production-unchanged'].includes(mode), 'Modo de backend inválido.');
   if (mode === 'production-unchanged') assert.equal(apiUrl, 'https://forja-api-m1kq.onrender.com');
@@ -17,6 +25,7 @@ export async function verifyPreviewHealth(apiUrl, { mode = 'render-preview', req
   assert.equal(health.version, mode === 'production-unchanged' ? productionVersion : previewVersion, 'Render Preview ainda não tem a regra atual; Preview Hosting não publicado.');
   if(mode==='render-preview')assert.equal(health.secretariaAvailabilityPolicy,'confirmed-week-v2','Render Preview ainda não unifica Agenda e booking; Preview Hosting não publicado.');
   if(mode==='render-preview'){assert.equal(health.googleOAuthSecurityPolicy,'state-pkce-oidc-v1','Hardening OAuth ausente.');assert.equal(health.googleSecretariaPolicy,'calendarlist-association-v2','Etapa 2 central ausente; Preview não publicado.');assert.equal(health.googleSecretariaFreeBusyPolicy,'central-freebusy-query-v1','Etapa 3 freeBusy central ausente; Preview não publicado.')}
+  if(mode==='render-preview')assertPreviewIsolation(health,apiUrl);
   return { apiUrl, version: health.version, health: 200 };
 }
 
@@ -46,6 +55,8 @@ export async function verifyPreviewBackend(apiUrl, frontendUrl, { mode = 'render
 
   if(mode==='render-preview')assert.equal(data.secretariaAvailabilityPolicy,'confirmed-week-v2','Agenda e booking ainda não unificados no Render Preview.');
   if(mode==='render-preview'){assert.equal(data.googleOAuthSecurityPolicy,'state-pkce-oidc-v1');assert.equal(data.googleSecretariaPolicy,'calendarlist-association-v2');assert.equal(data.googleSecretariaFreeBusyPolicy,'central-freebusy-query-v1')}
+
+  if(mode==='render-preview')assertPreviewIsolation(data,apiUrl);
 
   const preflight = await request('/me', {
     method: 'OPTIONS',

@@ -9,29 +9,30 @@ let browser;
 before(async()=>browser=await chromium.launch({headless:true,...(process.env.FORJA_CHROMIUM_PATH?{executablePath:process.env.FORJA_CHROMIUM_PATH}:{})}));
 after(async()=>browser?.close());
 const base='/admin/google-calendar/central';
-async function fixture(t,{mobile=false,role='admin',active=true,connected=false,error=false,configured=true,unsafeUrl=false,reauth=false,calendars=[],ageMs=0,refreshStatus='success',calendarError=false,initialPage='configuracoes',revision=1,oauthReturn=false,freeBusySupported=false,freeBusyAuthorized=false}={}){
+async function fixture(t,{mobile=false,role='admin',active=true,connected=false,error=false,configured=true,unsafeUrl=false,reauth=false,calendars=[],ageMs=0,refreshStatus='success',calendarError=false,initialPage='configuracoes',revision=1,oauthReturn=false,freeBusySupported=false,freeBusyAuthorized=false,previewStorage=null,previewApi=false}={}){
  const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:900}});t.after(()=>page.close());
  await page.route('**/*',r=>r.abort());
  if(oauthReturn){await page.route('https://forja-fixture.invalid/**',r=>r.fulfill({contentType:'text/html',body:'<main id="settings"></main><div id="feedback" role="status"></div>'}));await page.goto('https://forja-fixture.invalid/?googleSecretaria=connected')}
  else await page.setContent('<main id="settings"></main><div id="feedback" role="status"></div>');
- await page.evaluate(({html,role,active,connected,error,configured,unsafeUrl,reauth,calendars,base,ageMs,refreshStatus,calendarError,initialPage,revision,freeBusySupported,freeBusyAuthorized})=>{
+ await page.evaluate(({html,role,active,connected,error,configured,unsafeUrl,reauth,calendars,base,ageMs,refreshStatus,calendarError,initialPage,revision,freeBusySupported,freeBusyAuthorized,previewStorage,previewApi})=>{
   const parsed=new DOMParser().parseFromString(html,'text/html');
   for(const original of parsed.querySelectorAll('style')){const style=document.createElement('style');style.textContent=original.textContent;document.head.appendChild(style)}
   const code=parsed.getElementById('forja-google-secretaria-script')?.textContent;if(!code)throw Error('Central script missing');
+  if(previewApi)window.FORJA_API_URL='https://forja-api-pr-6.onrender.com';
   window.state={role,profile:{active},user:{uid:'LOCAL_ADMIN'},page:initialPage};window.calls=[];
   window.esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
   window.fmtDateTime=()=> '04/10/2026 12:00';window.$$=s=>[...document.querySelectorAll(s)];
   window.setBusy=(b,v)=>{if(b)b.disabled=v};window.toast=x=>document.getElementById('feedback').textContent=x;
   window.confirm=()=>true;window.settingsPage=()=>'<section id="personal">Conexões dos profissionais</section>';
   window.loadRoleData=async()=>{};window.bindPage=()=>{};
-  window.provider={freeBusySupported,freeBusyAuthorized,busyMode:'success',connected,error,configured,unsafeUrl,reauth,calendars,calendarError,lastRefreshStatus:refreshStatus,lastRefreshAt:{seconds:(Date.now()-ageMs)/1000},revision};
+  window.provider={previewStorage,freeBusySupported,freeBusyAuthorized,busyMode:'success',connected,error,configured,unsafeUrl,reauth,calendars,calendarError,lastRefreshStatus:refreshStatus,lastRefreshAt:{seconds:(Date.now()-ageMs)/1000},revision};
   const teachers=[{id:'TEACHER_A',fullName:'Professor A',role:'teacher',active:true},{id:'TEACHER_B',fullName:'Professor B',role:'teacher',active:true},{id:'TEACHER_INACTIVE',fullName:'Inativo',role:'teacher',active:false},{id:'PSYCH',fullName:'Psicólogo',role:'psychologist',active:true}];
   const calendarData=()=>({connected:provider.connected,requiresReauthorization:provider.reauth,items:provider.calendars,teachers,lastRefreshStatus:provider.lastRefreshStatus,lastRefreshAt:provider.lastRefreshAt,connectionRevision:provider.revision});
   window.api=async(path,options={})=>{
    calls.push({path,method:options.method||'GET',body:options.body});
    if(path===base+'/status'){
     if(provider.error)throw Error('TEST_ONLY_CREDENTIAL_IN_ERROR');
-    return {configured:provider.configured,policy:'calendarlist-association-v2',...(provider.freeBusySupported?{freeBusyPolicy:'central-freebusy-query-v1'}:{}),item:{connected:provider.connected,requiresReauthorization:provider.reauth,freeBusyAuthorized:provider.freeBusyAuthorized,maskedEmail:provider.connected?'s***@f***.example':'',lastStatusAt:'2026-10-04T15:00:00Z'}};
+    return {storage:provider.previewStorage,configured:provider.configured,policy:'calendarlist-association-v2',...(provider.freeBusySupported?{freeBusyPolicy:'central-freebusy-query-v1'}:{}),item:{connected:provider.connected,requiresReauthorization:provider.reauth,freeBusyAuthorized:provider.freeBusyAuthorized,maskedEmail:provider.connected?'s***@f***.example':'',lastStatusAt:'2026-10-04T15:00:00Z'}};
    }
    if(path===base+'/calendars')return calendarData();
    if(path===base+'/calendars/refresh'){
@@ -59,7 +60,7 @@ async function fixture(t,{mobile=false,role='admin',active=true,connected=false,
    throw Error('Unexpected personal/Calendar endpoint');
   };
   (0,eval)(code);
- },{html,role,active,connected,error,configured,unsafeUrl,reauth,calendars,base,ageMs,refreshStatus,calendarError,initialPage,revision,freeBusySupported,freeBusyAuthorized});
+ },{html,role,active,connected,error,configured,unsafeUrl,reauth,calendars,base,ageMs,refreshStatus,calendarError,initialPage,revision,freeBusySupported,freeBusyAuthorized,previewStorage,previewApi});
  await page.evaluate(async()=>{await loadRoleData();document.getElementById('settings').innerHTML=settingsPage();bindPage()});
  await page.waitForFunction(()=>!state.googleSecretaria.loading&&!state.googleSecretaria.listLoading);
  return page;
@@ -282,4 +283,20 @@ test('late freeBusy response cannot expose intervals after role switch',async t=
  const page=await fixture(t,{connected:true,freeBusySupported:true,freeBusyAuthorized:true});await page.evaluate(()=>{provider.busyGate=new Promise(r=>window.releaseBusy=r)});await page.click('[data-secretaria-google=busy]');
  await page.evaluate(async()=>{state.role='teacher';state.profile.active=true;state.user={uid:'OTHER'};await loadRoleData();document.getElementById('settings').innerHTML=settingsPage();bindPage();releaseBusy()});await page.evaluate(async()=>{await Promise.resolve();await Promise.resolve()});
  assert.equal(await page.locator('#googleSecretariaCard').count(),0);assert.equal(await page.evaluate(()=>state.googleSecretaria.busyResult),null);
+});
+
+
+for(const mobile of [false,true])test('isolated Preview central card is explicit and starts empty '+(mobile?'mobile':'desktop'),async t=>{
+ const page=await fixture(t,{mobile,previewApi:true,previewStorage:{policy:'central-preview-isolation-v1',environment:'preview',namespace:'pr-6',ready:true,personalGoogleEnabled:false}});
+ assert.match(await page.locator('#googleSecretariaCard').textContent(),/Ambiente de teste · pr-6/);
+ assert.equal(await page.locator('[data-secretaria-google=connect]').isDisabled(),false);
+ assert.deepEqual(await page.evaluate(()=>calls.map(x=>x.path)),[base+'/status']);
+});
+for(const storage of [null,{policy:'central-preview-isolation-v1',environment:'production',namespace:'production',ready:true,personalGoogleEnabled:true},{policy:'central-preview-isolation-v1',environment:'preview',namespace:'pr-6',ready:false,personalGoogleEnabled:false},{policy:'central-preview-isolation-v1',environment:'preview',namespace:'pr-5',ready:true,personalGoogleEnabled:false}])test('Preview refuses unsafe storage '+JSON.stringify(storage),async t=>{
+ const page=await fixture(t,{previewApi:true,previewStorage:storage,connected:true,freeBusySupported:true,freeBusyAuthorized:true});
+ assert.equal(await page.locator('[data-secretaria-google=connect]').isDisabled(),true);
+ assert.equal(await page.locator('[data-secretaria-google=disconnect]').count(),0);
+ assert.equal(await page.locator('[data-secretaria-google=busy]').count(),0);
+ assert.ok(!(await page.locator('#googleSecretariaCard').textContent()).includes('s***@'));
+ assert.deepEqual(await page.evaluate(()=>calls.map(x=>x.path)),[base+'/status']);
 });
