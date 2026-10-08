@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validatePreviewApiUrl } from './preview-config.mjs';
 
-const productionVersion = '6.30.1-cors-preview-forja-escola';
+export const productionVersion = '6.31.1-secretaria-publicacao-confirmada';
 export const previewVersion = '6.31.1-secretaria-publicacao-confirmada';
 
 export function assertPreviewIsolation(health,apiUrl) {

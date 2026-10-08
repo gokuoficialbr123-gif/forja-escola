@@ -1,3 +1,26 @@
+## 08/10/2026 — Issue #6: Novo usuário (somente PR/Preview)
+
+Base: main 81265f9, após publicação da Etapa 3. Branch feat/novo-usuario-quatro-perfis.
+Mudança localizada em newUserModal() e stylesheet forja-new-user-style, escopo
+#forjaNewUserDialog. Perfis e valores preservados: teacher, psychologist, student,
+parent. Sem staff/admin novo. Campos, endpoints, disciplinaIds e vínculos FORJA
+seguem o contrato anterior. Matérias: busca sem acentos, checkboxes, chips removíveis,
+contador e limpar; select oculto conserva a serialização original. Seções por perfil
+sem recriar controles, mantendo dados e turma quando compatível. Envio único com
+feedback local, bloqueio durante request e mesmas ações de ativação/reload.
+
+Sem mudança de backend/Auth/Rules/Google/Agenda/booking ou dados reais. Testes com
+portal completo em Chromium e APIs/Firebase Auth simulados na borda, sem criar contas
+reais. Screenshots antes/depois contêm somente dados fictícios dos testes. Hash
+validado foi atualizado conscientemente. Marker de Agenda 6.31.1 permanece intacto.
+
+Preview frontend-only opta explicitamente pelo backend oficial inalterado:
+FORJA_PREVIEW_BACKEND=production-unchanged na descrição do PR. Verificador desse modo
+corrigido da referência antiga 6.30.1 para a versão oficial constatada 6.31.1;
+isolamento/versão obrigatórios para modo render-preview continuam intactos.
+Preview não é um banco isolado. Testes automáticos sempre mocks; nenhuma conta real
+foi criada. Sem merge/push main/produção até aprovação visual e funcional.
+
 ## Isolamento do Preview da Etapa 3 — PR6 backend / PR5 frontend
 
 Validação local: 138 unitários backend +97 HTTP/Auth/Firestore +25 pipeline +116
