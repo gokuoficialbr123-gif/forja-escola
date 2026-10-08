@@ -7372,24 +7372,72 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
 #googleSecretariaCard .central-calendar-controls input{width:18px;height:18px;flex-shrink:0}
 #googleSecretariaCard .central-warning{padding:12px;border-radius:8px;background:#fff7e7;color:#674d19;margin:12px 0;overflow-wrap:anywhere}
 @media(max-width:600px){#googleSecretariaCard .central-calendar-head{flex-direction:column}#googleSecretariaCard .central-calendar-controls{align-items:stretch;flex-direction:column}#googleSecretariaCard .central-calendar-controls .central-teacher{min-width:0}}
+#googleSecretariaCard .central-freebusy{border-top:1px solid #e2e6e8;margin-top:20px;padding-top:16px}
+#googleSecretariaCard .central-busy-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:end}
+#googleSecretariaCard .central-busy-controls label{display:grid;gap:6px;min-width:0;font-size:13px}
+#googleSecretariaCard .central-busy-controls input,#googleSecretariaCard .central-busy-controls select{width:100%;min-width:0;min-height:40px;border:1px solid #dce2e7;border-radius:8px;padding:8px;background:#fff;color:#14334a;box-sizing:border-box}
+#googleSecretariaCard .central-busy-row{padding:12px;border:1px solid #e2e6e8;border-radius:8px;margin-top:10px;overflow-wrap:anywhere}
+#googleSecretariaCard .central-busy-row small{display:block;margin-top:4px}
+@media(max-width:600px){#googleSecretariaCard .central-busy-controls{grid-template-columns:minmax(0,1fr)}}
 </style>
 <script id="forja-google-secretaria-script">
-/* Google Calendar central — Etapa 2: CalendarList metadata and explicit associations. */
+/* Central Google: CalendarList, on-demand freeBusy and server-owned Preview isolation. */
 (function(){
   const CENTRAL_API='/admin/google-calendar/central';
   const CENTRAL_POLICY='calendarlist-association-v2';
+  const PREVIEW_API=typeof FORJA_API_URL==='string'?FORJA_API_URL.match(/^https:\/\/forja-api-pr-([1-9][0-9]{0,8})\.onrender\.com$/):null;
+  const STORAGE_POLICY='central-preview-isolation-v1';
   const CALENDAR_SCOPE='https://www.googleapis.com/auth/calendar.calendarlist.readonly';
+  const BUSY_SCOPE='https://www.googleapis.com/auth/calendar.events.freebusy',BUSY_POLICY='central-freebusy-query-v1',BUSY_PURPOSE='central-freebusy-v1';
+  const centralDayFormat=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'});
+  let busySeq=0;
   let requestSeq=0;
   let autoFailure=null,readFlight=null,actionFlight=null,viewEntry=null,centralOwner=null;
   const VIEW_KEY='forja.secretaria.settings';
   const FRESH_MS=5*60*1000,RETRY_MS=60*1000;
   const centralAdmin=()=>state.role==='admin'&&state.profile?.active===true;
-  const fresh=()=>({loading:false,configured:false,item:{connected:false},error:'',calendars:[],teachers:[],listLoading:false,listError:'',requiresReauthorization:false,lastRefreshAt:null,lastRefreshStatus:'not_refreshed',connectionRevision:0});
+  const fresh=()=>({loading:false,configured:false,item:{connected:false},storage:null,error:'',calendars:[],teachers:[],listLoading:false,listError:'',requiresReauthorization:false,lastRefreshAt:null,lastRefreshStatus:'not_refreshed',connectionRevision:0,freeBusySupported:false,freeBusyAuthorized:false,freeBusyLoading:false,busyResult:null,busyError:'',busyFrom:centralDayKey(Date.now()),busyTo:centralAddDays(centralDayKey(Date.now()),6),busyTeacher:''});
   state.googleSecretaria=fresh();
   const actionMessages=new Set(['Este professor já está associado a outro calendário. Remova o vínculo anterior antes de associar.','Selecione um professor ativo do FORJA.','Atualize a lista e confirme o acesso ao calendário antes de habilitar.','Reconecte a conta central e autorize a leitura da lista de calendários.']);
+  function centralDayKey(value){const parts=centralDayFormat.formatToParts(new Date(value));return ['year','month','day'].map(k=>parts.find(x=>x.type===k).value).join('-')}
+  function centralAddDays(key,n){if(!/^\d{4}-\d{2}-\d{2}$/.test(key))throw Error('Período inválido');const date=new Date(key+'T12:00:00Z');if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==key)throw Error('Período inválido');date.setUTCDate(date.getUTCDate()+n);return date.toISOString().slice(0,10)}
+  function centralDayStart(key){centralAddDays(key,0);const middle=Date.parse(key+'T00:00:00Z');let lo=middle-16*3600000,hi=middle+16*3600000;while(lo<hi){const mid=Math.floor((lo+hi)/2);if(centralDayKey(mid)<key)lo=mid+1;else hi=mid}if(centralDayKey(lo)!==key)throw Error('Período inválido');return new Date(lo).toISOString()}
+  function invalidateBusy(){busySeq++;const g=state.googleSecretaria;g.busyResult=null;g.busyError='';g.freeBusyLoading=false}
+  function freeBusyCard(g){
+    if(!g.item.connected||!g.freeBusySupported)return '';
+    const disabled=g.loading||g.listLoading||g.freeBusyLoading||!!g.error||!g.configured;
+    const labels={success:'Consultado',ignored:'Ignorado',unavailable:'Consulta indisponível'};
+    const reasons={disabled:'Uso desabilitado.',not_associated:'Sem professor associado.',inactive_teacher:'Professor inativo ou indisponível.',no_access:'Acesso indisponível.',ambiguous_association:'Confira as associações antes de consultar.',invalid_configuration:'Configuração indisponível.'};
+    const results=g.busyResult?`<p>Consulta: ${esc(fmtDateTime(g.busyResult.checkedAt))}. ${g.busyResult.complete?'Consulta concluída.':'Resultado parcial ou indisponível. Os períodos sem confirmação não indicam horário livre.'}</p>${g.busyResult.items.map(row=>{const teacher=g.teachers.find(x=>x.id===row.teacherId);return `<article class="central-busy-row"><b>${esc(teacher?.fullName||'Calendário sem professor ativo')}</b><small>${labels[row.status]}</small>${row.status==='success'?(row.busy.length?row.busy.map(x=>`<p>Ocupado · ${esc(fmtDateTime(x.start))} — ${esc(fmtDateTime(x.end))}</p>`).join(''):'<p>Nenhum ocupado retornado. A disponibilidade depende da publicação do professor.</p>'):`<p>${row.status==='ignored'?(reasons[row.reason]||'Calendário fora da consulta.'):'Não foi possível confirmar os períodos ocupados. Consulte novamente.'}</p>`}</article>`}).join('')}`:'';
+    return `<section class="central-freebusy" aria-busy="${g.freeBusyLoading}"><h4>Consulta de ocupado</h4><p>Consulta somente os calendários associados e habilitados. Os resultados são um diagnóstico separado da Agenda.</p>${!g.freeBusyAuthorized?`<p class="central-warning">Autorize a consulta de ocupado na conta central. A lista e as associações atuais continuam preservadas.</p><button class="small-btn" data-secretaria-google="authorize-busy" ${disabled?'disabled':''}>Autorizar consulta de ocupado</button>`:`<div class="central-busy-controls"><label>De<input type="date" data-central-busy="from" value="${esc(g.busyFrom)}" ${disabled?'disabled':''}></label><label>Até<input type="date" data-central-busy="to" value="${esc(g.busyTo)}" ${disabled?'disabled':''}></label><label>Professor<select data-central-busy="teacher" ${disabled?'disabled':''}><option value="">Todos os associados habilitados</option>${g.teachers.map(t=>`<option value="${esc(t.id)}" ${g.busyTeacher===t.id?'selected':''}>${esc(t.fullName)}</option>`).join('')}</select></label><button class="small-btn" data-secretaria-google="busy" ${disabled?'disabled':''}>${g.freeBusyLoading?'Consultando…':'Consultar ocupado'}</button></div>`}<div id="centralFreeBusyResults" role="status" aria-live="polite">${g.busyError?`<p class="central-warning">${esc(g.busyError)}</p>`:results}</div></section>`;
+  }
+  async function queryCentralBusy(){
+    const g=state.googleSecretaria;
+    if(!centralVisible()||!g.freeBusySupported||!g.freeBusyAuthorized||!g.configured||g.loading||g.listLoading||g.freeBusyLoading)return;
+    const seq=++busySeq,uid=state.user.uid,revision=requestSeq,current=()=>busySeq===seq&&requestSeq===revision&&uid===state.user?.uid&&centralVisible();
+    g.busyResult=null;g.busyError='';g.freeBusyLoading=true;paintCentral();
+    try{
+      const body={timeMin:centralDayStart(g.busyFrom),timeMax:centralDayStart(centralAddDays(g.busyTo,1)),...(g.busyTeacher?{teacherIds:[g.busyTeacher]}:{})};
+      const start=Date.parse(body.timeMin),end=Date.parse(body.timeMax);if(end<=start||end-start>31*86400000)throw Error('Informe um período válido de até 31 dias.');
+      const r=await api(CENTRAL_API+'/freebusy',{method:'POST',body});if(!current())return;
+      if(r.policy!==BUSY_POLICY||!['success','ignored','unavailable'].includes(r.status)||typeof r.complete!=='boolean'||!Array.isArray(r.items)||r.items.length>400||r.timeMin!==body.timeMin||r.timeMax!==body.timeMax||r.timeZone!=='America/Sao_Paulo')throw Error('Resposta indisponível');
+      const items=r.items.map(row=>{
+        if(!['success','ignored','unavailable'].includes(row.status))throw Error('Resposta indisponível');
+        const item={teacherId:g.teachers.some(t=>t.id===row.teacherId)?row.teacherId:null,status:row.status,reason:['disabled','not_associated','inactive_teacher','no_access','ambiguous_association','invalid_configuration'].includes(row.reason)?row.reason:''};
+        if(row.status==='success'){
+          if(!Array.isArray(row.busy)||row.busy.length>1000)throw Error('Resposta indisponível');
+          item.busy=row.busy.map(x=>{if(x.label!=='Ocupado'||typeof x.start!=='string'||typeof x.end!=='string'||!Number.isFinite(Date.parse(x.start))||!Number.isFinite(Date.parse(x.end))||Date.parse(x.start)<start||Date.parse(x.end)>end||Date.parse(x.end)<=Date.parse(x.start))throw Error('Resposta indisponível');return {start:x.start,end:x.end,label:'Ocupado'}});
+        }
+        return item;
+      });
+      if(r.complete&&items.some(x=>x.status==='unavailable'))throw Error('Resposta indisponível');
+      g.busyResult={items,complete:r.complete,checkedAt:Number.isFinite(Date.parse(r.checkedAt))?r.checkedAt:null};
+    }catch(error){if(current()){const safe=new Set(['Informe um período válido de até 31 dias.','Autorize a consulta de ocupado na conta Google central.','Atualize os calendários antes de consultar ocupado.','A conexão ou configuração mudou. Consulte novamente.','Aguarde antes de consultar ocupado novamente.']);g.busyError=safe.has(error.message)?error.message:'Não foi possível confirmar os períodos ocupados. Consulte novamente.'}}
+    finally{if(current()){g.freeBusyLoading=false;paintCentral()}}
+  }
   function calendarRows(g){
     if(!g.item.connected)return '';
-    const commonDisabled=g.loading||g.listLoading||!!g.listError;
+    const commonDisabled=g.loading||g.listLoading||g.freeBusyLoading||!!g.listError;
     return `<div class="central-calendar-list" aria-busy="${g.listLoading?'true':'false'}"><div role="status" aria-live="polite">${g.listLoading?'Atualizando calendários…':g.listError||g.lastRefreshStatus==='error'?'Não foi possível atualizar a lista. A configuração anterior foi preservada; o acesso e o uso estão suspensos até nova atualização.':''}</div>${g.lastRefreshAt?`<small>Última atualização: ${esc(fmtDateTime(g.lastRefreshAt))}</small>`:''}${g.calendars.map(row=>{
       const validTeacher=g.teachers.some(t=>t.id===row.teacherId),available=row.accessStatus==='accessible',type=row.primary?'Principal':row.accessRole==='owner'?'Próprio':'Compartilhado';
       const accessLabel=available?(g.lastRefreshStatus==='success'?'Acesso disponível':'Acesso não confirmado'):row.accessStatus==='removed'?'Não está mais na lista Google':'Sem permissão';
@@ -7400,7 +7448,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   function centralCard(){
     if(!centralAdmin())return '';
     const g=state.googleSecretaria,item=g.item||{},connected=item.connected===true;
-    return `<section id="googleSecretariaCard" class="p2-card" aria-busy="${g.loading?'true':'false'}"><div class="p2-card-head"><div><small>CONTA CENTRAL DA ESCOLA</small><h3>Google Calendar da Secretaria</h3></div><span class="status ${connected?'ok':'warn'}">${connected?'Conectado':'Não conectado'}</span></div><p>Associe explicitamente os calendários da conta central aos professores. A habilitação prepara o uso futuro; esta etapa ainda não sincroniza agendas.</p><div class="p2-meta"><span>Conta <b>${esc(item.maskedEmail||'—')}</b></span><span>Último status <b>${esc(g.loading?'Consultando…':g.error?'Consulta indisponível':connected?'Conectado':'Não conectado')}</b></span>${item.lastStatusAt?`<span>Atualizado <b>${esc(fmtDateTime(item.lastStatusAt))}</b></span>`:''}</div>${g.requiresReauthorization?'<p class="central-warning" role="status">Reconecte a conta central para autorizar a leitura da lista de calendários. Sua conexão e as associações anteriores serão preservadas se o consentimento falhar.</p>':''}<div role="status" aria-live="polite">${g.error?'<p>Não foi possível consultar a conexão. Tente novamente.</p>':!g.loading&&!g.configured?'<p>A conexão ainda não está disponível.</p>':''}</div><div class="quick-row"><button class="btn gold" data-secretaria-google="connect" ${g.loading||g.error||!g.configured?'disabled':''}>${connected?'Reconectar':'Conectar'}</button>${connected?`<button class="small-btn danger-btn" data-secretaria-google="disconnect" ${g.loading?'disabled':''}>Desconectar</button><button class="small-btn" data-secretaria-google="calendars" ${g.loading||g.listLoading||g.requiresReauthorization||!g.configured?'disabled':''}>Atualizar calendários</button>`:''}<button class="small-btn" data-secretaria-google="status" ${g.loading||g.listLoading?'disabled':''}>Atualizar status</button></div>${calendarRows(g)}</section>`;
+    return `<section id="googleSecretariaCard" class="p2-card" aria-busy="${g.loading?'true':'false'}"><div class="p2-card-head"><div><small>CONTA CENTRAL DA ESCOLA</small><h3>Google Calendar da Secretaria</h3></div><span class="status ${connected?'ok':'warn'}">${connected?'Conectado':'Não conectado'}</span></div><p>Associe explicitamente os calendários da conta central aos professores. A habilitação prepara o uso futuro; esta etapa ainda não sincroniza agendas.</p><div class="p2-meta"><span>Conta <b>${esc(item.maskedEmail||'—')}</b></span><span>Último status <b>${esc(g.loading?'Consultando…':g.error?'Consulta indisponível':connected?'Conectado':'Não conectado')}</b></span>${item.lastStatusAt?`<span>Atualizado <b>${esc(fmtDateTime(item.lastStatusAt))}</b></span>`:''}</div>${g.requiresReauthorization?'<p class="central-warning" role="status">Reconecte a conta central para autorizar a leitura da lista de calendários. Sua conexão e as associações anteriores serão preservadas se o consentimento falhar.</p>':''}<div role="status" aria-live="polite">${g.error?'<p>Não foi possível consultar a conexão. Tente novamente.</p>':!g.loading&&!g.configured?'<p>A conexão ainda não está disponível.</p>':''}</div><div class="quick-row"><button class="btn gold" data-secretaria-google="connect" ${g.loading||g.error||!g.configured?'disabled':''}>${connected?'Reconectar':'Conectar'}</button>${connected?`<button class="small-btn danger-btn" data-secretaria-google="disconnect" ${g.loading?'disabled':''}>Desconectar</button><button class="small-btn" data-secretaria-google="calendars" ${g.loading||g.listLoading||g.requiresReauthorization||!g.configured?'disabled':''}>Atualizar calendários</button>`:''}<button class="small-btn" data-secretaria-google="status" ${g.loading||g.listLoading?'disabled':''}>Atualizar status</button></div>${g.storage?.environment==='preview'?`<p class="central-warning">Ambiente de teste · ${esc(g.storage.namespace)}. Conexão e configurações centrais isoladas.</p>`:''}${calendarRows(g)}${freeBusyCard(g)}</section>`;
   }
   function paintCentral(){
     const card=document.getElementById('googleSecretariaCard');
@@ -7423,6 +7471,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     g.connectionRevision=Number.isSafeInteger(r.connectionRevision)?r.connectionRevision:0;
     g.lastRefreshAt=r.lastRefreshAt||null;g.lastRefreshStatus=r.lastRefreshStatus||'not_refreshed';g.listError='';
   }
+  function gBusyFlags(r,item){state.googleSecretaria.freeBusySupported=r.freeBusyPolicy===BUSY_POLICY;state.googleSecretaria.freeBusyAuthorized=item.freeBusyAuthorized===true}
   async function loadCentral(){
     const uid=state.user?.uid;
     if(!centralAdmin())return;
@@ -7435,15 +7484,20 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     if(uid!==state.user?.uid||!centralAdmin())return;
     const seq=++requestSeq,current=()=>seq===requestSeq&&uid===state.user?.uid&&centralAdmin();
     if(centralOwner!==uid){state.googleSecretaria=fresh();centralOwner=uid;autoFailure=null}
+    invalidateBusy();
     Object.assign(state.googleSecretaria,{loading:true,error:'',listError:''});paintCentral();
     try{
       const r=await api(CENTRAL_API+'/status');if(!current())return;
       if(r.policy!==CENTRAL_POLICY)throw new Error('Política central indisponível');
+      const storage=r.storage;
+      if(PREVIEW_API&&!(storage?.policy===STORAGE_POLICY&&storage.environment==='preview'&&storage.ready===true&&storage.namespace==='pr-'+PREVIEW_API[1]&&storage.personalGoogleEnabled===false))throw Error('Isolamento Preview indisponível');
+      state.googleSecretaria.storage=storage?.policy===STORAGE_POLICY&&storage.environment==='preview'&&storage.ready===true&&/^pr-[1-9][0-9]{0,8}$/.test(storage.namespace)&&storage.personalGoogleEnabled===false?{environment:'preview',namespace:storage.namespace}:null;
       const item=r.item||{};
+      gBusyFlags(r,item);
       Object.assign(state.googleSecretaria,{configured:r.configured===true,item:{connected:item.connected===true,maskedEmail:typeof item.maskedEmail==='string'&&item.maskedEmail.includes('***@')?item.maskedEmail:'',lastStatusAt:item.lastStatusAt||null,requiresReauthorization:item.requiresReauthorization===true},requiresReauthorization:item.requiresReauthorization===true});
       if(item.connected){try{const data=await api(CENTRAL_API+'/calendars');if(current())applyCalendars(data)}catch(_){if(current()){state.googleSecretaria.listError='Consulta indisponível';state.googleSecretaria.calendars.forEach(row=>row.effectiveEnabled=false)}}}
       else{Object.assign(state.googleSecretaria,{calendars:[],teachers:[],lastRefreshAt:null,lastRefreshStatus:'not_refreshed'})}
-    }catch(_){if(current()){state.googleSecretaria.error='Consulta indisponível';state.googleSecretaria.calendars.forEach(row=>row.effectiveEnabled=false)}}
+    }catch(_){if(current()){state.googleSecretaria.error='Consulta indisponível';if(PREVIEW_API){state.googleSecretaria.configured=false;state.googleSecretaria.item={connected:false};state.googleSecretaria.storage=null;state.googleSecretaria.freeBusyAuthorized=false}state.googleSecretaria.calendars.forEach(row=>row.effectiveEnabled=false)}}
     finally{if(current()){state.googleSecretaria.loading=false;paintCentral()}}
   }
   const centralVisible=()=>centralAdmin()&&state.page==='configuracoes'&&!!document.getElementById('googleSecretariaCard');
@@ -7474,6 +7528,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     try{return await pending}finally{if(actionFlight?.promise===pending)actionFlight=null}
   }
   async function performCalendarAction(action,id,element,automatic){
+    invalidateBusy();
     const seq=requestSeq,uid=state.user?.uid,current=()=>seq===requestSeq&&uid===state.user?.uid&&centralAdmin();
     state.googleSecretaria.listLoading=true;paintCentral();
     try{
@@ -7491,13 +7546,16 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     }finally{if(current()){state.googleSecretaria.listLoading=false;paintCentral()}}
   }
   async function centralAction(action,button){
-    if(!centralAdmin()||!['connect','disconnect','status','calendars'].includes(action))return;
+    if(!centralAdmin()||!['connect','disconnect','status','calendars','authorize-busy','busy'].includes(action))return;
     if(action==='calendars'){await calendarAction('refresh');return}
+    if(action==='busy'){await queryCentralBusy();return}
     setBusy(button,true,'Processando…');
     try{
-      if(action==='connect'){
-        const r=await api(CENTRAL_API+'/connect',{method:'POST',body:{}}),url=new URL(r.authUrl);
-        if(url.origin!=='https://accounts.google.com'||url.pathname!=='/o/oauth2/v2/auth'||url.username||url.password||url.searchParams.get('scope')!=='openid email '+CALENDAR_SCOPE)throw new Error('URL inválida');
+      if(action==='connect'||action==='authorize-busy'){
+        const g=state.googleSecretaria,wantsBusy=action==='authorize-busy'||g.freeBusyAuthorized&&g.freeBusySupported;
+        if(wantsBusy&&!g.freeBusySupported)throw Error('Autorização indisponível');
+        const r=await api(CENTRAL_API+'/connect',{method:'POST',body:wantsBusy?{purpose:BUSY_PURPOSE}:{}}),url=new URL(r.authUrl);
+        if(url.origin!=='https://accounts.google.com'||url.pathname!=='/o/oauth2/v2/auth'||url.username||url.password||url.searchParams.get('scope')!==('openid email '+CALENDAR_SCOPE+(wantsBusy?' '+BUSY_SCOPE:'')))throw new Error('URL inválida');
         location.assign(url.toString());return;
       }
       if(action==='disconnect'){
@@ -7509,6 +7567,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     finally{setBusy(button,false)}
   }
   function bindCentral(){
+    $$('[data-central-busy]').forEach(input=>input.onchange=()=>{invalidateBusy();const g=state.googleSecretaria;g[input.dataset.centralBusy==='from'?'busyFrom':input.dataset.centralBusy==='to'?'busyTo':'busyTeacher']=input.value;const result=document.getElementById('centralFreeBusyResults');if(result)result.textContent=''});
     $$('[data-secretaria-google]').forEach(button=>button.onclick=()=>centralAction(button.dataset.secretariaGoogle,button));
     $$('[data-central-associate]').forEach(button=>button.onclick=()=>{const id=button.dataset.centralAssociate,select=document.querySelector('[data-central-professor="'+id+'"]');calendarAction('associate',id,select.value)});
     $$('[data-central-enabled]').forEach(input=>input.onchange=()=>calendarAction('enabled',input.dataset.centralEnabled,input.checked));

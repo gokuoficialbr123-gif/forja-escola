@@ -8,7 +8,7 @@ import { rootDir, referenceVersion, referenceSha256, sha256, validate, validateI
 import { buildHostingArtifact, hostingOptionsFromArgs, prepareHosting, productionApiUrl } from './prepare-hosting.mjs';
 import { verifyHosting } from './verify-hosting.mjs';
 import { previewApiFromEvent, previewConfigFromEvent, validatePreviewApiUrl } from './preview-config.mjs';
-import { assertVaryOrigin, verifyPreviewHealth, previewVersion } from './verify-preview-backend.mjs';
+import { assertVaryOrigin, verifyPreviewHealth, previewVersion, assertPreviewIsolation } from './verify-preview-backend.mjs';
 
 const html = readFileSync(join(rootDir, 'index.html'));
 function fixture(t) {
@@ -73,7 +73,7 @@ test('verificação pública aguarda propagação e recusa bytes errados com mes
 const previewApiUrl = 'https://forja-api-pr-42.onrender.com';
 test('Preview Hosting requires current backend release before publication',async()=>{
   const calls=[];
-  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googleSecretariaPolicy:'calendarlist-association-v2'}),{status:200})}});
+  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googleSecretariaPolicy:'calendarlist-association-v2',googleSecretariaFreeBusyPolicy:'central-freebusy-query-v1',googleSecretariaStorage:{policy:'central-preview-isolation-v1',environment:'preview',namespace:'pr-42',ready:true,personalGoogleEnabled:false},googleCalendarConfigured:false,googleCalendarWebhookConfigured:false}),{status:200})}});
   assert.deepEqual(calls,[previewApiUrl+'/health']);assert.equal(result.version,previewVersion);
 });
 test('old release cannot pass the pre-deploy check',async()=>{
@@ -212,4 +212,18 @@ test('backend sem Etapa 2 central não pode autorizar o novo Preview',async()=>{
 test('Etapas centrais alteram somente seu script/style; HTML anterior e relatório continuam byte a byte preservados',()=>{
  const previous=html.toString().replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
  assert.equal(sha256(Buffer.from(previous)),'f14755958947c9eb4742f35083ef75493cca1d15a11202608f4472571327b5ed');
+});
+
+
+test('backend com Etapa 2 mas sem freeBusy não pode publicar Preview da Etapa 3',async()=>{
+ await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googleSecretariaPolicy:'calendarlist-association-v2'}),{status:200})}),/Etapa 3 freeBusy central ausente/);
+});
+
+
+test('Preview isolation gate blocks legacy/missing namespace, production storage and personal Google jobs',()=>{
+ const base={googleSecretariaStorage:{policy:'central-preview-isolation-v1',environment:'preview',namespace:'pr-42',ready:true,personalGoogleEnabled:false},googleCalendarConfigured:false,googleCalendarWebhookConfigured:false};
+ assertPreviewIsolation(base,previewApiUrl);
+ for(const storage of [undefined,{...base.googleSecretariaStorage,ready:false},{...base.googleSecretariaStorage,environment:'production'},{...base.googleSecretariaStorage,namespace:'pr-6'},{...base.googleSecretariaStorage,personalGoogleEnabled:true}])assert.throws(()=>assertPreviewIsolation({...base,googleSecretariaStorage:storage},previewApiUrl),/sem isolamento/);
+ assert.throws(()=>assertPreviewIsolation({...base,googleCalendarConfigured:true},previewApiUrl),/Google pessoal/);
+ assert.throws(()=>assertPreviewIsolation({...base,googleCalendarWebhookConfigured:true},previewApiUrl),/Webhook pessoal/);
 });
