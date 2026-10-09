@@ -9,7 +9,11 @@ export const previewVersion = '6.31.1-secretaria-publicacao-confirmada';
 export function assertPreviewIsolation(health,apiUrl) {
   const expected='pr-'+new URL(apiUrl).hostname.match(/^forja-api-pr-([1-9][0-9]*)\.onrender\.com$/)?.[1];
   const storage=health.googleSecretariaStorage;
-  assert.ok(storage?.policy==='central-preview-isolation-v1'&&storage.environment==='preview'&&storage.ready===true&&storage.namespace===expected&&storage.personalGoogleEnabled===false,'Render Preview sem isolamento central confirmado; Hosting Preview bloqueado.');
+  const centralReady=storage?.ready===true && storage.namespace===expected;
+  // Teacher-only review does not call central Google. Its server-side read-only
+  // allowlist blocks central routes and all writes before they reach handlers.
+  const teacherOnly=health.previewTeacher?.readOnly===true && storage?.ready===false && storage.namespace===null;
+  assert.ok(storage?.policy==='central-preview-isolation-v1'&&storage.environment==='preview'&&storage.personalGoogleEnabled===false&&(centralReady||teacherOnly),'Render Preview não confirmou ambiente isolado ou modo de revisão somente leitura; Hosting bloqueado.');
   assert.equal(health.googleCalendarConfigured,false,'Google pessoal deve ficar desabilitado no Preview.');
   assert.equal(health.googleCalendarWebhookConfigured,false,'Webhook pessoal deve ficar desabilitado no Preview.');
 }
