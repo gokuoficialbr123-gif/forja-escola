@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {withoutRegistrationChanges} from './registration-scope.mjs';
 import {readFileSync,mkdirSync} from 'node:fs';
 import {resolve,join} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -14,7 +15,7 @@ const firebaseDouble=`(()=>{const user={uid:'LOCAL_ADMIN',email:'admin@forja.inv
 const subjects=[{id:'math-id',nome:'Matemática',active:true},{id:'portuguese-id',nome:'Português',active:true},{id:'inactive-id',nome:'Inativa',active:false},...Array.from({length:18},(_,i)=>({id:'subject-'+i,nome:'Matéria de teste '+i,active:true}))];
 async function fixture(t,{mobile=false,source=html}={}){
  const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:1000},locale:'pt-BR',reducedMotion:'reduce'});t.after(()=>page.close());
- const requests=[],errors=[],provider={fail:false,gate:null,activation:false,warning:false};
+ const requests=[],errors=[],provider={fail:false,gate:null,activation:false,warning:false,invite:null,resetFail:false,resetGate:null};
  page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{window.FORJA_FIREBASE_CONFIG={apiKey:'TEST_ONLY_LOCAL_API_KEY',projectId:'demo-forja',authDomain:'forja.invalid'}});
  await page.route('**/*',async route=>{
@@ -29,8 +30,14 @@ async function fixture(t,{mobile=false,source=html}={}){
   if(req.method()==='POST'&&['/admin/usuarios','/admin/profissionais'].includes(url.pathname)){
    if(provider.gate)await provider.gate;
    if(provider.fail)return json({error:'Confira os dados do cadastro.'},400);
-   return json({ok:true,forjaId:'TEST-LOCAL-001',...(provider.activation?{activationLink:'https://forja-fixture.invalid/activation'}:{}),...(provider.warning?{activationWarning:'Aviso de ativação local.'}:{})},201);
+   return json({ok:true,uid:'LOCAL_USER',forjaId:'TEST-LOCAL-001',...(provider.invite||{}),...(provider.activation?{activationLink:'https://forja-fixture.invalid/activation'}:{}),...(provider.warning?{activationWarning:'Aviso de ativação local.'}:{})},201);
   }
+  if(/^\/admin\/usuarios\/[^/]+\/reset-senha$/.test(url.pathname)){
+   if(provider.resetGate)await provider.resetGate;
+   if(provider.resetFail)return json({error:'Sem permissão para reenviar.'},403);
+   return json({ok:true,...(provider.invite||{emailSent:true,invitationStatus:'accepted'})});
+  }
+  if(url.pathname==='/admin/usuarios/LOCAL_USER')return json({user:{profile:{uid:'LOCAL_USER',role:'parent',active:true,fullName:'Usuário local',forjaId:'TEST-LOCAL-001',email:'local@forja.invalid',childIds:[]},auth:{email:'local@forja.invalid',disabled:false,emailVerified:false}},history:[]});
   if(url.pathname==='/admin/catalogos/series')return json({items:[{id:'serie-a',nome:'Série A',active:true},{id:'serie-b',nome:'Série B',active:true}]});
   if(url.pathname==='/admin/catalogos/disciplinas')return json({items:subjects});
   if(url.pathname==='/turmas')return json({items:[{id:'class-a',nome:'Turma A',serieId:'serie-a',active:true},{id:'class-b',nome:'Turma B',serieId:'serie-b',active:true},{id:'class-inactive',nome:'Turma inativa',serieId:'serie-a',active:false}]});
@@ -97,11 +104,11 @@ for(const action of ['Cancelar','Fechar janela','Escape'])test(`${action} closes
  if(action==='Escape')await p.keyboard.press('Escape');else await p.getByRole('button',{name:action,exact:true}).click();await p.waitForFunction(()=>document.getElementById('modal').classList.contains('hidden'));await p.waitForFunction(()=>document.activeElement.dataset.action==='newUser');assert.equal(f.posts().length,0);
 });
 test('activation link and activation warning retain existing success flows',async t=>{
- for(const activation of [true,false]){const f=await fixture(t);await f.profile('parent');f.provider.activation=activation;f.provider.warning=!activation;await f.fill();await f.page.locator('#modalSave').click();if(activation){await f.page.waitForSelector('#generatedLink');assert.equal(await f.page.locator('#generatedLink').inputValue(),'https://forja-fixture.invalid/activation');assert.equal(await f.page.locator('#forjaNewUserDialog').count(),0)}else await f.page.waitForFunction(()=>document.getElementById('modal').classList.contains('hidden'));assert.equal(f.posts().length,1)}
+ for(const activation of [true,false]){const f=await fixture(t);await f.profile('parent');f.provider.activation=activation;f.provider.warning=!activation;await f.fill();await f.page.locator('#modalSave').click();if(activation){await f.page.waitForSelector('#generatedLink');assert.equal(await f.page.locator('#generatedLink').inputValue(),'https://forja-fixture.invalid/activation');assert.equal(await f.page.locator('#forjaNewUserDialog').count(),0)}else await f.page.waitForSelector('#modal .system-note');assert.equal(f.posts().length,1)}
 });
 test('other portal bytes are unchanged; dialog CSS does not alter other modals',async t=>{
- const stripped=html.replace(/<style id="forja-new-user-style">[\s\S]*?<\/style>\n\n/,'').replace(/function newUserModal\(\)\{[\s\S]*?\n\}\nfunction showGeneratedLink/,'__NEW_USER__\nfunction showGeneratedLink');
- assert.equal(createHash('sha256').update(stripped).digest('hex'),'6fe5e416503b51fb58af937e8adcaf35192c8e10a38aad9bab7fa861a172ddcd');
+ const stripped=withoutRegistrationChanges(html);
+ assert.equal(createHash('sha256').update(stripped).digest('hex'),'e87934aa90eb6a68ea0983e0265de6868b72a3d023dc4b3f9bd57b26786aca3f');
  const f=await fixture(t);await f.page.getByRole('button',{name:'Cancelar',exact:true}).click();await f.page.evaluate(()=>modal('Outro modal','<input id="other-input">'));assert.equal(await f.page.locator('#forjaNewUserDialog').count(),0);assert.equal(await f.page.locator('.modal-head .nu-subtitle').count(),0);assert.equal(await f.page.locator('.modal-foot [data-close-modal]').textContent(),'Fechar');assert.deepEqual(f.errors,[]);
 });
 if(process.env.FORJA_USER_BASELINE_HTML)test('capture unchanged before desktop/mobile for visual review',async t=>{for(const mobile of [false,true]){const f=await fixture(t,{mobile,source:readFileSync(process.env.FORJA_USER_BASELINE_HTML,'utf8')});await screenshot(f.page,`${mobile?'mobile':'desktop'}-before`)}});
@@ -110,4 +117,25 @@ test('320px screen and empty catalog remain usable without horizontal overflow',
  const f=await fixture(t,{mobile:true});await f.page.getByRole('button',{name:'Cancelar',exact:true}).click();await f.page.setViewportSize({width:320,height:640});await f.page.evaluate(()=>{state.subjects=[];newUserModal()});
  assert.equal(await f.page.locator('[name=newUserProfile]').count(),4);assert.ok(await f.page.locator('#newUserSubjectEmpty').isVisible());assert.equal(await f.page.locator('#newUserSubjectsClear').isDisabled(),true);
  assert.equal(await f.page.locator('#forjaNewUserDialog').evaluate(el=>el.scrollWidth>el.clientWidth),false);await f.profile('parent');await f.fill();await f.page.locator('#modalSave').click();await f.page.waitForFunction(()=>document.getElementById('modal').classList.contains('hidden'));assert.equal(f.posts().length,1);
+});
+
+for(const mobile of [false,true])for(const status of ['accepted','unavailable','not_configured','rate_limited'])test(`${mobile?'mobile':'desktop'} invitation ${status}: account survives and accepted is not delivered`,async t=>{
+ const f=await fixture(t,{mobile});await f.profile('parent');await f.fill();
+ f.provider.invite={emailSent:status==='accepted',invitationStatus:status,...(['unavailable','not_configured'].includes(status)?{activationLink:'https://forja-fixture.invalid/__/auth/action?mode=resetPassword&oobCode=LOCAL_ONLY',activationWarning:'Envio automático não confirmado. Cadastro preservado.'}:status==='rate_limited'?{activationWarning:'Aguarde 60 segundos antes de solicitar outro convite.',retryAfter:60}:{})};
+ await f.page.locator('#modalSave').click();await f.page.waitForFunction(()=>document.querySelector('.modal-head h3')?.textContent.includes('Convite de acesso'));
+ assert.equal(f.posts().length,1);assert.equal(await f.page.locator('#forjaNewUserDialog').count(),0);
+ const text=await f.page.locator('#modal').innerText();assert.ok(text.includes(status==='accepted'?'Isso não confirma a entrega':'Cadastro concluído'));
+ if(['unavailable','not_configured'].includes(status)){assert.ok(await f.page.getByRole('button',{name:'Copiar link de ativação',exact:true}).isVisible());assert.ok(await f.page.locator('#generatedLink').isVisible())}
+ await screenshot(f.page,`${mobile?'mobile':'desktop'}-invitation-${status}`);
+});
+test('admin resend uses existing reset endpoint, locks concurrent invite/reset and never creates user',{timeout:12000},async t=>{
+ const f=await fixture(t);await f.page.getByRole('button',{name:'Cancelar',exact:true}).click();await f.page.evaluate(()=>openUser('LOCAL_USER'));await f.page.locator('[data-v616-user-tab=seguranca]').click();const button=f.page.locator('[data-user-action=invite]');await button.waitFor();
+ let release;f.provider.resetGate=new Promise(r=>release=r);t.after(()=>release());await button.click();assert.equal(await button.isDisabled(),true);assert.equal(await f.page.locator('[data-user-action=reset]').isDisabled(),true);
+ await f.page.evaluate(()=>{const b=document.querySelector('[data-user-action=invite]');userAction('LOCAL_USER',{},'invite',b)});release();await f.page.waitForFunction(()=>document.querySelector('.modal-head h3')?.textContent==='Reenviar convite');
+ assert.equal(f.requests.filter(x=>x.path==='/admin/usuarios/LOCAL_USER/reset-senha'&&x.method==='POST').length,1);assert.equal(f.posts().length,0);assert.ok((await f.page.locator('#modal').innerText()).includes('não confirma a entrega'));
+});
+test('admin resend failure unlocks retry and keeps user management intact',{timeout:12000},async t=>{
+ const f=await fixture(t);await f.page.getByRole('button',{name:'Cancelar',exact:true}).click();await f.page.evaluate(()=>openUser('LOCAL_USER'));await f.page.locator('[data-v616-user-tab=seguranca]').click();await f.page.locator('[data-user-action=invite]').waitFor();f.provider.resetFail=true;
+ await f.page.locator('[data-user-action=invite]').click();await f.page.waitForFunction(()=>!document.querySelector('[data-user-action=invite]').disabled);assert.equal(f.posts().length,0);
+ f.provider.resetFail=false;f.provider.invite={emailSent:false,invitationStatus:'not_configured',resetLink:'https://forja-fixture.invalid/local-reset',activationWarning:'Envio não configurado.'};await f.page.locator('[data-user-action=invite]').click();await f.page.waitForSelector('#generatedLink');assert.ok(await f.page.getByRole('button',{name:'Copiar link de ativação',exact:true}).isVisible());assert.equal(f.posts().length,0);
 });

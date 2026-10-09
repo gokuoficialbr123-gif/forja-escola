@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {invitationDemoArtifact} from './invitation-demo.mjs';
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,9 +8,14 @@ import { validatePreviewApiUrl } from './preview-config.mjs';
 
 export const productionApiUrl = 'https://forja-api-m1kq.onrender.com';
 
-export function buildHostingArtifact(root = rootDir, { previewApiUrl } = {}) {
+export function buildHostingArtifact(root = rootDir, { previewApiUrl, invitationDemo=false } = {}) {
   const result = validate(root);
   const source = readFileSync(join(root, 'index.html'));
+  if(invitationDemo){
+    assert.equal(previewApiUrl,undefined,'Demo não combina backend real.');
+    const bytes=invitationDemoArtifact(source);
+    return {bytes,result:{...result,target:'invitation-demo',apiUrl:null,sha256:sha256(bytes),bytes:bytes.length,inlineScripts:validateInlineScripts(bytes.toString('utf8'))}};
+  }
   if (previewApiUrl === undefined) return { bytes: source, result: { ...result, target: 'production', apiUrl: productionApiUrl } };
 
   validatePreviewApiUrl(previewApiUrl);
@@ -22,8 +28,9 @@ export function buildHostingArtifact(root = rootDir, { previewApiUrl } = {}) {
 }
 
 export function hostingOptionsFromArgs(args = process.argv.slice(2)) {
-  assert.ok(args.length === 0 || (args.length === 1 && args[0] === '--preview'), 'Use somente --preview ou nenhum argumento.');
+  assert.ok(args.length === 0 || (args.length === 1 && ['--preview','--invitation-demo'].includes(args[0])), 'Use somente --preview, --invitation-demo ou nenhum argumento.');
   if (!args.length) return {}; // Preview environment variables cannot affect production.
+  if(args[0]==='--invitation-demo')return {invitationDemo:true};
   return { previewApiUrl: validatePreviewApiUrl(process.env.FORJA_PREVIEW_API_URL) };
 }
 

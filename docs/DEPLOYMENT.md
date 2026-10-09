@@ -1,3 +1,16 @@
+## 09/10/2026 — Convites automáticos Firebase (mesmo PR #7, sem produção)
+
+Escopo autorizado: mensagens de ativação e Reenviar convite, mantendo cadastro do
+Issue #6, quatro perfis, campos e endpoints. Backend em branch própria coordenada.
+Ver docs/USER_INVITATIONS.md. Falha de convite/reload nunca é falha do cadastro
+concluído; não recriar conta. Solicitação aceita não significa entrega confirmada.
+Gerente ativo v616 → Acesso e segurança recebe Reenviar convite; endpoint existente
+reset-senha. Sem Auth alternativo/senha temporária/Rules/Google/Agenda/booking/DNS.
+PR7 Preview agora invitation-demo: doubles só no artefato, sem API/Auth/Firestore
+reais ou envio de e-mail. Banner explícito; dados fictícios em memória. Live segue
+index.html/hash obrigatório/API oficial intacta; nunca incluir doubles em produção.
+Testes mocks/emuladores; sem criação real, e-mail real, merge ou deploy live.
+
 ## 08/10/2026 — Issue #6: Novo usuário (somente PR/Preview)
 
 Base: main 81265f9, após publicação da Etapa 3. Branch feat/novo-usuario-quatro-perfis.

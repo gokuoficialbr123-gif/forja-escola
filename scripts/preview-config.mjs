@@ -27,9 +27,10 @@ export function previewConfigFromEvent(event) {
   const modes = [...body.matchAll(/<!--\s*FORJA_PREVIEW_BACKEND=([^\r\n]*?)\s*-->/g)];
   if (!modes.length) return { mode: 'render-preview', apiUrl: previewApiFromEvent(event) };
   assert.equal(modes.length, 1, 'Modo do backend precisa ser único.');
-  assert.equal(modes[0][1].trim(), 'production-unchanged', 'Modo do backend inválido.');
+  const selected=modes[0][1].trim();
+  assert.ok(['production-unchanged','invitation-demo'].includes(selected),'Modo do backend inválido.');
   assert.ok(!body.includes('FORJA_PREVIEW_API_URL='), 'Não combine API temporária e backend oficial.');
-  return { mode: 'production-unchanged', apiUrl: 'https://forja-api-m1kq.onrender.com' };
+  return selected==='invitation-demo'?{mode:selected,apiUrl:''}:{mode:selected,apiUrl:'https://forja-api-m1kq.onrender.com'};
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

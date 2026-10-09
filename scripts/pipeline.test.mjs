@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {withoutRegistrationChanges} from './registration-scope.mjs';
 import { test } from 'node:test';
 import { createServer } from 'node:http';
 import { copyFileSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -210,8 +211,8 @@ test('backend sem Etapa 2 central não pode autorizar o novo Preview',async()=>{
 });
 
 test('Somente blocos centrais e Novo usuário podem mudar; Agenda e relatório preservados',()=>{
- const previous=html.toString().replace(/<style id="forja-new-user-style">[\s\S]*?<\/style>\n\n/,'').replace(/function newUserModal\(\)\{[\s\S]*?\n\}\nfunction showGeneratedLink/,'__NEW_USER__\nfunction showGeneratedLink').replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
- assert.equal(sha256(Buffer.from(previous)),'934bf09928a32b889187ad562b81a81ac002481683e1695e35cb7203adcea6d1');
+ const previous=withoutRegistrationChanges(html.toString()).replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
+ assert.equal(sha256(Buffer.from(previous)),'cf5b8ffbc9c7827892492864d9d034d318e707bebaefc9ee4967f8ba115f741c');
 });
 
 
