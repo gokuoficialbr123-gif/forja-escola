@@ -20,10 +20,14 @@ index da SPA. Criadas páginas estáticas públicas e links no rodapé; o restan
 portal segue byte a byte igual ao main. Sem alteração de scopes ou callbacks.
 Documentos distinguem integração pessoal (lê eventos/sincroniza FORJA) e central
 (CalendarList/freeBusy, sem conteúdo de eventos e sem integração à Agenda atual).
-Escola confirmou nome público e adm@forjaescola.com.br como contato oficial ativo
-e autorizado de suporte/privacidade. Identificação jurídica, retenção/exclusão,
-procedimentos e declaração Limited Use continuam pendentes. Não inventar nem publicar como
-compromissos definitivos. Google Branding/Publishing/Verification são etapas
+Escola informou FORJA Escola como identificação registrada e confirmou
+adm@forjaescola.com.br como contato oficial ativo/autorizado. CNPJ não conferido.
+Preparação da proposta de retenção/exclusão autorizada, aprovação definitiva e
+procedimentos pendentes. Fatos do código (arquivar preserva histórico; excluir
+profissional tem alcance limitado) separados das regras propostas. Backups reais
+não inventariados nesta revisão. Ver docs/RETENCAO_EXCLUSAO_PROPOSTA.md.
+Limited Use continua pendente. Não inventar nem publicar compromissos definitivos.
+Google Branding/Publishing/Verification são etapas
 separadas; não garantir liberação só por existir uma página ou sair de Testing.
 
 ## 09/10/2026 — Convites automáticos Firebase (mesmo PR #7, sem produção)

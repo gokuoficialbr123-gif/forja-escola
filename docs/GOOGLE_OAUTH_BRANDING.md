@@ -74,21 +74,27 @@ Não enviar rascunhos incompletos para verificação.
 
 ## Confirmações pendentes da escola
 
-O proprietário confirmou o nome público **FORJA Escola** e, em 10/10/2026,
+O proprietário informou **FORJA Escola** como identificação registrada e confirmou
 `adm@forjaescola.com.br` como contato oficial ativo de suporte e privacidade,
 autorizado pela escola. O endereço foi incluído nas duas páginas com link mailto.
-Ainda não confirmou razão social/CNPJ ou política formal de retenção/exclusão.
+O CNPJ ainda não foi conferido. Foi autorizada a preparação de uma proposta
+inicial de retenção/exclusão, sem aprovação definitiva. As páginas separam os
+fatos do código das regras propostas; evidências e checklist em
+`docs/RETENCAO_EXCLUSAO_PROPOSTA.md`. Nenhuma rotina de exclusão foi implementada.
 A declaração Limited Use e demais condições institucionais continuam pendentes.
 
 Antes da versão definitiva, confirmar:
 
-1. Identificação da entidade responsável; o contato de privacidade/suporte já está confirmado.
+1. Conferência do CNPJ e dados cadastrais complementares da identificação
+   registrada informada: FORJA Escola. O contato já está confirmado.
    Não criar CNPJ, encarregado, endereço ou e-mail fictícios. CNPJ não é um campo
    obrigatório do Branding Google; a identificação institucional precisa refletir
    a escola real, conforme a revisão aplicável.
 2. Finalidades/bases legais, tratamento de menores e dados de atendimentos,
    responsáveis e quais registros são efetivamente utilizados pela escola.
-3. Retenção por categoria, exclusão, backups e canal/procedimento de solicitações.
+3. Aprovação da proposta de retenção/exclusão, critérios por categoria e obrigações
+   efetivamente aplicáveis; equipe e procedimento de solicitações; inventário real
+   de backups/exportações/versões, recursos de exclusão e cuidados em restauração.
    Não estabelecer prazos arbitrários ou apagamento automático inexistente.
 4. Prestadores efetivos, armazenamento/transferências e acesso humano de suporte.
 5. Adesão institucional ao Google API Services User Data Policy/Limited Use:

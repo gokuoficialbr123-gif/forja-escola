@@ -8,6 +8,23 @@ Sem scopes/configuração Google, migração, merge ou produção; testes mocks/
 Ver docs/GOOGLE_PERSONAL_DISCONNECT.md. Sem falso sucesso quando exclusão falha;
 quarentena/repetição e revogação global pendente explícitas. Separado do consentimento
 e PR #8 legal. Backend primeiro; sem scopes novos, merge, produção ou Google real.
+## 10/10/2026 — Proposta inicial de retenção e exclusão para aprovação
+
+- Escola informou identificação registrada FORJA Escola; CNPJ ainda não conferido.
+- Acrescentada proposta à Política e referência nos Termos: conservação conforme
+  necessidade educacional/obrigações legais, pedidos pelo contato oficial, análise
+  de exclusão, menores/responsáveis e tratamento condicionado às cópias existentes.
+- Separados fatos técnicos verificados de regras institucionais ainda não aprovadas.
+  Arquivar preserva histórico; exclusão de profissionais não comprova eliminação
+  de todos os dados relacionados. Configuração/inventário de backups não verificados.
+- Sem prazos fixos inventados, automação de exclusão ou procedimento declarado
+  como implementado. Limited Use e demais condições permanecem pendentes.
+- Evidências e confirmações em docs/RETENCAO_EXCLUSAO_PROPOSTA.md.
+- Validação: 34 testes de pipeline/páginas públicas e Chromium aprovados;
+  navegação dos Termos para a proposta conferida em desktop/mobile, além de
+  sintaxe, hash/marker e git diff --check.
+- Mesmo PR #8/Preview; sem merge, produção, OAuth, backend ou dados reais.
+
 ## 10/10/2026 — Contato oficial de suporte e privacidade confirmado
 
 - Incluído adm@forjaescola.com.br na Política de Privacidade e nos Termos, com

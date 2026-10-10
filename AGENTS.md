@@ -15,11 +15,14 @@ Produção atual: frontend main 959b72f (cadastros/convites publicado), backend 
 Política de Privacidade e Termos com evidência do código; sem merge/main/live,
 OAuth real, dados ou mudanças de backend. Ler docs/GOOGLE_OAUTH_BRANDING.md.
 
-Nome público FORJA Escola e contato oficial de suporte/privacidade
-adm@forjaescola.com.br confirmados pela escola. Razão social/CNPJ,
-retenção/exclusão, declaração Google Limited Use e demais condições institucionais
-NÃO confirmados. Manter rascunho visível e pendências, sem inventar outros e-mails,
-prazos ou compromissos institucionais. Incluir somente o contato autorizado.
+Nome/identificação registrada informada pela escola: FORJA Escola; CNPJ ainda
+não conferido. Contato oficial de suporte/privacidade adm@forjaescola.com.br
+confirmado. Autorizada somente preparação de proposta de retenção/exclusão;
+aprovação definitiva, critérios/procedimentos, Google Limited Use e demais
+condições continuam pendentes. Separar fatos técnicos verificados de regras
+propostas. Ler docs/RETENCAO_EXCLUSAO_PROPOSTA.md. Não executar exclusão/backup,
+inventar prazos fixos, automação ou mecanismos existentes sem comprovação.
+Manter rascunho visível e incluir somente o contato autorizado.
 Não enviar estes rascunhos ao Google nem publicar incompletos em produção.
 
 Portal inteiro preservado exceto bloco público forja-public-legal no rodapé.
