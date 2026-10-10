@@ -5,7 +5,7 @@ import {join} from 'node:path';
 
 // Explicit public allowlist. Repository files and credentials are never copied.
 export const legalFiles = ['assets/forja-legal.css', 'privacidade/index.html', 'termos/index.html'];
-export const legalNavigation = `    <div id="forja-public-legal" style="margin-top:24px;border-top:1px solid #dde3e9;padding-top:16px">
+export const legalNavigation = `    <div id="forja-public-legal" class="public-wrap" style="margin-top:24px;border-top:1px solid #dde3e9;padding-top:16px">
       <p>O FORJA organiza cadastros, atividades e agendamentos da escola. Professores e psicólogos podem conectar seu Google Calendar para sincronizar agendamentos e identificar conflitos; a Secretaria possui uma conexão central separada para consultar calendários e horários ocupados.</p>
       <a href="/privacidade/">Política de Privacidade</a> · <a href="/termos/">Termos de Serviço</a>
     </div>

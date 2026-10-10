@@ -77,7 +77,8 @@ for(const mobile of [false,true])for(const name of ['privacidade','termos'])test
   }
 });
 test('links do rodapé pertencem ao DOM público real do portal e navegam sem JavaScript',async t=>{
-  const context=await browser.newContext({javaScriptEnabled:false});t.after(()=>context.close());
+  for(const mobile of [false,true]) {
+  const context=await browser.newContext({javaScriptEnabled:false,viewport:mobile?{width:390,height:844}:{width:1280,height:1000}});t.after(()=>context.close());
   const page=await context.newPage();
   await page.route('**/*',route=>{
     const url=new URL(route.request().url());
@@ -87,7 +88,11 @@ test('links do rodapé pertencem ao DOM público real do portal e navegam sem Ja
   });
   await page.goto('https://forja-legal-fixture.invalid/');
   assert.equal(await page.locator('footer #forja-public-legal').count(),1);
+  const layout=await page.locator('#forja-public-legal').evaluate(el=>({left:el.getBoundingClientRect().left,right:el.getBoundingClientRect().right,viewport:innerWidth,overflow:el.scrollWidth>el.clientWidth,color:getComputedStyle(el.querySelector('a')).color}));
+  assert.ok(layout.left>0&&layout.right<layout.viewport&&!layout.overflow, 'Rodapé legal alinhado ao public-wrap em desktop/mobile.');
+  assert.equal(layout.color,'rgb(255, 255, 255)');
   await page.locator('#forja-public-legal a[href="/privacidade/"]').click();
   await page.waitForURL('**/privacidade/');
   assert.equal(await page.locator('h1').textContent(),'Política de Privacidade');
+  }
 });
