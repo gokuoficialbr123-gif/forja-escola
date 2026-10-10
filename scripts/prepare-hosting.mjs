@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import {invitationDemoArtifact} from './invitation-demo.mjs';
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rootDir, sha256, validate, validateInlineScripts } from './validate.mjs';
 import { validatePreviewApiUrl } from './preview-config.mjs';
+import { legalFiles } from './legal-pages.mjs';
 
 export const productionApiUrl = 'https://forja-api-m1kq.onrender.com';
 
@@ -41,7 +42,11 @@ export function prepareHosting(root = rootDir, options = {}) {
   rmSync(output, { recursive: true, force: true });
   mkdirSync(output);
   writeFileSync(join(output, 'index.html'), bytes);
-  assert.deepEqual(readdirSync(output), ['index.html']);
+  for (const file of legalFiles) {
+    mkdirSync(dirname(join(output, file)), {recursive:true});
+    writeFileSync(join(output, file), readFileSync(join(root, file)));
+  }
+  assert.deepEqual(readdirSync(output), ['assets', 'index.html', 'privacidade', 'termos']);
   assert.ok(bytes.equals(readFileSync(join(output, 'index.html'))));
   return result;
 }

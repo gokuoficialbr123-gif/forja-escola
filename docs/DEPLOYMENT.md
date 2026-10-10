@@ -1,3 +1,24 @@
+## 10/10/2026 — Hosting das páginas legais (somente Preview autorizado)
+
+Branch feat/oauth-branding-public-pages; não fazer merge/main/live.
+A documentação anterior de invitation-demo pertence à etapa já publicada.
+PR novo usa FORJA_PREVIEW_BACKEND=production-unchanged; sem API temporária,
+OAuth, criação de usuários, sync ou alterações reais para testar documentos.
+
+prepare-hosting.mjs agora copia SOMENTE index.html, privacidade/index.html,
+termos/index.html e assets/forja-legal.css. Pasta gerada limpa em cada execução.
+firebase.json/.firebaserc permanecem iguais; static files antecedem rewrite SPA.
+GET 200 não comprova documento: verify-legal-pages.mjs exige bytes exatos.
+Workflow Preview/produção futura confere portal e cada documento/CSS público.
+Não disparar job production nesta tarefa. Manter FIREBASE_HOSTING_ENABLED como
+está, sem criar/desativar config ou usar deploy manual.
+
+Validar: node scripts/validate.mjs; node --test scripts/pipeline.test.mjs;
+regressões Chromium incluindo scripts/legal-pages.test.mjs. O portal sem o bloco
+forja-public-legal conserva integralmente o hash do main 959b72f.
+Aprovação da escola e preenchimento das pendências são obrigatórios antes de
+futuro merge/publicação/submissão Google. Ver docs/GOOGLE_OAUTH_BRANDING.md.
+
 ## 09/10/2026 — Convites automáticos Firebase (mesmo PR #7, sem produção)
 
 Escopo autorizado: mensagens de ativação e Reenviar convite, mantendo cadastro do
