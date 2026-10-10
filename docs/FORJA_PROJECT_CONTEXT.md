@@ -22,11 +22,17 @@ Documentos distinguem integração pessoal (lê eventos/sincroniza FORJA) e cent
 (CalendarList/freeBusy, sem conteúdo de eventos e sem integração à Agenda atual).
 Escola informou FORJA Escola como identificação registrada e confirmou
 adm@forjaescola.com.br como contato oficial ativo/autorizado. CNPJ não conferido.
-Preparação da proposta de retenção/exclusão autorizada, aprovação definitiva e
-procedimentos pendentes. Fatos do código (arquivar preserva histórico; excluir
-profissional tem alcance limitado) separados das regras propostas. Backups reais
+Júlio aprovou a Política de Privacidade temporária, incluindo retenção/exclusão,
+e confirmou finalidade exclusiva de agenda para dados obtidos do Google Calendar.
+Critérios concretos e procedimentos operacionais continuam pendentes. Aprovação
+da Política temporária não aprova os Termos, não autoriza publicação e não comprova
+conformidade integral Google Limited Use. Fatos do código (arquivar preserva
+histórico; excluir profissional tem alcance limitado), orientações aprovadas e
+procedimentos propostos permanecem separados. Backups reais
 não inventariados nesta revisão. Ver docs/RETENCAO_EXCLUSAO_PROPOSTA.md.
-Limited Use continua pendente. Não inventar nem publicar compromissos definitivos.
+Limited Use: finalidade confirmada, mas venda, publicidade, treinamento de IA,
+compartilhamento e acesso humano ainda precisam de verificação antes de declarar
+conformidade integral. Não inventar nem publicar compromissos definitivos.
 Google Branding/Publishing/Verification são etapas
 separadas; não garantir liberação só por existir uma página ou sair de Testing.
 

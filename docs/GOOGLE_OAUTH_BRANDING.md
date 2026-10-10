@@ -1,6 +1,7 @@
 # Google OAuth Branding — páginas públicas para revisão
 
-Preparação em 10/10/2026. **Rascunhos somente em PR/Preview; não fazer merge ou
+Preparação em 10/10/2026. **Política temporária aprovada pela escola, Termos em
+revisão e complementações pendentes; somente PR/Preview. Não fazer merge ou
 publicar em produção nesta etapa. Não alterar OAuth, backend, dados ou DNS.**
 
 ## Estado auditado
@@ -77,11 +78,15 @@ Não enviar rascunhos incompletos para verificação.
 O proprietário informou **FORJA Escola** como identificação registrada e confirmou
 `adm@forjaescola.com.br` como contato oficial ativo de suporte e privacidade,
 autorizado pela escola. O endereço foi incluído nas duas páginas com link mailto.
-O CNPJ ainda não foi conferido. Foi autorizada a preparação de uma proposta
-inicial de retenção/exclusão, sem aprovação definitiva. As páginas separam os
-fatos do código das regras propostas; evidências e checklist em
+O CNPJ ainda não foi conferido. Júlio confirmou a finalidade de uso dos dados
+Google Calendar exclusivamente nas funcionalidades de agenda do FORJA Escola
+e aprovou a Política de Privacidade temporária, incluindo a proposta anterior
+de retenção/exclusão. Não há aprovação definitiva dos Termos ou comprovação de
+todos os procedimentos operacionais. As páginas separam os fatos do código,
+as orientações aprovadas e os procedimentos ainda propostos; evidências em
 `docs/RETENCAO_EXCLUSAO_PROPOSTA.md`. Nenhuma rotina de exclusão foi implementada.
-A declaração Limited Use e demais condições institucionais continuam pendentes.
+A conformidade integral com Limited Use e demais condições institucionais
+continuam pendentes. Aprovação do texto não autoriza merge/deploy ou mudanças OAuth.
 
 Antes da versão definitiva, confirmar:
 
@@ -92,16 +97,17 @@ Antes da versão definitiva, confirmar:
    a escola real, conforme a revisão aplicável.
 2. Finalidades/bases legais, tratamento de menores e dados de atendimentos,
    responsáveis e quais registros são efetivamente utilizados pela escola.
-3. Aprovação da proposta de retenção/exclusão, critérios por categoria e obrigações
+3. Critérios concretos de retenção/exclusão por categoria e obrigações
    efetivamente aplicáveis; equipe e procedimento de solicitações; inventário real
    de backups/exportações/versões, recursos de exclusão e cuidados em restauração.
    Não estabelecer prazos arbitrários ou apagamento automático inexistente.
 4. Prestadores efetivos, armazenamento/transferências e acesso humano de suporte.
-5. Adesão institucional ao Google API Services User Data Policy/Limited Use:
-   uso limitado às funcionalidades divulgadas; restrições de transferência,
-   venda/publicidade/leitura humana; procedimentos da equipe e terceiros.
-   Não afirmar adesão, proibição de treinamento de IA ou prática fora do código
-   sem confirmação. O texto atual aponta a obrigação e sua aprovação pendente.
+5. Conformidade integral com Google API Services User Data Policy/Limited Use:
+   a finalidade exclusiva de agenda já está confirmada. Ainda verificar venda,
+   publicidade, treinamento de IA, compartilhamento/transferências e acesso
+   humano, incluindo equipe e terceiros. A confirmação da finalidade não
+   comprova essas práticas. Não declarar ausência de uso para IA ou adesão
+   integral sem evidência. A página lista explicitamente as verificações pendentes.
 6. Condições de uso propostas e compatibilidade com os contratos educacionais.
    Nenhum foro, penalidade, cessão de direitos ou promessa de uptime foi inventado.
 
@@ -154,7 +160,8 @@ Isso é uma possível causa geral de falha de token pessoal, não diagnóstico d
   limpa a pasta gerada e nunca publica docs, scripts ou credenciais.
 - `validate.mjs` mantém marker/hash obrigatório e verifica o hash integral do
   main sem o único bloco de rodapé autorizado. As proteções anteriores continuam.
-- `legal-pages.test.mjs`: Chromium desktop/mobile, links públicos do DOM real,
+- `legal-pages.test.mjs`: matriz de revisão por documento (Privacidade temporária
+  aprovada, Termos pendentes), Chromium desktop/mobile, links públicos do DOM real,
   navegação sem JavaScript/login, overflow, whitelist e rejeição do falso 200 SPA.
 - Workflow de validação executa os testes novos e todas as regressões anteriores.
 - `verify-legal-pages.mjs` verifica por GET não autenticado o conteúdo/hash de
@@ -163,9 +170,29 @@ Isso é uma possível causa geral de falha de token pessoal, não diagnóstico d
 - PR somente frontend declara `FORJA_PREVIEW_BACKEND=production-unchanged`.
   A API oficial permanece no HTML. O Preview não é banco isolado; revisar
   somente páginas legais, sem cadastros ou ações reais nesta tarefa.
-- Não fazer merge/publicar live enquanto a revisão dos rascunhos e as demais
-  informações institucionais estiverem pendentes. Confirmar o contato não aprova
-  automaticamente o restante do conteúdo nem autoriza mudanças no Google OAuth.
+- Não fazer merge/publicar live sem autorização. A aprovação da Política
+  temporária não confirma CNPJ, procedimentos, Termos ou conformidade integral
+  Limited Use, e não autoriza mudanças no Google OAuth.
+
+## Limited Use: limite da confirmação e da revisão técnica
+
+Em 10/10/2026 foi consultada novamente a Google API Services User Data Policy.
+Ela restringe uso às funções divulgadas, admite transferências e leitura humana
+apenas nas hipóteses previstas e proíbe usos como venda a plataformas de anúncios
+e uso publicitário. A página não transforma essas exigências em declarações de
+que todas as práticas da escola e dos prestadores foram auditadas.
+
+A leitura do código existente confirma os fluxos pessoais/centrais descritos,
+incluindo escrita de eventos FORJA e seus compartilhamentos determinados pelo
+Google Calendar. Não comprova contratos, usos externos ao código, acesso das
+equipes, ausência de venda/publicidade ou tratamento por terceiros. A página
+também solicita verificação específica de treinamento de IA e sua compatibilidade
+com a finalidade exclusiva e as políticas aplicáveis; não inventa uma auditoria
+de IA nem afirma uma proibição geral não demonstrada pela fonte consultada.
+
+Assim, registra-se a finalidade institucional confirmada e mantém-se pendente
+a declaração de conformidade integral. Nenhuma integração, scope ou prática
+técnica foi alterada por esta atualização documental.
 
 ## Fontes oficiais consultadas
 

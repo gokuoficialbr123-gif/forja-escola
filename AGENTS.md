@@ -17,12 +17,18 @@ OAuth real, dados ou mudanças de backend. Ler docs/GOOGLE_OAUTH_BRANDING.md.
 
 Nome/identificação registrada informada pela escola: FORJA Escola; CNPJ ainda
 não conferido. Contato oficial de suporte/privacidade adm@forjaescola.com.br
-confirmado. Autorizada somente preparação de proposta de retenção/exclusão;
-aprovação definitiva, critérios/procedimentos, Google Limited Use e demais
-condições continuam pendentes. Separar fatos técnicos verificados de regras
-propostas. Ler docs/RETENCAO_EXCLUSAO_PROPOSTA.md. Não executar exclusão/backup,
+confirmado. Júlio aprovou a Política de Privacidade temporária, incluindo as
+orientações de retenção/exclusão, e confirmou uso dos dados Google Calendar
+exclusivamente nas funcionalidades de agenda do FORJA Escola. Isso não aprova
+os Termos, procedimentos ainda não comprovados ou conformidade Google integral.
+Critérios concretos, operacionalização, CNPJ e demais condições continuam
+pendentes. Limited Use: verificar venda, publicidade, treinamento de IA,
+compartilhamento e acesso humano antes de declarar conformidade integral.
+Separar fatos técnicos, orientações aprovadas e procedimentos ainda propostos.
+Ler docs/RETENCAO_EXCLUSAO_PROPOSTA.md. Não executar exclusão/backup,
 inventar prazos fixos, automação ou mecanismos existentes sem comprovação.
-Manter rascunho visível e incluir somente o contato autorizado.
+Manter aprovação temporária visível na Privacidade e revisão pendente nos Termos;
+incluir somente o contato autorizado. Aprovação institucional não autoriza deploy.
 Não enviar estes rascunhos ao Google nem publicar incompletos em produção.
 
 Portal inteiro preservado exceto bloco público forja-public-legal no rodapé.

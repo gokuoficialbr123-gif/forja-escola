@@ -5,7 +5,7 @@ import {dirname, join, resolve} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {rootDir, sha256} from './validate.mjs';
-import {legalFiles, legalNavigation, portalBeforeLegalSha256, withoutLegalNavigation, validateLegalPages} from './legal-pages.mjs';
+import {legalFiles, legalReviewStatus, legalNavigation, portalBeforeLegalSha256, withoutLegalNavigation, validateLegalPages} from './legal-pages.mjs';
 import {prepareHosting} from './prepare-hosting.mjs';
 import {verifyLegalPages} from './verify-legal-pages.mjs';
 
@@ -46,6 +46,26 @@ test('verificação pública sem Authorization confere páginas reais e recusa f
   await assert.rejects(verifyLegalPages('https://forja-legal-fixture.invalid',{request:async()=>new Response(html),attempts:1}),/fallback da SPA/);
   await assert.rejects(verifyLegalPages('https://forja-legal-fixture.invalid',{request:async()=>new Response('restrito',{status:401}),attempts:1}),/HTTP 401/);
 });
+test('aprovação temporária da Privacidade não promove Termos nem remove pendências de revisão',t=>{
+  const root=mkdtempSync(join(tmpdir(),'forja-legal-status-'));t.after(()=>rmSync(root,{recursive:true,force:true}));
+  for(const file of legalFiles) {
+    mkdirSync(dirname(join(root,file)),{recursive:true});copyFileSync(join(rootDir,file),join(root,file));
+  }
+  assert.equal(validateLegalPages(root).length,3);
+  for(const [file,wrongStatuses] of [
+    ['privacidade/index.html',['approved','pending']],
+    ['termos/index.html',['approved','temporary-approved']],
+  ]) {
+    const original=readFileSync(join(root,file),'utf8');
+    for(const status of wrongStatuses) {
+      writeFileSync(join(root,file),original.replace(`data-legal-review="${legalReviewStatus[file]}"`,`data-legal-review="${status}"`));
+      assert.throws(()=>validateLegalPages(root),/Status institucional incorreto/);
+    }
+    writeFileSync(join(root,file),original.replace(/data-legal-review="[^"]*"/,''));
+    assert.throws(()=>validateLegalPages(root),/Status institucional incorreto/);
+    writeFileSync(join(root,file),original);
+  }
+});
 
 for(const mobile of [false,true])for(const name of ['privacidade','termos'])test(`${mobile?'mobile':'desktop'} ${name}: público, legível, sem autenticação, scripts ou chamadas API`,async t=>{
   const context=await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1280,height:1000},locale:'pt-BR'});
@@ -61,7 +81,7 @@ for(const mobile of [false,true])for(const name of ['privacidade','termos'])test
   await page.goto(`https://forja-legal-fixture.invalid/${name}/`);
   await page.waitForFunction(()=>getComputedStyle(document.body).backgroundColor==='rgb(246, 247, 249)');
   assert.equal(await page.locator('h1').textContent(),name==='privacidade'?'Política de Privacidade':'Termos de Serviço');
-  assert.equal(await page.locator('[data-legal-review=pending]').count(),1);
+  assert.equal(await page.locator(`[data-legal-review="${legalReviewStatus[name+'/index.html']}"]`).count(),1);
   assert.equal(await page.locator('script,iframe,form').count(),0);
   const sizes=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,main:document.querySelector('main').getBoundingClientRect().width,font:parseFloat(getComputedStyle(document.body).fontSize)}));
   assert.ok(!sizes.overflow);assert.ok(sizes.main<=(mobile?390:1280));assert.ok(sizes.font>=16);
@@ -69,7 +89,7 @@ for(const mobile of [false,true])for(const name of ['privacidade','termos'])test
   assert.deepEqual(errors,[]);
   const other=name==='privacidade'?'termos':'privacidade';
   await page.locator(`header a[href="/${other}/"]`).click();await page.waitForURL(`**/${other}/`);
-  assert.equal(await page.locator('[data-legal-review=pending]').count(),1);
+  assert.equal(await page.locator(`[data-legal-review="${legalReviewStatus[other+'/index.html']}"]`).count(),1);
   if(process.env.FORJA_LEGAL_SCREENSHOTS) {
     mkdirSync(process.env.FORJA_LEGAL_SCREENSHOTS,{recursive:true});
     await page.goto(`https://forja-legal-fixture.invalid/${name}/`);

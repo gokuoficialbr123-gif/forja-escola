@@ -1,16 +1,22 @@
-# Proposta inicial de retenção e exclusão — FORJA Escola
+# Política temporária de retenção e exclusão — FORJA Escola
 
-Rascunho de 10/10/2026, autorizado para preparação e revisão no PR frontend #8.
-**Aprovação institucional pendente.** Não executar operações de exclusão ou criar
-automação nesta tarefa. Sem merge, produção, mudanças OAuth ou dados reais.
+Atualização de 10/10/2026 no PR frontend #8. **Júlio aprovou a Política de
+Privacidade temporária preparada anteriormente, incluindo esta proposta.**
+Critérios concretos e procedimentos operacionais ainda precisam de confirmação;
+aprovação do texto não comprova implementação. Não executar exclusão ou criar
+automação. Sem merge, produção, mudanças OAuth ou dados reais.
 
 ## Informações fornecidas pela escola
 
 - Identificação registrada informada: **FORJA Escola**. Isso registra a informação
   fornecida, não comprova conferência cadastral. CNPJ ainda não conferido.
 - Contato oficial ativo/autorizado: `adm@forjaescola.com.br`.
-- Autorizada a elaboração da proposta; não foi aprovada uma política definitiva.
-- Declaração Google Limited Use permanece pendente e não foi modificada.
+- Política de Privacidade temporária aprovada por Júlio; os Termos continuam em
+  revisão e os procedimentos não são considerados implementados só pela aprovação.
+- Finalidade dos dados Google Calendar confirmada por Júlio: uso exclusivamente
+  nas funcionalidades de agenda do FORJA Escola.
+- Conformidade integral Google Limited Use permanece pendente: verificar venda,
+  publicidade, treinamento de IA, compartilhamento e acesso humano separadamente.
 
 ## Fatos técnicos verificados por leitura do código
 
@@ -26,10 +32,12 @@ Não consultar documentos pessoais, executar rotas ou testar exclusão em produ�
 | Revisão de fonte/configuração versionada | Não demonstrada uma política geral de expurgo por tempo para registros escolares. | TTL/cache/limpeza de operações específicas não comprovam política geral de retenção. |
 | Backups, exportações, versões e restauração | Configuração efetiva dos provedores e inventário da escola não verificados. | Não afirmar existência/ausência de backups, periodicidade, prazo ou eliminação integral. |
 
-As seções de fatos técnicos da página pública descrevem essas evidências. As
-regras propostas ficam em seção distinta, `#retencao`, marcada como proposta.
+As seções de fatos técnicos da página pública descrevem essas evidências. A
+política temporária aprovada fica em seção distinta, `#retencao`, marcada como
+`temporary-approved`, distinguindo orientações aprovadas de procedimentos ainda
+propostos/não comprovados.
 
-## Regras propostas, ainda não aprovadas
+## Orientações temporárias aprovadas e procedimentos a confirmar
 
 1. Conservar pelo período necessário às atividades educacionais/administrativas
    relacionadas e obrigações legais realmente aplicáveis. Identificar finalidade
@@ -48,13 +56,15 @@ regras propostas ficam em seção distinta, `#retencao`, marcada como proposta.
    critérios. Eventual restauração deve considerar decisões prévias de exclusão.
 
 Nenhum prazo fixo, ferramenta automática de exclusão/anonimização, expurgo de
-backups ou procedimento já implementado foi criado ou presumido. A proposta não
-aprova automaticamente operações destrutivas, obrigações ou texto Limited Use.
+backups ou procedimento já implementado foi criado ou presumido. Aprovar essas
+orientações não autoriza operações destrutivas, não comprova obrigações concretas
+nem aprova declaração integral Limited Use.
 
 ## Confirmações necessárias antes da versão definitiva
 
 - CNPJ e dados cadastrais complementares da identificação informada.
-- Aprovação institucional do texto e critérios por categoria de dados.
+- Critérios concretos de retenção por categoria de dados; o texto temporário já
+  está aprovado, mas sua operacionalização continua pendente.
 - Obrigações de conservação aplicáveis e bases legais; tratamento de registros
   de atendimento e de menores, representação e acesso dos responsáveis.
 - Responsável/equipe, método proporcional de verificação, registro e comunicação
@@ -62,8 +72,11 @@ aprova automaticamente operações destrutivas, obrigações ou texto Limited Us
 - Inventário real de armazenamento, arquivos, backups, exportações e versões;
   capacidades dos provedores, limitações de exclusão e cuidados em restauração.
 - Prestadores, localização/transferências e práticas de acesso humano.
-- Aprovação independente da declaração Google Limited Use e demais condições.
+- Verificação independente das restrições Limited Use (venda, publicidade,
+  treinamento de IA, compartilhamento e acesso humano), antes de declarar
+  conformidade integral; revisão das demais condições e dos Termos.
 
-O email é confirmado. Todas as propostas acima permanecem em revisão. Aprovação
-do texto e implementação de eventuais recursos futuros são etapas distintas;
-nenhuma exclusão ou alteração de dados é autorizada por publicar um rascunho.
+O email, a finalidade Google exclusiva de agenda e a aprovação do texto
+temporário estão confirmados. Implementação, critérios concretos e verificação
+de conformidade são etapas distintas. Nenhuma exclusão, alteração de dados,
+merge, publicação em produção ou ação Google é autorizada por essa aprovação.

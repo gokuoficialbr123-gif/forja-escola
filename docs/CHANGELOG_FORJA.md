@@ -8,6 +8,25 @@ Sem scopes/configuração Google, migração, merge ou produção; testes mocks/
 Ver docs/GOOGLE_PERSONAL_DISCONNECT.md. Sem falso sucesso quando exclusão falha;
 quarentena/repetição e revogação global pendente explícitas. Separado do consentimento
 e PR #8 legal. Backend primeiro; sem scopes novos, merge, produção ou Google real.
+## 10/10/2026 — Política temporária aprovada e finalidade Google confirmada
+
+- Júlio aprovou a Política de Privacidade temporária anteriormente preparada,
+  incluindo retenção/exclusão, e confirmou uso dos dados Google Calendar
+  exclusivamente nas funcionalidades de agenda do FORJA Escola.
+- Política distingue aprovação do texto de implementação dos procedimentos.
+  Termos continuam em revisão. CNPJ, critérios concretos, atendimento de pedidos,
+  recursos/inventário de backups e demais condições permanecem pendentes.
+- Limited Use registra somente a finalidade confirmada; não declara conformidade
+  integral. Venda, publicidade, treinamento de IA, compartilhamento e acesso
+  humano precisam de verificação independente, incluindo escola e prestadores.
+- Descrições pessoal/central e fatos técnicos de desconexão/armazenamento
+  preservados. Portal, CSS, API, configurações Firebase e workflows intactos.
+- Validação legal exige o estado aprovado temporário da Privacidade e mantém
+  Termos pendentes; teste rejeita promoção indevida e remoção desses estados.
+- Validação: 186 testes frontend aprovados, sem falhas ou skips, incluindo
+  regressões em Chromium desktop/mobile, hash/marker, artefato e git diff --check.
+- Mesmo PR frontend #8/Preview, sem merge, produção, OAuth ou dados reais.
+
 ## 10/10/2026 — Proposta inicial de retenção e exclusão para aprovação
 
 - Escola informou identificação registrada FORJA Escola; CNPJ ainda não conferido.
