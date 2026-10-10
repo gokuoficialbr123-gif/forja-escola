@@ -1,3 +1,26 @@
+## 10/10/2026 — Google OAuth Branding: rascunhos públicos, somente PR/Preview
+
+Produção atual: frontend main 959b72f (cadastros/convites publicado), backend main
+3c816cf. Branch feat/oauth-branding-public-pages. Autorização atual: preparar
+Política de Privacidade e Termos com evidência do código; sem merge/main/live,
+OAuth real, dados ou mudanças de backend. Ler docs/GOOGLE_OAUTH_BRANDING.md.
+
+Nome público FORJA Escola confirmado. Razão social/CNPJ, contato de privacidade,
+retenção/exclusão e declaração Google Limited Use NÃO confirmados. Manter rascunho
+visível e pendências, sem inventar e-mails, prazos ou compromissos institucionais.
+Não enviar estes rascunhos ao Google nem publicar incompletos em produção.
+
+Portal inteiro preservado exceto bloco público forja-public-legal no rodapé.
+Removendo somente esse bloco, SHA-256 deve continuar 3d6908cd807c5b2abf3a7620b2d4275738bb28931478e4340fe84c4557e6cf1f.
+Não alterar formulário aprovado, Agenda, booking, Google, Auth, dados ou scopes.
+Artefato Hosting contém somente index.html + privacidade/index.html,
+termos/index.html e assets/forja-legal.css. Não copiar o repositório inteiro.
+Novos testes scripts/legal-pages.test.mjs devem rodar junto às regressões atuais;
+verify-legal-pages.mjs deve verificar páginas públicas reais, sem falso 200 da SPA.
+PR frontend-only usa explicitamente FORJA_PREVIEW_BACKEND=production-unchanged.
+Revisar apenas documentos públicos no Preview; ele não comprova isolamento do banco.
+Histórico abaixo descreve etapas anteriores e não impede o escopo atual autorizado.
+
 ## 09/10/2026 — Convites automáticos Firebase (mesmo PR #7, sem produção)
 
 Escopo autorizado: mensagens de ativação e Reenviar convite, mantendo cadastro do
@@ -312,7 +335,8 @@ Leia os três documentos em `docs/` antes de trabalhar. Este checkout é
   Os testes executam o código real do drawer com fixtures isoladas, sem rede
   de produção; não confundir isso com uma sessão administrativa autenticada.
   Antes de deploy, gere `.firebase-public/` com `node scripts/prepare-hosting.mjs`.
-- A pasta publicada deve conter somente `index.html`. Documentação, scripts,
+- A pasta publicada permite somente `index.html`, `privacidade/index.html`,
+  `termos/index.html` e `assets/forja-legal.css`. Documentação, scripts,
   configurações e credenciais nunca pertencem ao artefato Hosting.
 - A URL temporária deve corresponder a HTTPS forja-api-pr-N.onrender.com. Não
   hardcode a URL do PR atual no portal, scripts ou workflow. Um Preview sem esse

@@ -1,3 +1,20 @@
+## 10/10/2026 — Documentos públicos para Google OAuth Branding (em revisão)
+
+Cadastros/convites estão publicados: frontend main 959b72f, backend main 3c816cf.
+A nova tarefa não retoma trabalho de publicação anterior. Somente rascunhos legais
+no frontend, branch/PR/Preview; sem merge/live/backend/dados/OAuth real.
+Ver docs/GOOGLE_OAUTH_BRANDING.md para auditoria, requisitos oficiais e pendências.
+
+Publicação de privacidade/termos inexistente no portal: esses paths respondiam o
+index da SPA. Criadas páginas estáticas públicas e links no rodapé; o restante do
+portal segue byte a byte igual ao main. Sem alteração de scopes ou callbacks.
+Documentos distinguem integração pessoal (lê eventos/sincroniza FORJA) e central
+(CalendarList/freeBusy, sem conteúdo de eventos e sem integração à Agenda atual).
+Escola confirmou somente nome público; identificação jurídica, contato, retenção,
+procedimentos e declaração Limited Use pendentes. Não inventar nem publicar como
+compromissos definitivos. Google Branding/Publishing/Verification são etapas
+separadas; não garantir liberação só por existir uma página ou sair de Testing.
+
 ## 09/10/2026 — Convites automáticos Firebase (mesmo PR #7, sem produção)
 
 Escopo autorizado: mensagens de ativação e Reenviar convite, mantendo cadastro do

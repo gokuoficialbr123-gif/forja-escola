@@ -1,3 +1,20 @@
+## 10/10/2026 — Rascunhos de Privacidade e Termos para Google OAuth Branding
+
+- Páginas públicas estáticas /privacidade/ e /termos/, com CSS próprio responsivo,
+  sem login, scripts ou acesso ao banco; documentos ainda em revisão da escola.
+- Rodapé público explica a integração e liga as duas páginas. Nenhuma função,
+  formulário, scope, API URL, Agenda, booking ou regra alterada.
+- Conteúdo baseado na leitura dos mains frontend 959b72f/backend 3c816cf e nas
+  referências oficiais Google; informa escrita de eventos FORJA e cache pessoal
+  mínimo, além da consulta central somente de intervalos Ocupado.
+- Identificação jurídica, e-mail de privacidade, retenção/exclusão e declaração
+  Limited Use pendentes de confirmação, sem compromissos ou prazos inventados.
+- Artefato Hosting com allowlist explícita; hash/marker e regressões preservados.
+  Verificação pública das páginas recusa fallback SPA com HTTP 200.
+- Validação local: 185 testes frontend aprovados, incluindo 8 novos testes de
+  páginas públicas/Chromium; sintaxe, actionlint e git diff --check aprovados.
+- Branch/PR/Firebase Preview somente. Sem merge ou publicação em produção.
+
 ## 09/10/2026 — Convites automáticos Firebase (mesmo PR #7, sem produção)
 
 Escopo autorizado: mensagens de ativação e Reenviar convite, mantendo cadastro do

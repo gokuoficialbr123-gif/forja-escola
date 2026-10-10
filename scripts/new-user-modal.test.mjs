@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {withoutRegistrationChanges} from './registration-scope.mjs';
+import {withoutLegalNavigation} from './legal-pages.mjs';
 import {readFileSync,mkdirSync} from 'node:fs';
 import {resolve,join} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -107,7 +108,7 @@ test('activation link and activation warning retain existing success flows',asyn
  for(const activation of [true,false]){const f=await fixture(t);await f.profile('parent');f.provider.activation=activation;f.provider.warning=!activation;await f.fill();await f.page.locator('#modalSave').click();if(activation){await f.page.waitForSelector('#generatedLink');assert.equal(await f.page.locator('#generatedLink').inputValue(),'https://forja-fixture.invalid/activation');assert.equal(await f.page.locator('#forjaNewUserDialog').count(),0)}else await f.page.waitForSelector('#modal .system-note');assert.equal(f.posts().length,1)}
 });
 test('other portal bytes are unchanged; dialog CSS does not alter other modals',async t=>{
- const stripped=withoutRegistrationChanges(html);
+ const stripped=withoutRegistrationChanges(withoutLegalNavigation(html));
  assert.equal(createHash('sha256').update(stripped).digest('hex'),'e87934aa90eb6a68ea0983e0265de6868b72a3d023dc4b3f9bd57b26786aca3f');
  const f=await fixture(t);await f.page.getByRole('button',{name:'Cancelar',exact:true}).click();await f.page.evaluate(()=>modal('Outro modal','<input id="other-input">'));assert.equal(await f.page.locator('#forjaNewUserDialog').count(),0);assert.equal(await f.page.locator('.modal-head .nu-subtitle').count(),0);assert.equal(await f.page.locator('.modal-foot [data-close-modal]').textContent(),'Fechar');assert.deepEqual(f.errors,[]);
 });
