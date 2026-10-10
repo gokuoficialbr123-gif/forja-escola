@@ -1,3 +1,39 @@
+## 09/10/2026 — Convites automáticos Firebase (mesmo PR #7, sem produção)
+
+Escopo autorizado: mensagens de ativação e Reenviar convite, mantendo cadastro do
+Issue #6, quatro perfis, campos e endpoints. Backend em branch própria coordenada.
+Ver docs/USER_INVITATIONS.md. Falha de convite/reload nunca é falha do cadastro
+concluído; não recriar conta. Solicitação aceita não significa entrega confirmada.
+Gerente ativo v616 → Acesso e segurança recebe Reenviar convite; endpoint existente
+reset-senha. Sem Auth alternativo/senha temporária/Rules/Google/Agenda/booking/DNS.
+PR7 Preview agora invitation-demo: doubles só no artefato, sem API/Auth/Firestore
+reais ou envio de e-mail. Banner explícito; dados fictícios em memória. Live segue
+index.html/hash obrigatório/API oficial intacta; nunca incluir doubles em produção.
+Testes mocks/emuladores; sem criação real, e-mail real, merge ou deploy live.
+
+## 08/10/2026 — Issue #6: Novo usuário (somente PR/Preview)
+
+Base: main 81265f9, após publicação da Etapa 3. Branch feat/novo-usuario-quatro-perfis.
+Mudança localizada em newUserModal() e stylesheet forja-new-user-style, escopo
+#forjaNewUserDialog. Perfis e valores preservados: teacher, psychologist, student,
+parent. Sem staff/admin novo. Campos, endpoints, disciplinaIds e vínculos FORJA
+seguem o contrato anterior. Matérias: busca sem acentos, checkboxes, chips removíveis,
+contador e limpar; select oculto conserva a serialização original. Seções por perfil
+sem recriar controles, mantendo dados e turma quando compatível. Envio único com
+feedback local, bloqueio durante request e mesmas ações de ativação/reload.
+
+Sem mudança de backend/Auth/Rules/Google/Agenda/booking ou dados reais. Testes com
+portal completo em Chromium e APIs/Firebase Auth simulados na borda, sem criar contas
+reais. Screenshots antes/depois contêm somente dados fictícios dos testes. Hash
+validado foi atualizado conscientemente. Marker de Agenda 6.31.1 permanece intacto.
+
+Preview frontend-only opta explicitamente pelo backend oficial inalterado:
+FORJA_PREVIEW_BACKEND=production-unchanged na descrição do PR. Verificador desse modo
+corrigido da referência antiga 6.30.1 para a versão oficial constatada 6.31.1;
+isolamento/versão obrigatórios para modo render-preview continuam intactos.
+Preview não é um banco isolado. Testes automáticos sempre mocks; nenhuma conta real
+foi criada. Sem merge/push main/produção até aprovação visual e funcional.
+
 ### Render Preview #6 — configuração isolada (somente instância Preview)
 
 Não alterar serviço forja-api de produção, Environment Group compartilhado nem

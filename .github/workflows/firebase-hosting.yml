@@ -41,6 +41,7 @@ jobs:
         id: preview-config
         run: node scripts/preview-config.mjs
       - name: Exigir release atual no Render antes de publicar Preview
+        if: steps.preview-config.outputs.mode != 'invitation-demo'
         env:
           FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
           FORJA_PREVIEW_BACKEND_MODE: ${{ steps.preview-config.outputs.mode }}
@@ -50,7 +51,9 @@ jobs:
           FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
           FORJA_PREVIEW_BACKEND_MODE: ${{ steps.preview-config.outputs.mode }}
         run: |
-          if [ "$FORJA_PREVIEW_BACKEND_MODE" = "production-unchanged" ]; then
+          if [ "$FORJA_PREVIEW_BACKEND_MODE" = "invitation-demo" ]; then
+            node scripts/prepare-hosting.mjs --invitation-demo
+          elif [ "$FORJA_PREVIEW_BACKEND_MODE" = "production-unchanged" ]; then
             node scripts/prepare-hosting.mjs
           else
             node scripts/prepare-hosting.mjs --preview
@@ -79,12 +82,15 @@ jobs:
           FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
           FORJA_PREVIEW_BACKEND_MODE: ${{ steps.preview-config.outputs.mode }}
         run: |
-          if [ "$FORJA_PREVIEW_BACKEND_MODE" = "production-unchanged" ]; then
+          if [ "$FORJA_PREVIEW_BACKEND_MODE" = "invitation-demo" ]; then
+            node scripts/verify-hosting.mjs --invitation-demo
+          elif [ "$FORJA_PREVIEW_BACKEND_MODE" = "production-unchanged" ]; then
             node scripts/verify-hosting.mjs
           else
             node scripts/verify-hosting.mjs --preview
           fi
       - name: Conferir CORS e Auth do backend selecionado
+        if: steps.preview-config.outputs.mode != 'invitation-demo'
         env:
           FORJA_VERIFY_URL: ${{ steps.hosting.outputs.details_url }}
           FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}

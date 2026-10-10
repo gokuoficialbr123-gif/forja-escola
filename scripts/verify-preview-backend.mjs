@@ -3,13 +3,17 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validatePreviewApiUrl } from './preview-config.mjs';
 
-const productionVersion = '6.30.1-cors-preview-forja-escola';
+export const productionVersion = '6.31.1-secretaria-publicacao-confirmada';
 export const previewVersion = '6.31.1-secretaria-publicacao-confirmada';
 
 export function assertPreviewIsolation(health,apiUrl) {
   const expected='pr-'+new URL(apiUrl).hostname.match(/^forja-api-pr-([1-9][0-9]*)\.onrender\.com$/)?.[1];
   const storage=health.googleSecretariaStorage;
-  assert.ok(storage?.policy==='central-preview-isolation-v1'&&storage.environment==='preview'&&storage.ready===true&&storage.namespace===expected&&storage.personalGoogleEnabled===false,'Render Preview sem isolamento central confirmado; Hosting Preview bloqueado.');
+  const centralReady=storage?.ready===true && storage.namespace===expected;
+  // Teacher-only review does not call central Google. Its server-side read-only
+  // allowlist blocks central routes and all writes before they reach handlers.
+  const teacherOnly=health.previewTeacher?.readOnly===true && storage?.ready===false && storage.namespace===null;
+  assert.ok(storage?.policy==='central-preview-isolation-v1'&&storage.environment==='preview'&&storage.personalGoogleEnabled===false&&(centralReady||teacherOnly),'Render Preview sem isolamento confirmado nem modo de revisão somente leitura; Hosting bloqueado.');
   assert.equal(health.googleCalendarConfigured,false,'Google pessoal deve ficar desabilitado no Preview.');
   assert.equal(health.googleCalendarWebhookConfigured,false,'Webhook pessoal deve ficar desabilitado no Preview.');
 }
@@ -25,7 +29,7 @@ export async function verifyPreviewHealth(apiUrl, { mode = 'render-preview', req
   assert.equal(health.version, mode === 'production-unchanged' ? productionVersion : previewVersion, 'Render Preview ainda não tem a regra atual; Preview Hosting não publicado.');
   if(mode==='render-preview')assert.equal(health.secretariaAvailabilityPolicy,'confirmed-week-v2','Render Preview ainda não unifica Agenda e booking; Preview Hosting não publicado.');
   if(mode==='render-preview'){assert.equal(health.googleOAuthSecurityPolicy,'state-pkce-oidc-v1','Hardening OAuth ausente.');assert.equal(health.googleSecretariaPolicy,'calendarlist-association-v2','Etapa 2 central ausente; Preview não publicado.');assert.equal(health.googleSecretariaFreeBusyPolicy,'central-freebusy-query-v1','Etapa 3 freeBusy central ausente; Preview não publicado.')}
-  if(mode==='render-preview')assertPreviewIsolation(health,apiUrl);
+  if(mode==='render-preview'){assertPreviewIsolation(health,apiUrl);assert.equal(health.previewTeacher?.readOnly,true,'Render Preview precisa bloquear toda mutação e acesso não auditado; Hosting Preview bloqueado.');}
   return { apiUrl, version: health.version, health: 200 };
 }
 
@@ -56,7 +60,7 @@ export async function verifyPreviewBackend(apiUrl, frontendUrl, { mode = 'render
   if(mode==='render-preview')assert.equal(data.secretariaAvailabilityPolicy,'confirmed-week-v2','Agenda e booking ainda não unificados no Render Preview.');
   if(mode==='render-preview'){assert.equal(data.googleOAuthSecurityPolicy,'state-pkce-oidc-v1');assert.equal(data.googleSecretariaPolicy,'calendarlist-association-v2');assert.equal(data.googleSecretariaFreeBusyPolicy,'central-freebusy-query-v1')}
 
-  if(mode==='render-preview')assertPreviewIsolation(data,apiUrl);
+  if(mode==='render-preview'){assertPreviewIsolation(data,apiUrl);assert.equal(data.previewTeacher?.readOnly,true,'Backend do Preview não confirmou revisão somente leitura para Professor.');}
 
   const preflight = await request('/me', {
     method: 'OPTIONS',
