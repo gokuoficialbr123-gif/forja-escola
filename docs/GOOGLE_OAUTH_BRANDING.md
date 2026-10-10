@@ -74,13 +74,15 @@ Não enviar rascunhos incompletos para verificação.
 
 ## Confirmações pendentes da escola
 
-O proprietário confirmou nesta sessão apenas o nome público **FORJA Escola**.
-Ainda não confirmou razão social/CNPJ, e-mail de privacidade/suporte ou política
-formal de retenção/exclusão. A declaração Limited Use foi deixada pendente.
+O proprietário confirmou o nome público **FORJA Escola** e, em 10/10/2026,
+`adm@forjaescola.com.br` como contato oficial ativo de suporte e privacidade,
+autorizado pela escola. O endereço foi incluído nas duas páginas com link mailto.
+Ainda não confirmou razão social/CNPJ ou política formal de retenção/exclusão.
+A declaração Limited Use e demais condições institucionais continuam pendentes.
 
 Antes da versão definitiva, confirmar:
 
-1. Identificação da entidade responsável e contato oficial de privacidade/suporte.
+1. Identificação da entidade responsável; o contato de privacidade/suporte já está confirmado.
    Não criar CNPJ, encarregado, endereço ou e-mail fictícios. CNPJ não é um campo
    obrigatório do Branding Google; a identificação institucional precisa refletir
    a escola real, conforme a revisão aplicável.
@@ -155,7 +157,9 @@ Isso é uma possível causa geral de falha de token pessoal, não diagnóstico d
 - PR somente frontend declara `FORJA_PREVIEW_BACKEND=production-unchanged`.
   A API oficial permanece no HTML. O Preview não é banco isolado; revisar
   somente páginas legais, sem cadastros ou ações reais nesta tarefa.
-- Não fazer merge/publicar live enquanto rascunhos/contatos estiverem pendentes.
+- Não fazer merge/publicar live enquanto a revisão dos rascunhos e as demais
+  informações institucionais estiverem pendentes. Confirmar o contato não aprova
+  automaticamente o restante do conteúdo nem autoriza mudanças no Google OAuth.
 
 ## Fontes oficiais consultadas
 

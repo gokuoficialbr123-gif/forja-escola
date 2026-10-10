@@ -1,3 +1,15 @@
+## 10/10/2026 — Contato oficial de suporte e privacidade confirmado
+
+- Incluído adm@forjaescola.com.br na Política de Privacidade e nos Termos, com
+  link mailto, após confirmação da escola de que o endereço está ativo e autorizado.
+- Mantidos rascunho e pendências: razão social/CNPJ, retenção/exclusão, procedimentos,
+  declaração Google Limited Use e demais condições institucionais.
+- Atualizado o contexto documental para distinguir contato confirmado de pendências.
+- Validações: 34 testes de pipeline/páginas públicas e Chromium aprovados;
+  sintaxe/hash/marker e git diff --check aprovados.
+- Mesmo PR frontend #8 e Firebase Preview; sem merge/live, OAuth ou alterações
+  no portal, backend, dados, configuração Firebase ou workflows.
+
 ## 10/10/2026 — Rascunhos de Privacidade e Termos para Google OAuth Branding
 
 - Páginas públicas estáticas /privacidade/ e /termos/, com CSS próprio responsivo,
