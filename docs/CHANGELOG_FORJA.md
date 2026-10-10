@@ -1,3 +1,32 @@
+## 10/10/2026 — Contato oficial de suporte e privacidade confirmado
+
+- Incluído adm@forjaescola.com.br na Política de Privacidade e nos Termos, com
+  link mailto, após confirmação da escola de que o endereço está ativo e autorizado.
+- Mantidos rascunho e pendências: razão social/CNPJ, retenção/exclusão, procedimentos,
+  declaração Google Limited Use e demais condições institucionais.
+- Atualizado o contexto documental para distinguir contato confirmado de pendências.
+- Validações: 34 testes de pipeline/páginas públicas e Chromium aprovados;
+  sintaxe/hash/marker e git diff --check aprovados.
+- Mesmo PR frontend #8 e Firebase Preview; sem merge/live, OAuth ou alterações
+  no portal, backend, dados, configuração Firebase ou workflows.
+
+## 10/10/2026 — Rascunhos de Privacidade e Termos para Google OAuth Branding
+
+- Páginas públicas estáticas /privacidade/ e /termos/, com CSS próprio responsivo,
+  sem login, scripts ou acesso ao banco; documentos ainda em revisão da escola.
+- Rodapé público explica a integração e liga as duas páginas. Nenhuma função,
+  formulário, scope, API URL, Agenda, booking ou regra alterada.
+- Conteúdo baseado na leitura dos mains frontend 959b72f/backend 3c816cf e nas
+  referências oficiais Google; informa escrita de eventos FORJA e cache pessoal
+  mínimo, além da consulta central somente de intervalos Ocupado.
+- Identificação jurídica, e-mail de privacidade, retenção/exclusão e declaração
+  Limited Use pendentes de confirmação, sem compromissos ou prazos inventados.
+- Artefato Hosting com allowlist explícita; hash/marker e regressões preservados.
+  Verificação pública das páginas recusa fallback SPA com HTTP 200.
+- Validação local: 185 testes frontend aprovados, incluindo 8 novos testes de
+  páginas públicas/Chromium; sintaxe, actionlint e git diff --check aprovados.
+- Branch/PR/Firebase Preview somente. Sem merge ou publicação em produção.
+
 ## 09/10/2026 — Convites automáticos Firebase (mesmo PR #7, sem produção)
 
 Escopo autorizado: mensagens de ativação e Reenviar convite, mantendo cadastro do

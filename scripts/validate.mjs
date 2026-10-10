@@ -5,10 +5,11 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { withoutLegalNavigation, portalBeforeLegalSha256, validateLegalPages } from './legal-pages.mjs';
 
 export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const referenceVersion = '6.31.1-secretaria-drawer-fluido';
-export const referenceSha256 = '3d6908cd807c5b2abf3a7620b2d4275738bb28931478e4340fe84c4557e6cf1f';
+export const referenceSha256 = '29d4f03a3c9545c1abb2631e547385d4b9bac759f5ad04b2a020346f8e0669ea';
 export const sha256 = data => createHash('sha256').update(data).digest('hex');
 
 export function validateInlineScripts(html) {
@@ -41,6 +42,7 @@ export function validate(root = rootDir) {
   assert.equal(marker, referenceVersion, 'Marker da release ativa incorreto.');
   assert.match(release, /dataset\.forjaAgendaVersion\s*=\s*VERSION/, 'Marker não aplicado à versão ativa.');
   assert.equal(sha256(bytes), referenceSha256, 'HTML diferente da base 6.31 preparada para revisão.');
+  assert.equal(sha256(withoutLegalNavigation(html)), portalBeforeLegalSha256, 'Fora da navegação pública, o portal deve permanecer integralmente igual ao main publicado.');
   assert.ok(!/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(html), 'Chave privada não pode entrar no frontend.');
   const central=html.match(/<script id="forja-google-secretaria-script">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(central?.includes("const CENTRAL_POLICY='calendarlist-association-v2'"), 'Marker da conexão central ausente.');
@@ -51,7 +53,7 @@ export function validate(root = rootDir) {
   assert.equal(config.hosting?.public, '.firebase-public', 'Pasta publicada deve ser isolada.');
   assert.deepEqual(config.hosting?.rewrites, [{ source: '**', destination: '/index.html' }]);
   const checked = validateInlineScripts(html);
-  return { version: marker, sha256: referenceSha256, inlineScripts: checked, bytes: bytes.length };
+  return { version: marker, sha256: referenceSha256, inlineScripts: checked, bytes: bytes.length, legalPages:validateLegalPages(root) };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

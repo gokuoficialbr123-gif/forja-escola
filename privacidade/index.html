@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Como o portal FORJA Escola utiliza dados de cadastro, acesso e integração com o Google Calendar.">
+  <title>Política de Privacidade | FORJA Escola</title>
+  <link rel="stylesheet" href="/assets/forja-legal.css">
+</head>
+<body>
+  <a class="skip" href="#conteudo">Ir para o conteúdo</a>
+  <header><div class="shell"><a class="brand" href="/">FORJA Escola</a><nav aria-label="Navegação pública"><a href="/">Portal</a><a href="/termos/">Termos de Serviço</a></nav></div></header>
+  <main id="conteudo">
+    <p class="eyebrow">Documentos públicos do portal · Rascunho de 10/10/2026</p>
+    <h1>Política de Privacidade</h1>
+    <p>Este documento descreve o tratamento de dados observado no portal FORJA Escola, usado para cadastros, atividades educacionais, atendimentos, agendamentos e gestão da escola.</p>
+    <aside class="review" aria-label="Status de revisão" data-legal-review="pending"><strong>Rascunho para revisão da escola</strong>A identificação jurídica, as regras de retenção e exclusão de dados e as declarações institucionais abaixo ainda precisam de confirmação. Esta versão não é uma política definitiva e não deve ser enviada ao Google para verificação.</aside>
+    <nav class="contents" aria-label="Nesta página"><strong>Nesta página</strong><ul><li><a href="#cadastro">Cadastro e acesso</a></li><li><a href="#google">Dados do Google Calendar</a></li><li><a href="#armazenamento">Armazenamento e prestadores</a></li><li><a href="#controle">Desconexão, conservação e solicitações</a></li><li><a href="#confirmacoes">Informações a confirmar pela escola</a></li></ul></nav>
+
+    <section id="cadastro"><h2>1. Cadastro, acesso e atividades no portal</h2>
+      <p>Conforme o perfil e o cadastro realizado, o sistema utiliza nome, e-mail, CPF, telefone, data de nascimento, identificação FORJA, disciplinas, série, turma e vínculos entre alunos e responsáveis. Também mantém registros operacionais, como agendamentos, presença, atividades e materiais inseridos pelos usuários nas funções disponíveis.</p>
+      <p>Esses dados permitem identificar usuários, administrar acessos, organizar as atividades da escola e apresentar informações de acordo com as permissões de cada perfil. O Firebase Authentication realiza autenticação por e-mail e senha e o fluxo de definição ou redefinição de senha.</p>
+      <p>Os convites usam o fluxo de redefinição de senha do Firebase. A aceitação de uma solicitação de envio pelo provedor não comprova a entrega do e-mail. O portal conserva estado de sessão no navegador para permitir a navegação autenticada.</p>
+      <p>Os critérios institucionais de tratamento de dados de alunos menores, a participação dos responsáveis e o tratamento de dados relacionados a atendimentos precisam ser confirmados pela escola antes da publicação definitiva.</p>
+    </section>
+
+    <section id="google"><h2>2. Conexão opcional com o Google Calendar</h2>
+      <p>A integração é autorizada na tela de consentimento do Google. Ela possui dois fluxos distintos: a conexão pessoal de professores e psicólogos e a conexão central da Secretaria, administrada somente por administrador ativo. As credenciais de uma conexão não substituem as da outra.</p>
+      <h2>Identificação da conta Google</h2>
+      <p>Os escopos <code>openid</code> e <code>email</code> permitem verificar a identidade da conta que autorizou o acesso, incluindo seu identificador Google e e-mail. O backend verifica essa identidade e a utiliza para vincular a conexão e evitar reaproveitar uma credencial de outra conta na reconexão.</p>
+      <h2>Conexão pessoal de professores e psicólogos</h2>
+      <p>O escopo <code>calendar.events.owned</code> permite ler, criar, alterar e excluir eventos nos calendários pertencentes à conta. O fluxo atual utiliza o calendário vinculado à conexão, normalmente o principal, para sincronizar agendamentos FORJA e verificar conflitos.</p>
+      <ul>
+        <li><strong>Eventos pessoais:</strong> o backend recebe eventos do Google para calcular intervalos ocupados e acompanhar alterações. O cache importado e sua exibição no FORJA usam horários e metadados operacionais; não guardam títulos, descrições ou participantes de eventos pessoais. Esses compromissos aparecem no portal como <strong>Ocupado</strong>.</li>
+        <li><strong>Eventos criados pelo FORJA:</strong> aulas e atendimentos podem enviar ao calendário conectado o nome do aluno, matéria ou indicação de atendimento, data, horário, local quando presencial e identificadores operacionais. O sistema também pode criar um link Google Meet quando a função estiver disponível.</li>
+        <li><strong>Sincronização:</strong> alterações e cancelamentos de eventos gerenciados pelo FORJA podem ser sincronizados. Períodos de disponibilidade confirmados no portal podem ser enviados ao Google. Compromissos ocupados do Google não criam disponibilidade publicada no FORJA.</li>
+      </ul>
+      <p>A visibilidade de um evento gravado no Google depende também das configurações e dos compartilhamentos desse calendário. Antes de conectar, o usuário deve conferir quem pode acessar o calendário que receberá os agendamentos.</p>
+      <h2>Conta central da Secretaria</h2>
+      <p>O escopo <code>calendar.calendarlist.readonly</code> permite listar os calendários presentes na CalendarList da conta central. O sistema mantém identificadores dos calendários, nomes de exibição, nível de acesso e configurações de associação, habilitação e atualização. A associação a um professor ativo é feita explicitamente pelo administrador.</p>
+      <p>Quando o administrador concede também <code>calendar.events.freebusy</code>, a consulta central obtém somente intervalos ocupados dos calendários associados, habilitados e com acesso válido. O resultado contém início, fim e a indicação <strong>Ocupado</strong>, além de status operacional. Não consulta títulos, descrições ou participantes de eventos e não grava esses intervalos centrais no Firestore; pode usar cache temporário em memória por até 60 segundos.</p>
+      <p>A função central atual é de configuração e consulta de ocupado sob demanda. Ela não cria ou altera eventos nesses calendários e ainda não integra o resultado central à Agenda ou à marcação de aulas. Falhas de acesso ou de consulta são apresentadas como indisponibilidade de consulta, nunca como prova de horário livre.</p>
+      <h2>Declaração de uso limitado — confirmação institucional pendente</h2>
+      <p>A <a href="https://developers.google.com/terms/api-services-user-data-policy" rel="noopener">Google API Services User Data Policy</a>, incluindo os requisitos de <em>Limited Use</em>, exige limitar o uso de dados Google às funções divulgadas e restringe transferência, venda, publicidade e leitura humana. A escola precisa confirmar sua adesão e os procedimentos de sua equipe antes de aprovar a declaração definitiva de conformidade. Este rascunho não presume práticas institucionais que o código, por si só, não comprova.</p>
+    </section>
+
+    <section id="armazenamento"><h2>3. Armazenamento, acesso e prestadores</h2>
+      <p>O portal utiliza Firebase Authentication e Firestore para autenticação e dados operacionais, Firebase Hosting para o site, Render para a API e os serviços Google Calendar e Google Meet nas funções autorizadas. Comunicações adicionais, como lembretes por WhatsApp, dependem das funções e configurações utilizadas pela escola.</p>
+      <p>Os tokens OAuth ficam somente no backend. As credenciais persistidas da integração Google usam criptografia AES-256-GCM; o frontend recebe status da conexão, não os tokens. O backend controla as permissões das ações administrativas e das integrações.</p>
+      <p>Na conexão pessoal, o cache de ocupado mantém intervalos, vínculo com o profissional, timestamps e metadados de sincronização. Os vínculos de eventos gerenciados pelo FORJA permitem atualizar ou cancelar esses eventos. Na conexão central, o catálogo mantém as configurações administrativas dos calendários e associações, não o conteúdo de eventos.</p>
+      <p>Os operadores envolvidos, condições contratuais, localização de armazenamento, transferências internacionais e eventual acesso de equipes de suporte devem ser confirmados pela escola. A utilização desses serviços não permite afirmar anonimato, segurança absoluta ou inexistência de transferências de dados.</p>
+    </section>
+
+    <section id="controle"><h2>4. Desconexão, conservação e solicitações</h2>
+      <p>O profissional pode desconectar sua integração pelo portal. O fluxo pessoal interrompe o monitoramento, solicita a revogação da credencial Google e remove a conexão local e seu cache de ocupado. Isso não exclui automaticamente o histórico escolar nem todos os eventos já criados no Google.</p>
+      <p>A desconexão central remove a credencial central armazenada e interrompe seu uso pelo FORJA. As associações administrativas de calendários são preservadas para posterior configuração. Ela não revoga automaticamente a autorização Google de todo o projeto, para não afetar conexões pessoais.</p>
+      <p>O titular também pode gerenciar autorizações em <a href="https://myaccount.google.com/permissions" rel="noopener">Conexões da Conta Google</a>. Revogar a autorização do aplicativo no Google pode afetar outras conexões desse aplicativo.</p>
+      <p>Não há um prazo único de exclusão demonstrado pelo código para todos os registros escolares. Os prazos de conservação, obrigações aplicáveis, procedimento de exclusão e tratamento de cópias de segurança precisam ser definidos pela escola; desconectar o Google não equivale a excluir o cadastro FORJA.</p>
+      <p>O contato oficial de suporte e privacidade do FORJA Escola é <a href="mailto:adm@forjaescola.com.br">adm@forjaescola.com.br</a>, confirmado e autorizado pela escola. Para pedidos de acesso, correção, informações ou exclusão, entre em contato por esse endereço. Os procedimentos de atendimento e as condições de retenção e exclusão de dados ainda precisam de confirmação institucional. Não envie senhas, tokens ou credenciais nesse contato.</p>
+    </section>
+
+    <section id="confirmacoes"><h2>5. Informações a confirmar antes da publicação</h2>
+      <ul><li>Identificação jurídica da escola responsável.</li><li>Finalidades e bases legais aplicáveis, tratamento de dados de menores e de atendimentos.</li><li>Retenção, exclusão, cópias de segurança e procedimento de atendimento às solicitações.</li><li>Prestadores efetivamente usados, localização e transferências de dados e acesso de equipes autorizadas.</li><li>Adesão institucional à política Google e à declaração de uso limitado, incluindo práticas fora do código do portal.</li></ul>
+      <p>A versão definitiva deve refletir as práticas confirmadas pela escola. Mudanças no uso de dados Google devem ser divulgadas e, quando exigido, submetidas a novo consentimento antes do novo uso.</p>
+    </section>
+  </main>
+  <footer><div class="shell"><span>FORJA Escola · Documento em revisão</span><nav aria-label="Rodapé"><a href="/">Voltar ao portal</a><a href="/termos/">Termos de Serviço</a></nav></div></footer>
+</body>
+</html>
