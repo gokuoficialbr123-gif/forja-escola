@@ -67,7 +67,7 @@ test('aprovação temporária dos documentos não se torna definitiva nem remove
   }
 });
 test('links e âncoras públicos navegam sem JavaScript; contato e links externos não iniciam OAuth',async t=>{
-  const external=new Set(['https://developers.google.com/terms/api-services-user-data-policy','https://myaccount.google.com/permissions']);
+  const external=new Set(['https://developers.google.com/terms/api-services-user-data-policy','https://developers.google.com/workspace/workspace-api-user-data-developer-policy','https://myaccount.google.com/permissions']);
   for(const mobile of [false,true]) {
     const context=await browser.newContext({javaScriptEnabled:false,viewport:mobile?{width:390,height:844}:{width:1280,height:1000}});
     t.after(()=>context.close());

@@ -18,6 +18,8 @@ Termos temporários aprovados preservados. Sem alteração de integração/porta
 Sem provedor de IA identificado no código auditado; práticas externas não provadas.
 Acesso humano e transferências/terceiros ainda exigem confirmação institucional,
 inclusive hipótese admitida pelo Google para leitura de dados derivados por admins.
+Fonte Workspace exige declaração afirmativa Limited Use; ainda pendente, sem
+inventar conformidade. Retenção/cache Google também precisa de verificação.
 Regiões/contratos/operadores/backup reais não inspecionados; nenhuma conta/banco
 acessado. Checklist e evidências em docs/GOOGLE_OAUTH_BRANDING.md, revisão 11/10.
 Tecnicamente preparado para revisão após testes; não declarar conformidade integral

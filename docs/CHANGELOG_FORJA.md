@@ -21,6 +21,10 @@ e PR #8 legal. Backend primeiro; sem scopes novos, merge, produção ou Google r
   Limited Use não declarada. IA, transferências/prestadores e acesso humano
   continuam sujeitos a comprovação, inclusive autorização para admins lerem
   dados derivados. Busca no código não audita práticas externas ou fornecedores.
+- Consultada a política específica Workspace: declaração afirmativa Limited Use
+  exigida continua pendente até comprovação; registradas restrições específicas
+  de IA e necessidade de validar retenção/cache. Link oficial testado como
+  explicativo, sem iniciar OAuth ou navegar a contas Google reais.
 - Checklist separa requisitos Google de complementos/CNPJ e hardening futuro.
   Retenção/exclusão/backups reais não inventariados; nenhum recurso automático
   ou prazo inventado. Timeout pessoal continua recomendação separada.

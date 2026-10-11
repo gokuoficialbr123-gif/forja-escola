@@ -18,6 +18,8 @@ isso não é importação de conteúdo de eventos pessoais. Não presumir config
 ativa de serviços opcionais ou uso Google por Resend/Meta sem evidência.
 Busca sem provedores de IA no código não comprova operações externas/prestadores.
 Limited Use: role de admin não prova consentimento/exceção para acesso humano.
+Política Workspace exige declaração afirmativa, pendente até comprovação;
+validar também retenção/cache e restrições específicas sobre treinamento de IA.
 Ver evidências e bloqueios em docs/GOOGLE_OAUTH_BRANDING.md, revisão 11/10.
 Preservar Termos e orientações temporárias aprovadas. Sem backend, OAuth real,
 Console, dados, merge ou live; aguardar autorização para produção.

@@ -193,7 +193,8 @@ publicitário foi confirmada institucionalmente, não auditada em contratos ou
 nos sistemas dos prestadores. A página
 também solicita verificação específica de treinamento de IA e sua compatibilidade
 com a finalidade exclusiva e as políticas aplicáveis; não inventa uma auditoria
-de IA nem afirma uma proibição geral não demonstrada pela fonte consultada.
+de IA nem presume práticas fora do sistema. A revisão complementar de 11/10,
+abaixo, inclui as exigências específicas das APIs Google Workspace.
 
 Assim, registram-se finalidade, ausência de venda pela escola e de uso publicitário
 confirmadas institucionalmente e mantém-se pendente
@@ -261,6 +262,7 @@ atuais do projeto no Console antes de submissão.
 - [Sensitive scope verification: justificativas e demonstração](https://developers.google.com/identity/protocols/oauth2/production-readiness/sensitive-scope-verification).
 - [Escopos oficiais Calendar API](https://developers.google.com/workspace/calendar/api/auth).
 - [Google API Services User Data Policy e Limited Use](https://developers.google.com/terms/api-services-user-data-policy).
+- [Google Workspace APIs User Data and Developer Policy](https://developers.google.com/workspace/workspace-api-user-data-developer-policy).
 - [OAuth 2.0: expiração de refresh tokens em Testing](https://developers.google.com/identity/protocols/oauth2#expiration).
 - [OAuth 2.0 Policies](https://developers.google.com/identity/protocols/oauth2/policies).
 
@@ -302,6 +304,15 @@ não substitui auditoria de permissões reais, contratos ou práticas de suporte
 
 ### Limited Use e acesso humano: limite importante
 
+A política específica Workspace foi consultada em 11/10. Além das restrições
+gerais, exige declaração afirmativa de adesão a Limited Use no aplicativo/site.
+Essa declaração ainda não consta, intencionalmente, pois as práticas não foram
+comprovadas. É um bloqueio real para concluir a política destinada à submissão
+Google, e não algo a preencher automaticamente. A mesma fonte restringe uso para
+criar/treinar/melhorar IA além do modelo personalizado do próprio usuário para
+a função apropriada; não afirmar uma proibição geral de toda IA nem presumir
+conformidade dos fornecedores. Deve-se verificar equipe, agentes e contratados.
+
 A fonte Google consultada restringe transferências e leitura humana inclusive
 de dados derivados dos scopes. A visualização de intervalos por administradores
 é um acesso humano a dado derivado; a permissão de role no FORJA, sozinha, não
@@ -319,13 +330,22 @@ Não enviar uma declaração integral Limited Use enquanto essas questões estiv
 sem comprovação. Confirmações de finalidade exclusiva, ausência de venda e
 publicidade pela escola permanecem registradas, sem estendê-las aos fornecedores.
 
+A política Workspace também trata de cópias permanentes e de limites de cache.
+No código pessoal, a janela de consulta exibida não é uma rotina de exclusão por
+idade: o cache é removido na desconexão, em certos resyncs e ao receber remoções.
+Não foi demonstrado TTL geral desse cache nem verificado o cabeçalho de respostas
+reais do Google. Avaliar as regras específicas de sincronização/armazenamento
+aplicáveis antes de afirmar conformidade de retenção; não concluir violação
+definitiva sem essa verificação e não inventar uma limpeza automática existente.
+
 ### Resultado e sequência para futura publicação
 
 - **Tecnicamente preparado para revisão de publicação**, condicionado à validação
   dos testes e Preview do HEAD atual. Portal, API, CSS, workflows e scopes não
   foram modificados nesta revisão; Termos temporários foram preservados.
 - **Ainda não pronto para submissão final ao Google:** confirmar os pontos Limited
-  Use acima e completar a divulgação das práticas operacionais aplicáveis.
+  Use acima, validar retenção/cache e completar a divulgação das práticas
+  operacionais aplicáveis. Só então aprovar a declaração afirmativa exigida.
   Depois, obter autorização de publicação das páginas, conferir GET público
   distinto da SPA e configurar URLs definitivas. O Preview não é o endereço final.
 - No Google Cloud, o proprietário deve conferir Branding/contatos, domínios
