@@ -6,6 +6,11 @@ import { validatePreviewApiUrl } from './preview-config.mjs';
 export const productionVersion = '6.31.1-secretaria-publicacao-confirmada';
 export const previewVersion = '6.31.1-secretaria-publicacao-confirmada';
 
+export function assertPersonalPreviewPolicy(health){
+  assert.equal(health.googlePersonalConsentPolicy,'personal-busy-secretaria-v1','Render Preview ainda não contém consentimento pessoal versionado.');
+  assert.equal(health.googlePersonalConsultationPolicy,'consent-and-valid-events-v2','Render Preview ainda não valida respostas Google antes de disponibilizar horários.');
+}
+
 export function assertPreviewIsolation(health,apiUrl) {
   const expected='pr-'+new URL(apiUrl).hostname.match(/^forja-api-pr-([1-9][0-9]*)\.onrender\.com$/)?.[1];
   const storage=health.googleSecretariaStorage;
@@ -30,6 +35,7 @@ export async function verifyPreviewHealth(apiUrl, { mode = 'render-preview', req
   if(mode==='render-preview')assert.equal(health.secretariaAvailabilityPolicy,'confirmed-week-v2','Render Preview ainda não unifica Agenda e booking; Preview Hosting não publicado.');
   if(mode==='render-preview'){assert.equal(health.googleOAuthSecurityPolicy,'state-pkce-oidc-v1','Hardening OAuth ausente.');assert.equal(health.googleSecretariaPolicy,'calendarlist-association-v2','Etapa 2 central ausente; Preview não publicado.');assert.equal(health.googleSecretariaFreeBusyPolicy,'central-freebusy-query-v1','Etapa 3 freeBusy central ausente; Preview não publicado.')}
   if(mode==='render-preview'){assertPreviewIsolation(health,apiUrl);assert.equal(health.previewTeacher?.readOnly,true,'Render Preview precisa bloquear toda mutação e acesso não auditado; Hosting Preview bloqueado.');}
+  if(mode==='render-preview')assertPersonalPreviewPolicy(health);
   return { apiUrl, version: health.version, health: 200 };
 }
 
@@ -62,6 +68,7 @@ export async function verifyPreviewBackend(apiUrl, frontendUrl, { mode = 'render
 
   if(mode==='render-preview'){assertPreviewIsolation(data,apiUrl);assert.equal(data.previewTeacher?.readOnly,true,'Backend do Preview não confirmou revisão somente leitura para Professor.');}
 
+  if(mode==='render-preview')assertPersonalPreviewPolicy(data);
   const preflight = await request('/me', {
     method: 'OPTIONS',
     headers: {

@@ -1,3 +1,4 @@
+import {withoutPersonalGoogleChanges} from './personal-google-scope.mjs';
 import assert from 'node:assert/strict';
 import {withoutRegistrationChanges} from './registration-scope.mjs';
 import { test } from 'node:test';
@@ -9,7 +10,7 @@ import { rootDir, referenceVersion, referenceSha256, sha256, validate, validateI
 import { buildHostingArtifact, hostingOptionsFromArgs, prepareHosting, productionApiUrl } from './prepare-hosting.mjs';
 import { verifyHosting } from './verify-hosting.mjs';
 import { previewApiFromEvent, previewConfigFromEvent, validatePreviewApiUrl } from './preview-config.mjs';
-import { assertVaryOrigin, verifyPreviewHealth, previewVersion, productionVersion, assertPreviewIsolation } from './verify-preview-backend.mjs';
+import { assertVaryOrigin, verifyPreviewHealth, previewVersion, productionVersion, assertPreviewIsolation, assertPersonalPreviewPolicy } from './verify-preview-backend.mjs';
 
 const html = readFileSync(join(rootDir, 'index.html'));
 function fixture(t) {
@@ -74,7 +75,7 @@ test('verificação pública aguarda propagação e recusa bytes errados com mes
 const previewApiUrl = 'https://forja-api-pr-42.onrender.com';
 test('Preview Hosting requires current backend release before publication',async()=>{
   const calls=[];
-  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googleSecretariaPolicy:'calendarlist-association-v2',googleSecretariaFreeBusyPolicy:'central-freebusy-query-v1',googleSecretariaStorage:{policy:'central-preview-isolation-v1',environment:'preview',namespace:'pr-42',ready:true,personalGoogleEnabled:false},googleCalendarConfigured:false,googleCalendarWebhookConfigured:false,previewTeacher:{readOnly:true}}),{status:200})}});
+  const result=await verifyPreviewHealth(previewApiUrl,{request:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googlePersonalConsentPolicy:'personal-busy-secretaria-v1',googlePersonalConsultationPolicy:'consent-and-valid-events-v2',googleSecretariaPolicy:'calendarlist-association-v2',googleSecretariaFreeBusyPolicy:'central-freebusy-query-v1',googleSecretariaStorage:{policy:'central-preview-isolation-v1',environment:'preview',namespace:'pr-42',ready:true,personalGoogleEnabled:false},googleCalendarConfigured:false,googleCalendarWebhookConfigured:false,previewTeacher:{readOnly:true}}),{status:200})}});
   assert.deepEqual(calls,[previewApiUrl+'/health']);assert.equal(result.version,previewVersion);
 });
 test('old release cannot pass the pre-deploy check',async()=>{
@@ -207,17 +208,17 @@ test('same 6.31.1 version without unified Secretaria contract cannot publish Pre
 });
 
 test('backend sem Etapa 2 central não pode autorizar o novo Preview',async()=>{
- await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1'}),{status:200})}),/Etapa 2 central ausente/);
+ await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googlePersonalConsentPolicy:'personal-busy-secretaria-v1',googlePersonalConsultationPolicy:'consent-and-valid-events-v2'}),{status:200})}),/Etapa 2 central ausente/);
 });
 
 test('Somente blocos centrais e Novo usuário podem mudar; Agenda e relatório preservados',()=>{
- const previous=withoutRegistrationChanges(html.toString()).replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
+ const previous=withoutRegistrationChanges(withoutPersonalGoogleChanges(html.toString())).replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
  assert.equal(sha256(Buffer.from(previous)),'cf5b8ffbc9c7827892492864d9d034d318e707bebaefc9ee4967f8ba115f741c');
 });
 
 
 test('backend com Etapa 2 mas sem freeBusy não pode publicar Preview da Etapa 3',async()=>{
- await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googleSecretariaPolicy:'calendarlist-association-v2'}),{status:200})}),/Etapa 3 freeBusy central ausente/);
+ await assert.rejects(verifyPreviewHealth(previewApiUrl,{request:async()=>new Response(JSON.stringify({ok:true,version:previewVersion,secretariaAvailabilityPolicy:'confirmed-week-v2',googleOAuthSecurityPolicy:'state-pkce-oidc-v1',googlePersonalConsentPolicy:'personal-busy-secretaria-v1',googlePersonalConsultationPolicy:'consent-and-valid-events-v2',googleSecretariaPolicy:'calendarlist-association-v2'}),{status:200})}),/Etapa 3 freeBusy central ausente/);
 });
 
 
@@ -235,3 +236,5 @@ test('frontend-only Preview checks the current official backend without requirin
   assert.equal(result.version,'6.31.1-secretaria-publicacao-confirmada');
   await assert.rejects(verifyPreviewHealth(productionApiUrl,{mode:'production-unchanged',request:async()=>new Response(JSON.stringify({...health,version:'6.30.1-cors-preview-forja-escola'}))}),/release|regra atual/);
 });
+
+test('Render antigo não passa sem policy de consentimento pessoal',()=>{assert.throws(()=>assertPersonalPreviewPolicy({}),/consentimento/);assert.throws(()=>assertPersonalPreviewPolicy({googlePersonalConsentPolicy:'old'}),/consentimento/);});
