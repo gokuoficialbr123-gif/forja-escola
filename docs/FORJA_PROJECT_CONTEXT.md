@@ -8,6 +8,16 @@ Sem scopes/configuração Google, migração, merge ou produção; testes mocks/
 Ver docs/GOOGLE_PERSONAL_DISCONNECT.md. Sem falso sucesso quando exclusão falha;
 quarentena/repetição e revogação global pendente explícitas. Separado do consentimento
 e PR #8 legal. Backend primeiro; sem scopes novos, merge, produção ou Google real.
+## 11/10/2026 — Preparação de publicação/OAuth, sem execução em produção
+
+Mesmo PR #8, continuando c38cbaf. Regra institucional confirmada: profissionais
+controlam disponibilidade; Secretaria consulta ocupado sem detalhes pessoais.
+Consentimento individual documentado ainda não comprovado; proposta de correção
+e riscos em docs/GOOGLE_OAUTH_BRANDING.md, seção Preparação controlada/403.
+Não alterar backend antes de apresentar proposta e obter aprovação. Merge/live
+e Google Cloud exigem confirmações distintas após relatório. Clientes Backend,
+Secretaria, Make/n8n, URIs, tokens e scopes não podem ser trocados para contornar 403.
+
 ## 11/10/2026 — Auditoria final das páginas e dos fluxos Google
 
 Mesmo PR frontend #8. Fontes main permanecem frontend 959b72f e backend 3c816cf.

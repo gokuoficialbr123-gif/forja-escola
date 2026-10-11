@@ -8,6 +8,22 @@ Sem scopes/configuração Google, migração, merge ou produção; testes mocks/
 Ver docs/GOOGLE_PERSONAL_DISCONNECT.md. Sem falso sucesso quando exclusão falha;
 quarentena/repetição e revogação global pendente explícitas. Separado do consentimento
 e PR #8 legal. Backend primeiro; sem scopes novos, merge, produção ou Google real.
+## 11/10/2026 — Preparação controlada de publicação e OAuth 403
+
+- Continuação do PR #8 a partir de c38cbaf; main frontend 959b72f e backend
+  3c816cf relidos e preservados. Nenhuma configuração Google/produção alterada.
+- Política registra a regra aprovada: profissionais controlam sua disponibilidade;
+  Secretaria consulta ocupado sem detalhes pessoais. Aprovação institucional
+  não foi tratada como consentimento individual nem conformidade integral.
+- Plano em docs/GOOGLE_OAUTH_BRANDING.md separa causas do 403, consentimento
+  técnico Google de autorização documentada para acesso humano, retenção/cache
+  incremental e etapas Branding/Audience/Data Access. Clientes existentes,
+  Make/n8n, URIs, credenciais e scopes devem ser preservados; não inspecionados
+  no Console. Proposta mínima de consentimento backend exige aprovação prévia.
+- Revalidado: 36 testes páginas/pipeline em Chromium e 70 testes Google com mocks,
+  zero falhas/skips; hash, marker, artefato e diff --check aprovados. Backend,
+  index, Termos, CSS, Firebase config e workflows intactos. Preview apenas.
+
 ## 11/10/2026 — Auditoria final de dados Google e prestadores
 
 - Relidos os main atuais: frontend 959b72f e backend 3c816cf; sem acesso a

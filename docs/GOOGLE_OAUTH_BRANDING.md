@@ -373,3 +373,163 @@ mobile, navegação pública sem JS/login, links, hash/marker, artefato e regres
 e 70 testes Google backend com mocks aprovados. Zero falhas/skips em ambas as
 execuções. `validate.mjs`, `prepare-hosting.mjs` e `git diff --check` aprovados.
 Código backend, index do portal, Termos, CSS, config Firebase e workflows intactos.
+
+## Preparação controlada da publicação e diagnóstico do 403
+
+Continuação autorizada a partir de `c38cbaf` no mesmo PR #8. HEADs relidos:
+frontend main `959b72f`, backend main `3c816cf`; nenhuma mudança nesses main.
+A escola aprovou que profissionais controlem sua disponibilidade e a Secretaria
+consulte ocupado sem detalhes pessoais. Código confirma: PATCH de disponibilidade
+semanal apenas teacher/psychologist, professionalId extraído do usuário autenticado,
+publicação com fingerprint e confirmação do próprio profissional. A resposta
+`/google/calendar/busy` é whitelist de intervalos/metadados, rotulada Ocupado.
+
+### 403: separar a origem antes de escolher a correção
+
+O proprietário relatou Testing e Branding incompleto. Não houve acesso ao Console,
+à conta de Júlio ou ao consentimento real; o texto atual do erro foi solicitado
+sem e-mail/URL/parâmetros. Não se confirma uma causa só pelo status HTTP.
+
+| Evidência que deve aparecer | Interpretação / ação futura, após autorização |
+| --- | --- |
+| Tela Google: access_denied e mensagem de app em testes, conta fora da lista | Testing é a hipótese prioritária no contexto informado. Publicar corretamente o app External pode remover essa restrição; não adicionar testadores como solução definitiva. Branding/URLs/políticas precisam estar completos. |
+| Tela Google: admin_policy_enforced | Política do administrador Workspace bloqueia o cliente/scope. Branding ou Publish app não substitui essa autorização; tratar o cliente específico com o administrador da conta. |
+| Tela Google: org_internal | Projeto limita acesso à organização. Conferir Audience no projeto do cliente efetivamente usado; não trocar cliente, credencial ou audiência sem aprovação. |
+| Portal/API: PERSONAL_GOOGLE_PREVIEW_DISABLED | Bloqueio intencional de integração pessoal no Render Preview. Preservar; não remover a proteção para testar professores reais. |
+| Portal/API: conta inativa ou operação não permitida | `/google/calendar/connect` exige autenticação e teacher/psychologist ativo. Admin não usa essa rota para conectar a conta pessoal de um professor. Não alterar role/conta real automaticamente. |
+| Google: redirect_uri_mismatch | Callback não coincide com o cadastrado; é problema distinto de Testing e não é prova de erro 403. Conferir URI exata sem alterar clientes. |
+
+O callback atual sanitiza falhas e redireciona para googleCalendar=error; esse
+resultado genérico não identifica a política Google que originou a negativa.
+Não relacionar automaticamente o antigo GOOGLE_TOKEN_FALHOU HTTP400 de Carlos
+ao 403 de autorização ou ao PR de páginas públicas.
+
+### Consentimento: aprovado institucionalmente, lacuna individual
+
+O botão Conectar é uma ação afirmativa para iniciar OAuth; o Google apresenta
+scopes e o backend usa state de uso único, PKCE, nonce/OIDC e credencial nova.
+Isso comprova controles do fluxo técnico, não um aceite específico/documentado
+para leitura humana dos intervalos pela Secretaria. O painel atual descreve
+sincronização e proteção dos detalhes, mas não registra versão/aceite dessa
+divulgação na conexão. Não foi comprovada autorização externa documentada.
+
+A política Workspace exige divulgação no fluxo, antes do consentimento, e
+não apenas em Privacidade/Termos. Para leitura humana, exige consentimento
+documentado ou exceção admitida. A aprovação de Júlio da regra institucional
+não é tratada como consentimento de todos os profissionais.
+
+**Proposta mínima, não implementada; exige aprovação antes de alterar backend:**
+
+1. Exibir divulgação específica imediatamente antes de Conectar: processamento
+   pessoal no backend, criação/sync de eventos FORJA, intervalos visíveis à
+   Secretaria, detalhes pessoais ocultos e meios de desconexão/solicitação.
+   Solicitar aceite explícito; não presumir consentimento por navegação ou login.
+2. Backend validar uma versão fixa desse aceite e vinculá-la ao usuário e ao
+   state/nonce criado. Persistir o recibo na conexão somente após callback válido,
+   vinculado à identidade OIDC verificada; não incluir tokens, eventos ou e-mails
+   em logs. Reusar `_google_oauth_states` e `google_calendar_connections`, sem
+   misturar documentos centrais ou recibos de publicação de disponibilidade.
+3. Não promover conexões legadas automaticamente. Antes de ampliar acesso,
+   definir obtenção de consentimento dos profissionais existentes ou comprovar
+   uma hipótese admissível já documentada. Não revogar/desconectar todos nem
+   reaproveitar consentimento de outra identidade.
+4. Mapear também respostas derivadas em `/professores/disponibilidade` e
+   `/profissionais/disponibilidade`, não só a rota busy. Uma ausência de aceite
+   nunca pode transformar ocupado em livre. Preservar o cálculo interno de
+   conflitos, locks, publicação e dados; qualquer mudança de exposição exige
+   aprovação específica, testes e mensagem de consulta indisponível.
+
+Riscos: impedir novas conexões se frontend/backend forem publicados fora de
+ordem; afetar consultas de conexões legadas sem plano; consentimento inadequado
+ao trocar identidade ou reutilizar state. Testes necessários: aceite ausente/
+inválido, versão, recusa, vínculo state/UID/OIDC, reutilização, reconexão,
+legados, exposição derivada e preservação de conflitos. Nenhum campo foi criado.
+
+### Retenção: o que existe e o que depende de decisão
+
+Calendar recomenda armazenamento local para sync incremental e remoção dos
+eventos cancelados; HTTP410 deve limpar o store e iniciar novo full sync. O
+backend implementa remoção por cancelamento, full sync/410 e desconexão.
+Portanto existência de cache, sozinha, não demonstra infração. Porém a janela
+45 dias passados/180 futuros de consulta não comprova expurgo por idade:
+não foi demonstrado TTL geral nem inspeção dos cabeçalhos reais Google.
+
+Antes da declaração integral, justificar retenção/minimização desse cache e
+avaliar regras específicas e cabeçalhos aplicáveis. Se for necessária limpeza,
+apresentar patch separado para aprovação: remover somente ocupado antigo cuja
+janela inteira terminou, respeitar all-day/timezone e sync incremental,
+sem apagar aulas, disponibilidade, tokens ou documentos reais durante auditoria.
+Não adotar TTL sobre início de evento que ainda dure vários dias; não escolher
+prazo arbitrário nem alterar booking. Esta é proposta, não rotina existente.
+
+Exclusão: desconexão pessoal limpa cache/conexão e solicita revogação; não é
+exclusão integral do histórico escolar/arquivos/backups. Central preserva
+associações ao desconectar. Escola precisa designar atendimento e inventariar
+backups/exports reais; não é obrigatório inventar automação para o Branding.
+Um pedido real de exclusão precisa de execução/limitações fiéis à política.
+
+### Ordem exata proposta — nenhum passo de produção executado
+
+1. Confirmar o texto/local do 403, o projeto Google do cliente pessoal e as
+   evidências de consentimento, prestadores/IA, retenção e acesso humano.
+   Finalidade agenda, ausência de venda/publicidade pela escola já aprovadas;
+   código não mostrou provedores de IA ou transferência de eventos pessoais
+   para Resend/Meta, mas não audita operações externas/contratos.
+2. Aprovar separadamente as correções mínimas necessárias, caso a lacuna não
+   esteja suprida por uma hipótese válida documentada. Implementar/testar somente
+   após essa aprovação. Backend não foi modificado nesta preparação.
+3. Concluir a política fiel às práticas e, só com comprovação, aprovar a declaração
+   afirmativa Limited Use. Páginas/testes/Preview do PR8 permanecem revisáveis;
+   não substituir pendências por promessas ou declarar conformidade agora.
+4. Solicitar confirmação de execução do merge/publicação do PR8. Após autorizado,
+   aguardar Firebase Hosting production e verificar páginas reais, links e login.
+   URLs definitivas: `https://forja-escola.web.app/`,
+   `https://forja-escola.web.app/privacidade/`,
+   `https://forja-escola.web.app/termos/`. Hoje páginas live retornam a SPA.
+5. Obter confirmação específica para Google Cloud: selecionar projeto(s) dos
+   clientes existentes Backend, Secretaria, Make e n8n. Inventariar somente nomes,
+   projetos, URIs e scopes; não exportar segredos. Make/n8n não foram identificados
+   no código auditado: não presumir clientes/projetos/fluxos inexistentes.
+6. Branding: preencher URLs oficiais, nome/contatos elegíveis, conferir Authorized
+   domains e propriedade Search Console exigida. Não presumir propriedade de
+   web.app/onrender.com ou trocar DNS/callback para contornar verificação.
+   Executar Verify Branding; Ready to publish → Publish branding. Resultado de
+   verificação de marca tem validade de 7 dias segundo documentação atual.
+7. Data Access/Verification Center: conferir classificação real dos scopes
+   Calendar existentes: events.owned pessoal; calendarlist.readonly e
+   events.freebusy central, com openid/email preservados. Não adicionar/remover
+   scopes de outros clientes Make/n8n sem inventário e autorização. Preparar
+   justificativas/vídeo se Google exigir; não presumir que toda revisão ou
+   avaliação de segurança seja obrigatória para todos os scopes.
+8. Audience: External → Publish app / In production quando habilitado e aprovado.
+   Se o Console exigir conclusão de verificação antes dessa ação, cumprir esse
+   bloqueio; não prometer liberação apenas com marca publicada. Publicação de
+   projeto afeta seus clientes, mesmo preservando IDs/segredos/URIs. App publicado
+   não significa scopes verificados ou ausência de alertas/limites.
+9. Com autorização e Júlio presente, confirmar professor ativo, usar navegador
+   comum e conta Google correta, conferir divulgação e consentir nos scopes
+   pessoais existentes. Não cadastrar como testador para mascarar o resultado.
+   O callback pessoal executa sync/backfill e pode criar/atualizar eventos FORJA
+   no calendário conectado: o teste real não é read-only e não foi executado.
+10. Confirmar conexão/status, sync e visibilidade apenas Ocupado na Secretaria;
+    sem compartilhar tokens/títulos. Preservar conexão central e Make/n8n.
+    Não testar desconexão/reconexão indiscriminadamente; token Testing já expirado
+    não é renovado automaticamente pela publicação. Se falhar, interromper a
+    sequência e diagnosticar código sanitizado; não apagar dados ou recriar chaves.
+
+### Bloqueios e melhorias posteriores
+
+- Bloqueios para a conclusão Google: divulgação/consentimento compatíveis,
+  práticas Limited Use comprovadas e declaração afirmativa, retenção/cache
+  justificáveis, URLs públicas definitivas, campos/avisos reais de Branding,
+  domínio e verificações que o Console exigir. Não afirmar que todos foram
+  inspecionados; não confundir a lista com causa comprovada do 403.
+- Complementos: CNPJ não é campo obrigatório de Branding; Termos são opcionais
+  no formulário Google. Critérios legais/operacionais reais continuam da escola.
+- Hardening posterior: timeouts pessoais explícitos e avaliação de CSP global.
+  Não corrigem Testing por si sós e não justificam reconstrução ou novo scope.
+
+Fontes oficiais adicionais relidas: [OAuth web-server, erros e callbacks](https://developers.google.com/identity/protocols/oauth2/web-server)
+e [Calendar sync incremental](https://developers.google.com/workspace/calendar/api/guides/sync),
+além das fontes de Branding, Data Access, OAuth e Workspace acima. Google Cloud
+não foi acessado/modificado, nenhum profissional real foi usado nos testes.
