@@ -4706,10 +4706,10 @@ async function loadPart2ARoleData(){
   const work=[];
   if(state.role==="admin"){
     work.push(safeLoad(()=>api("/admin/google-calendar/connections"),{configured:false,items:[]},"Google Agenda").then(r=>{state.googleCalendar={configured:r.configured===true,webhookConfigured:r.webhookConfigured===true,item:{}};state.googleConnections=r.items||[]}));
-    work.push(safeLoad(()=>api("/google/calendar/busy"),{items:[]},"Ocupações Google").then(r=>state.googleBusy=r.items||[]));
+    work.push(safeLoad(()=>api("/google/calendar/busy"),{items:[],complete:false,unavailable:[{reason:"query_failed"}]},"Ocupações Google").then(r=>{state.googleBusy=r.items||[];state.googleBusyUnavailable=r.complete===false||r.status==='unavailable';}));
   }else if(["teacher","psychologist"].includes(state.role)){
     work.push(safeLoad(()=>api("/google/calendar/status"),{configured:false,item:{}},"Google Agenda").then(r=>state.googleCalendar={configured:r.configured===true,webhookConfigured:r.webhookConfigured===true,item:r.item||{}}));
-    work.push(safeLoad(()=>api("/google/calendar/busy"),{items:[]},"Ocupações Google").then(r=>state.googleBusy=r.items||[]));
+    work.push(safeLoad(()=>api("/google/calendar/busy"),{items:[],complete:false,unavailable:[{reason:"query_failed"}]},"Ocupações Google").then(r=>{state.googleBusy=r.items||[];state.googleBusyUnavailable=r.complete===false||r.status==='unavailable';}));
   }
   await Promise.all(work);googleOauthReturnNotice();
 }
@@ -6944,7 +6944,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     const [lessons,blocks,weekly,status,busy]=await Promise.all([
       api('/aulas'),api('/indisponibilidades'),api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(ws)}`),
       api('/google/calendar/status').catch(()=>({configured:state.googleCalendar?.configured===true,webhookConfigured:state.googleCalendar?.webhookConfigured===true,item:state.googleCalendar?.item||{}})),
-      api('/google/calendar/busy').catch(()=>({items:state.googleBusy||[]}))
+      api('/google/calendar/busy').catch(()=>({items:state.googleBusy||[],complete:false}))
     ]);
     state.lessons=lessons.items||[];state.unavailability=blocks.items||[];state.googleBusy=busy.items||[];
     state.googleCalendar={configured:status.configured===true,webhookConfigured:status.webhookConfigured===true,item:status.item||{}};
@@ -7162,11 +7162,11 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
       if(syncGoogle&&(state.googleConnections||[]).some(x=>x.connected))await api('/admin/google-calendar/sync',{method:'POST',body:{}}).catch(e=>console.warn('FORJA_629_ADMIN_SYNC',e?.message||e));
       const [connections,busy,lessons,blocks]=await Promise.all([
         api('/admin/google-calendar/connections').catch(()=>({configured:state.googleCalendar?.configured===true,webhookConfigured:state.googleCalendar?.webhookConfigured===true,items:state.googleConnections||[]})),
-        api('/google/calendar/busy').catch(()=>({items:state.googleBusy||[]})),
+        api('/google/calendar/busy').catch(()=>({items:state.googleBusy||[],complete:false})),
         api('/aulas').catch(()=>({items:state.lessons||[]})),
         api('/indisponibilidades').catch(()=>({items:state.unavailability||[]}))
       ]);
-      state.googleCalendar={configured:connections.configured===true,webhookConfigured:connections.webhookConfigured===true,item:{}};state.googleConnections=connections.items||[];state.googleBusy=busy.items||[];state.lessons=lessons.items||[];state.unavailability=blocks.items||[];
+      state.googleCalendar={configured:connections.configured===true,webhookConfigured:connections.webhookConfigured===true,item:{}};state.googleConnections=connections.items||[];state.googleBusy=busy.items||[];state.googleBusyUnavailable=busy.complete===false||busy.status==='unavailable';state.lessons=lessons.items||[];state.unavailability=blocks.items||[];
       const weeks=v621VisibleWeeks('admin');
       await Promise.all(weeks.map(async ws=>{try{const r=await api(`/admin/disponibilidades-semana?weekStart=${encodeURIComponent(ws)}`),map={};for(const x of r.items||[])map[x.uid]=x;state.v621AdminWeekCache[ws]=map;if(state.adminProfessionalWeekLoadedV619===ws)state.adminProfessionalWeekMapV619=map;if(state.adminAvailabilityWeekStartV616===ws)state.adminAvailabilityWeekV616=map}catch(e){console.warn('FORJA_629_WEEK',e?.message||e)}}));
       state.v629SecretaryLastRefreshAt=Date.now();
@@ -7681,5 +7681,52 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
 })();
 </script>
 
+
+<script id="forja-google-personal-consent-script">
+(function(){
+  'use strict';
+  const VERSION='personal-busy-secretaria-v1';
+  const PREVIEW_TEXT="Autorizo que a Secretaria consulte meus intervalos ocupados do Google Calendar para organizar agendamentos no FORJA. Pela interface FORJA, a Secretaria não recebe títulos, descrições ou participantes dos meus eventos pessoais. Aulas e atendimentos gerenciados pelo FORJA continuam sincronizados nos dois sentidos. Eu continuo controlando minha disponibilidade; Google ocupado nunca cria disponibilidade.";
+  const readonlyPreview=()=>/^forja-escola--[a-z0-9-]+-[a-z0-9]{8}\.web\.app$/.test(location.hostname);
+  const previousAction=googleAction,previousPanel=googleCalendarPanel;
+  googleCalendarPanel=function(){
+    const original=previousPanel();if(!['teacher','psychologist'].includes(state.role))return original;
+    if(readonlyPreview())return original+`<section class="p2-card"><h3>Revisão do consentimento pessoal</h3><p>Este Preview é somente leitura. Nenhuma autorização Google será gravada.</p><button class="small-btn" data-google-action="consent">Revisar consentimento (Preview)</button></section>`;
+    const item=state.googleCalendar?.item||{};
+    if(!item.connected||item.personalConsent?.accepted)return original;
+    return original+`<section class="p2-card"><h3>Consulta de ocupados pela Secretaria</h3><p>Sua conexão pessoal continua funcionando. A consulta de horários pela Secretaria depende do seu aceite explícito. Até regularizar, a consulta fica indisponível; isso não significa horário livre.</p><button class="small-btn" data-google-action="consent">Revisar e autorizar</button></section>`;
+  };
+  googleAction=async function(action,button){
+    if(readonlyPreview()){
+      if(['connect','consent'].includes(action))modal('Prévia do consentimento Google',`<p>${esc(PREVIEW_TEXT)}</p><label style="display:flex;gap:10px"><input type="checkbox"><span>Li e autorizo a consulta de intervalos ocupados pela Secretaria.</span></label><p role="status">Prévia somente para revisão. Nenhum aceite é gravado e nenhuma operação Google pessoal é executada, pois o Firebase é compartilhado com a produção.</p>`);
+      else toast('Operações Google pessoais bloqueadas neste Preview compartilhado.','bad');
+      return;
+    }
+    if(!['connect','consent'].includes(action))return previousAction(action,button);
+    if(!['teacher','psychologist'].includes(state.role)||state.profile?.active===false)return;
+    setBusy(button,true,'Verificando...');
+    try{
+      const status=await api('/google/calendar/status'),policy=status.consent;
+      if(policy?.version!==VERSION||!policy.text)throw new Error('O backend ainda não suporta o consentimento versionado. Aguarde a atualização segura.');
+      const reconnect=action==='connect'||status.item?.personalConsent?.requiresReconnect===true||!policy.connectionChallenge;
+      let submitted=false;
+      modal('Autorizar consulta à Secretaria',`<p>${esc(policy.text)}</p><p>Versão: ${esc(policy.version)}. O aceite será vinculado ao seu usuário e à identidade Google verificada. ${reconnect?'O Google solicitará sua autorização; cancelar não substitui sua conexão anterior.':'Esta confirmação mantém sua conexão atual.'}</p><label style="display:flex;align-items:flex-start;gap:10px"><input id="googlePersonalConsentAccept" type="checkbox"><span>Li e autorizo a consulta de intervalos ocupados pela Secretaria, conforme o texto acima.</span></label><p id="googlePersonalConsentFeedback" role="status"></p>`,reconnect?'Aceitar e continuar no Google':'Confirmar autorização',async save=>{
+        if(submitted||!document.getElementById('googlePersonalConsentAccept')?.checked)return;
+        submitted=true;setBusy(save,true,'Registrando...');
+        try{
+          const consent={accepted:true,version:VERSION};
+          if(reconnect){const result=await api('/google/calendar/connect',{method:'POST',body:{consent}});const target=new URL(result.authUrl);if(target.origin!=='https://accounts.google.com'||target.pathname!=='/o/oauth2/v2/auth')throw new Error('URL Google inválida');location.assign(target.href);return;}
+          await api('/google/calendar/consent',{method:'POST',body:{...consent,connectionChallenge:policy.connectionChallenge}});
+          closeModal();toast('Autorização registrada para sua conexão Google atual.','ok');await reloadAndRender();
+        }catch(_){submitted=false;const feedback=document.getElementById('googlePersonalConsentFeedback');if(feedback)feedback.textContent='Não foi possível confirmar. Nenhuma nova autorização foi concedida. Reabra esta janela para conferir a conexão atual.';setBusy(save,false);}
+      });
+      const check=document.getElementById('googlePersonalConsentAccept'),save=document.getElementById('modalSave');
+      save.disabled=true;check.onchange=()=>{save.disabled=!check.checked||submitted;};
+    }catch(_){toast('Não foi possível preparar o consentimento. Nenhuma autorização foi concedida.','bad');}finally{setBusy(button,false);}
+  };
+  const previousAgenda=forjaAgendaPage;
+  forjaAgendaPage=function(){const page=previousAgenda();return state.role==='admin'&&state.googleBusyUnavailable?`<div class="system-note" role="status">Consulta Google de um ou mais profissionais indisponível. Verifique o consentimento e a sincronização. Ausência de blocos não comprova horário livre.</div>`+page:page;};
+})();
+</script>
 </body>
 </html>
