@@ -7,7 +7,7 @@ export const productionVersion = '6.31.1-secretaria-publicacao-confirmada';
 export const previewVersion = '6.31.1-secretaria-publicacao-confirmada';
 
 export function assertPersonalPreviewPolicy(health){
-  assert.equal(health.googlePersonalDisconnectPolicy,'fenced-disconnect-v1','Render Preview ainda não contém a correção de desconexão pessoal.');
+  assert.equal(health.googlePersonalDisconnectPolicy,'fenced-disconnect-epoch-v2','Render Preview ainda não contém a correção de desconexão pessoal.');
 }
 
 export function assertPreviewIsolation(health,apiUrl) {

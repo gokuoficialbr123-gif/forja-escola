@@ -19,6 +19,20 @@ não afirma suspensão se a gravação não foi confirmada. Falha na limpeza/exc
 mantém a credencial AES-GCM em quarentena para repetição explícita, sem sync ativo.
 Não remover aulas, sessões, histórico, outros profissionais ou conexão central.
 
+Fences de OAuth: reutilizar _google_oauth_states com documento privado
+`personal-epoch-{sha256(uid)}` (uid/connectionEpoch/disconnectedAt/epochOnly), sem
+token ou intervalo. A marca não expira como um state de10min. Start de disconnect
+atualiza a geração na mesma transação que suspende a conexão. Connect grava state
+com a geração atual em transação; callback valida a geração na transação de
+instalação. Um callback iniciado antes da desconexão não recria a credencial após
+o DELETE. Sem geração anterior, legacy-v1 conserva compatibilidade até uma
+desconexão explícita; nenhuma conexão é promovida automaticamente. Não criar
+coleção nova nem resolver geração a partir de body/query. Preservar as marcas
+em rollback, sem restaurar credenciais a partir de backups automaticamente.
+Se outra conexão substituir a operação, retornar failed/connection=changed e
+recarregar status, sem afirmar que a nova conexão está suspensa.
+
+
 Cache próprio apagado em transações <=400 docs, condicionadas ao ID da operação.
 Delete da conexão também exige o ID atual. Coalescência por UID na instância, lease
 no Firestore entre instâncias; lease vencido permite retry, finisher antigo não
@@ -58,7 +72,8 @@ PRs independentes a partir de main. Publicar par de consentimento primeiro:
 backend PR9 → validar → frontend PR9 → regularização individual. Depois atualizar
 (rebase/revisão/testes) o par de desconexão contra esse main, preservando ambos os
 adapters/policies; há pontos comuns no server, HTML/hash e teste OAuth que requerem
-reconciliação explícita. Sem merge/rebase sobre produção nesta entrega.
+reconciliação explícita. Preservar consentimento/oauthBinding ao combinar a
+criação transacional de state com a geração de desconexão. Sem merge/rebase sobre produção nesta entrega.
 Backend desconexão → validar → frontend desconexão. Não apagar receipts/credenciais
 quarentenadas em rollback. Não restaurar o catch que ocultava falha local, nem
 reativar revogação global para transformar partial em success.
