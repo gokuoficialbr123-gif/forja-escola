@@ -1,7 +1,7 @@
 # Google OAuth Branding — páginas públicas para revisão
 
-Preparação em 10/10/2026. **Política temporária aprovada pela escola, Termos em
-revisão e complementações pendentes; somente PR/Preview. Não fazer merge ou
+Preparação em 10/10/2026. **Política e Termos temporários aprovados pela escola,
+complementações pendentes; somente PR/Preview. Não fazer merge ou
 publicar em produção nesta etapa. Não alterar OAuth, backend, dados ou DNS.**
 
 ## Estado auditado
@@ -81,8 +81,10 @@ autorizado pela escola. O endereço foi incluído nas duas páginas com link mai
 O CNPJ ainda não foi conferido. Júlio confirmou a finalidade de uso dos dados
 Google Calendar exclusivamente nas funcionalidades de agenda do FORJA Escola
 e aprovou a Política de Privacidade temporária, incluindo a proposta anterior
-de retenção/exclusão. Não há aprovação definitiva dos Termos ou comprovação de
-todos os procedimentos operacionais. As páginas separam os fatos do código,
+de retenção/exclusão. Júlio aprovou também os Termos atuais para uso temporário.
+A escola confirmou que não vende dados Google Calendar nem os usa para publicidade.
+Não há comprovação de todos os procedimentos operacionais ou de conformidade
+integral Limited Use. As páginas separam os fatos do código,
 as orientações aprovadas e os procedimentos ainda propostos; evidências em
 `docs/RETENCAO_EXCLUSAO_PROPOSTA.md`. Nenhuma rotina de exclusão foi implementada.
 A conformidade integral com Limited Use e demais condições institucionais
@@ -103,12 +105,13 @@ Antes da versão definitiva, confirmar:
    Não estabelecer prazos arbitrários ou apagamento automático inexistente.
 4. Prestadores efetivos, armazenamento/transferências e acesso humano de suporte.
 5. Conformidade integral com Google API Services User Data Policy/Limited Use:
-   a finalidade exclusiva de agenda já está confirmada. Ainda verificar venda,
-   publicidade, treinamento de IA, compartilhamento/transferências e acesso
-   humano, incluindo equipe e terceiros. A confirmação da finalidade não
-   comprova essas práticas. Não declarar ausência de uso para IA ou adesão
-   integral sem evidência. A página lista explicitamente as verificações pendentes.
-6. Condições de uso propostas e compatibilidade com os contratos educacionais.
+   finalidade exclusiva, ausência de venda pela escola e de uso publicitário
+   confirmadas institucionalmente. Ainda verificar treinamento de IA,
+   compartilhamento/transferências e acesso humano, incluindo equipe e terceiros.
+   Não presumir que as confirmações da escola auditem os prestadores. Não declarar
+   ausência de uso para IA ou adesão integral sem evidência.
+6. Detalhes institucionais/operacionais e compatibilidade com os contratos
+   educacionais; texto atual dos Termos aprovado somente para uso temporário.
    Nenhum foro, penalidade, cessão de direitos ou promessa de uptime foi inventado.
 
 ## Passos manuais posteriores no Google — não executados
@@ -160,8 +163,8 @@ Isso é uma possível causa geral de falha de token pessoal, não diagnóstico d
   limpa a pasta gerada e nunca publica docs, scripts ou credenciais.
 - `validate.mjs` mantém marker/hash obrigatório e verifica o hash integral do
   main sem o único bloco de rodapé autorizado. As proteções anteriores continuam.
-- `legal-pages.test.mjs`: matriz de revisão por documento (Privacidade temporária
-  aprovada, Termos pendentes), Chromium desktop/mobile, links públicos do DOM real,
+- `legal-pages.test.mjs`: aprovação temporária de ambos os documentos, rejeitando
+  promoção a aprovação definitiva, Chromium desktop/mobile, links do DOM real,
   navegação sem JavaScript/login, overflow, whitelist e rejeição do falso 200 SPA.
 - Workflow de validação executa os testes novos e todas as regressões anteriores.
 - `verify-legal-pages.mjs` verifica por GET não autenticado o conteúdo/hash de
@@ -170,8 +173,8 @@ Isso é uma possível causa geral de falha de token pessoal, não diagnóstico d
 - PR somente frontend declara `FORJA_PREVIEW_BACKEND=production-unchanged`.
   A API oficial permanece no HTML. O Preview não é banco isolado; revisar
   somente páginas legais, sem cadastros ou ações reais nesta tarefa.
-- Não fazer merge/publicar live sem autorização. A aprovação da Política
-  temporária não confirma CNPJ, procedimentos, Termos ou conformidade integral
+- Não fazer merge/publicar live sem autorização. A aprovação dos textos
+  temporários não confirma CNPJ, procedimentos ou conformidade integral
   Limited Use, e não autoriza mudanças no Google OAuth.
 
 ## Limited Use: limite da confirmação e da revisão técnica
@@ -185,14 +188,67 @@ que todas as práticas da escola e dos prestadores foram auditadas.
 A leitura do código existente confirma os fluxos pessoais/centrais descritos,
 incluindo escrita de eventos FORJA e seus compartilhamentos determinados pelo
 Google Calendar. Não comprova contratos, usos externos ao código, acesso das
-equipes, ausência de venda/publicidade ou tratamento por terceiros. A página
+equipes ou tratamento por terceiros. A ausência de venda pela escola e de uso
+publicitário foi confirmada institucionalmente, não auditada em contratos ou
+nos sistemas dos prestadores. A página
 também solicita verificação específica de treinamento de IA e sua compatibilidade
 com a finalidade exclusiva e as políticas aplicáveis; não inventa uma auditoria
 de IA nem afirma uma proibição geral não demonstrada pela fonte consultada.
 
-Assim, registra-se a finalidade institucional confirmada e mantém-se pendente
+Assim, registram-se finalidade, ausência de venda pela escola e de uso publicitário
+confirmadas institucionalmente e mantém-se pendente
 a declaração de conformidade integral. Nenhuma integração, scope ou prática
 técnica foi alterada por esta atualização documental.
+
+## Auditoria final de páginas públicas e Branding — 10/10/2026
+
+Fontes oficiais foram novamente consultadas; não houve acesso ao Console ou
+configuração de cliente OAuth. O status Testing/Branding incompleto continua
+sendo evidência informada pelo proprietário, não uma inspeção do Console.
+O endpoint de ajuda `support.google.com` não ficou acessível neste ambiente;
+as páginas oficiais `developers.google.com` abaixo foram consultadas normalmente.
+
+### Evidências das páginas e da preservação do portal
+
+- Produção continua sem as páginas do PR: GET público `/`, `/privacidade/` e
+  `/termos/` retornou HTTP 200 e o mesmo SHA-256 `3d6908cd…` da SPA. Portanto
+  ainda não usar essas URLs como documentos publicados no Branding.
+- PR contém páginas estáticas próprias, sem scripts, forms, iframes, Auth SDK,
+  chamadas API ou recursos externos em CSS. Nenhum token OAuth, credencial ou
+  documento interno entra no artefato. Publicação usa allowlist e verificação
+  exata do conteúdo por GET público; falso 200 da SPA é recusado.
+- Links públicos e âncoras são testados em Chromium desktop/mobile sem login.
+  O único mailto é o contato autorizado. Links externos são explicativos, não
+  callbacks ou pedidos OAuth. O site conserva APIs, scripts e funcionalidades
+  existentes por hash integral, descontando somente o rodapé legal autorizado.
+- Não foram acrescentados headers globais/CSP: o portal tem scripts inline e
+  alterar a política global exigiria avaliação própria. Nos documentos estáticos
+  desta tarefa não há código executável, credenciais ou sessão autenticada.
+
+### Checklist curto: obrigatórios, condicionais e complementares
+
+| Tipo | O que falta / ação | Responsável |
+| --- | --- | --- |
+| Obrigatório: uso fiel e políticas Google | Verificar treinamento de IA, terceiros/transferências e acesso humano, incluindo equipe/prestadores, antes de declarar conformidade integral; registrar práticas reais de armazenamento/compartilhamento. Uso exclusivo de agenda, ausência de venda pela escola e de uso publicitário já confirmados. | Escola |
+| Obrigatório: URLs públicas | Após autorização de publicação futura, servir homepage com descrição do app e link para Política acessível no mesmo domínio; verificar que `/privacidade/` é a política, e não a SPA. Preview temporário não é URL definitiva. | Proprietário + publicação autorizada |
+| Obrigatório: identidade/contatos | No projeto efetivamente usado pelos clientes OAuth pessoal e central: Google Auth Platform → Branding; conferir nome real, suporte e contatos do desenvolvedor. Verificar se o contato autorizado é selecionável no campo Google; receber e-mail não comprova elegibilidade nesse campo. Logo, se informado, deve representar o app. | Proprietário, no Google Cloud |
+| Obrigatório para verificação de marca: domínios | Conferir Authorized domains e a prova de propriedade pelo Search Console/conta associada ao projeto para as URLs efetivamente usadas. Aceitação dos subdomínios `web.app`/`onrender.com` ainda não comprovada; não presumir propriedade dos domínios dos provedores nem alterar DNS/callbacks. | Proprietário, Google Cloud/Search Console |
+| Branding / saída de Testing | Corrigir avisos exatos do Console; executar Verify Branding quando exigido; após Ready to publish, Publish branding. Em Audience, confirmar External e executar Publish app / In production quando habilitado. As duas publicações têm finalidades distintas. | Proprietário, no Google Cloud |
+| Condicional: verificação de acesso a dados | Data Access/Verification Center: conferir classificação dos scopes já usados, declarar somente esses scopes e, se exigido, enviar justificativas e demonstração em vídeo. O Google exige Branding publicado antes da solicitação de verificação de dados. Publicar app não garante remoção do alerta não verificado ou de limites. | Proprietário + avaliação Google |
+| Complementar ao formulário OAuth | Conferir CNPJ e identificação cadastral. CNPJ não é campo obrigatório listado nos requisitos de Branding; Termos são opcionais para Branding, embora já preparados/aprovados temporariamente pela escola. Isso não dispensa obrigações legais institucionais. | Escola |
+| Operacional / exatidão da política | Definir critérios concretos de conservação, equipe e atendimento de solicitações; levantar backups, recursos de exclusão, representação de menores e bases legais. Não são campos específicos do Branding, mas práticas reais precisam corresponder ao texto publicado. | Escola |
+
+URLs futuras: `https://forja-escola.web.app/`,
+`https://forja-escola.web.app/privacidade/` e, se incluído,
+`https://forja-escola.web.app/termos/`. Não foram configuradas no Google.
+
+Sair de Testing permite público externo além de testadores quando o Google
+habilitar a publicação; não equivale a ter marca/scopes verificados. Com scopes
+Calendar em Testing, a documentação OAuth informa refresh tokens de sete dias;
+não contar com renovação automática de uma credencial já expirada ao publicar.
+Depois de futura autorização, o teste de aceitação será uma conexão de professor
+sem lista de testadores, verificando consentimento, identidade e privacidade.
+Nenhum OAuth real ou conta real foi usado nesta auditoria.
 
 ## Fontes oficiais consultadas
 

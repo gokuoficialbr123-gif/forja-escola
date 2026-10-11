@@ -5,8 +5,8 @@ import {join} from 'node:path';
 
 // Explicit public allowlist. Repository files and credentials are never copied.
 export const legalFiles = ['assets/forja-legal.css', 'privacidade/index.html', 'termos/index.html'];
-// Only the temporary Privacy Policy has institutional approval. Terms still need review.
-export const legalReviewStatus = {'privacidade/index.html':'temporary-approved', 'termos/index.html':'pending'};
+// Both documents have temporary approval; operational and Limited Use checks remain open.
+export const legalReviewStatus = {'privacidade/index.html':'temporary-approved', 'termos/index.html':'temporary-approved'};
 export const legalNavigation = `    <div id="forja-public-legal" class="public-wrap" style="margin-top:24px;border-top:1px solid #dde3e9;padding-top:16px">
       <p>O FORJA organiza cadastros, atividades e agendamentos da escola. Professores e psicólogos podem conectar seu Google Calendar para sincronizar agendamentos e identificar conflitos; a Secretaria possui uma conexão central separada para consultar calendários e horários ocupados.</p>
       <a href="/privacidade/">Política de Privacidade</a> · <a href="/termos/">Termos de Serviço</a>
@@ -27,7 +27,7 @@ export function validateLegalPages(root) {
       assert.match(text, /<html lang="pt-BR">/);
       assert.match(text, /<meta name="viewport"/);
       const statuses = [...text.matchAll(/data-legal-review="([^"]*)"/g)].map(match => match[1]);
-      assert.deepEqual(statuses, [legalReviewStatus[file]], `Status institucional incorreto: ${file}; aprovação temporária não aprova os Termos ou conformidade integral.`);
+      assert.deepEqual(statuses, [legalReviewStatus[file]], `Status institucional incorreto: ${file}; aprovação temporária não comprova aprovação definitiva ou conformidade integral.`);
       assert.match(text, /href="\/assets\/forja-legal\.css"/);
       assert.ok(!/<script\b|\son[a-z]+\s*=|<iframe\b|<form\b/i.test(text), 'Páginas legais públicas não executam scripts, autenticação ou ações.');
     } else {

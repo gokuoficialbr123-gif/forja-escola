@@ -8,6 +8,26 @@ Sem scopes/configuração Google, migração, merge ou produção; testes mocks/
 Ver docs/GOOGLE_PERSONAL_DISCONNECT.md. Sem falso sucesso quando exclusão falha;
 quarentena/repetição e revogação global pendente explícitas. Separado do consentimento
 e PR #8 legal. Backend primeiro; sem scopes novos, merge, produção ou Google real.
+## 10/10/2026 — Termos temporários aprovados e revisão final do Branding
+
+- Júlio aprovou o texto atual dos Termos para uso temporário; mantidas limitações,
+  pendências operacionais e a Política de Privacidade temporária já aprovada.
+- Registradas confirmações institucionais: a escola não vende dados Google Calendar
+  nem os usa para publicidade. Não presumidas práticas de prestadores/terceiros.
+- Conformidade integral Limited Use continua sem declaração: treinamento de IA,
+  compartilhamento com terceiros e acesso humano precisam de verificação.
+- Checklist final diferencia requisitos obrigatórios de Branding, publicação
+  External/Audience, eventual verificação de scopes e complementos como CNPJ.
+  Termos são opcionais para Branding. URLs live ainda retornam a SPA; publicação
+  futura das páginas depende de autorização. Console/domínios não foram alterados.
+- Páginas estáticas sem scripts, Auth/API ou recursos CSS externos; allowlist e
+  verificação pública de conteúdo mantidas. Teste navega links e âncoras sem JS,
+  em desktop/mobile, valida contato e evita navegação OAuth/externa automatizada.
+- Aprovação temporária validada nos dois documentos, sem promoção a definitiva.
+- Validação: 187 testes frontend aprovados, sem falhas ou skips; Chromium real,
+  regressões de cadastro, Agenda, booking e Google, hash/marker e artefato intactos.
+- Mesmo PR frontend #8/Preview; sem merge, live, backend, OAuth real ou dados.
+
 ## 10/10/2026 — Política temporária aprovada e finalidade Google confirmada
 
 - Júlio aprovou a Política de Privacidade temporária anteriormente preparada,

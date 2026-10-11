@@ -11,7 +11,7 @@ e PR #8 legal. Backend primeiro; sem scopes novos, merge, produção ou Google r
 ## 10/10/2026 — Documentos públicos para Google OAuth Branding (em revisão)
 
 Cadastros/convites estão publicados: frontend main 959b72f, backend main 3c816cf.
-A nova tarefa não retoma trabalho de publicação anterior. Somente rascunhos legais
+A nova tarefa não retoma trabalho de publicação anterior. Somente documentos legais
 no frontend, branch/PR/Preview; sem merge/live/backend/dados/OAuth real.
 Ver docs/GOOGLE_OAUTH_BRANDING.md para auditoria, requisitos oficiais e pendências.
 
@@ -24,15 +24,20 @@ Escola informou FORJA Escola como identificação registrada e confirmou
 adm@forjaescola.com.br como contato oficial ativo/autorizado. CNPJ não conferido.
 Júlio aprovou a Política de Privacidade temporária, incluindo retenção/exclusão,
 e confirmou finalidade exclusiva de agenda para dados obtidos do Google Calendar.
-Critérios concretos e procedimentos operacionais continuam pendentes. Aprovação
-da Política temporária não aprova os Termos, não autoriza publicação e não comprova
-conformidade integral Google Limited Use. Fatos do código (arquivar preserva
+Júlio também aprovou os Termos atuais para uso temporário. A escola confirmou
+que não vende dados Google Calendar nem os utiliza para publicidade. Critérios
+concretos e procedimentos operacionais continuam pendentes. Aprovação temporária
+não autoriza publicação nem comprova conformidade integral Google Limited Use.
+Fatos do código (arquivar preserva
 histórico; excluir profissional tem alcance limitado), orientações aprovadas e
 procedimentos propostos permanecem separados. Backups reais
 não inventariados nesta revisão. Ver docs/RETENCAO_EXCLUSAO_PROPOSTA.md.
-Limited Use: finalidade confirmada, mas venda, publicidade, treinamento de IA,
-compartilhamento e acesso humano ainda precisam de verificação antes de declarar
-conformidade integral. Não inventar nem publicar compromissos definitivos.
+Limited Use: finalidade exclusiva, ausência de venda pela escola e de uso
+publicitário confirmadas institucionalmente. Treinamento de IA, compartilhamento
+com terceiros e acesso humano ainda precisam de verificação antes de declarar
+conformidade integral; práticas dos prestadores não são presumidas. Não inventar
+nem publicar compromissos definitivos. Checklist final e requisitos obrigatórios,
+condicionais e complementares em docs/GOOGLE_OAUTH_BRANDING.md.
 Google Branding/Publishing/Verification são etapas
 separadas; não garantir liberação só por existir uma página ou sair de Testing.
 

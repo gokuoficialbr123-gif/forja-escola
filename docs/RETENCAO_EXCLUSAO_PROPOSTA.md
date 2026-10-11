@@ -11,12 +11,14 @@ automação. Sem merge, produção, mudanças OAuth ou dados reais.
 - Identificação registrada informada: **FORJA Escola**. Isso registra a informação
   fornecida, não comprova conferência cadastral. CNPJ ainda não conferido.
 - Contato oficial ativo/autorizado: `adm@forjaescola.com.br`.
-- Política de Privacidade temporária aprovada por Júlio; os Termos continuam em
-  revisão e os procedimentos não são considerados implementados só pela aprovação.
+- Política de Privacidade e Termos temporários aprovados por Júlio; os
+  procedimentos não são considerados implementados só pela aprovação do texto.
 - Finalidade dos dados Google Calendar confirmada por Júlio: uso exclusivamente
   nas funcionalidades de agenda do FORJA Escola.
-- Conformidade integral Google Limited Use permanece pendente: verificar venda,
-  publicidade, treinamento de IA, compartilhamento e acesso humano separadamente.
+- A escola confirmou que não vende dados Google Calendar nem os usa para publicidade.
+- Conformidade integral Google Limited Use permanece pendente: verificar
+  treinamento de IA, compartilhamento com terceiros e acesso humano; não presumir
+  que as confirmações da escola comprovam práticas de todos os prestadores.
 
 ## Fatos técnicos verificados por leitura do código
 
@@ -72,9 +74,9 @@ nem aprova declaração integral Limited Use.
 - Inventário real de armazenamento, arquivos, backups, exportações e versões;
   capacidades dos provedores, limitações de exclusão e cuidados em restauração.
 - Prestadores, localização/transferências e práticas de acesso humano.
-- Verificação independente das restrições Limited Use (venda, publicidade,
-  treinamento de IA, compartilhamento e acesso humano), antes de declarar
-  conformidade integral; revisão das demais condições e dos Termos.
+- Verificação independente das demais restrições Limited Use (treinamento de IA,
+  compartilhamento com terceiros e acesso humano), antes de declarar conformidade
+  integral; demais condições institucionais ainda não comprovadas.
 
 O email, a finalidade Google exclusiva de agenda e a aprovação do texto
 temporário estão confirmados. Implementação, critérios concretos e verificação

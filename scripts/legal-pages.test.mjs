@@ -46,7 +46,7 @@ test('verificação pública sem Authorization confere páginas reais e recusa f
   await assert.rejects(verifyLegalPages('https://forja-legal-fixture.invalid',{request:async()=>new Response(html),attempts:1}),/fallback da SPA/);
   await assert.rejects(verifyLegalPages('https://forja-legal-fixture.invalid',{request:async()=>new Response('restrito',{status:401}),attempts:1}),/HTTP 401/);
 });
-test('aprovação temporária da Privacidade não promove Termos nem remove pendências de revisão',t=>{
+test('aprovação temporária dos documentos não se torna definitiva nem remove o estado institucional',t=>{
   const root=mkdtempSync(join(tmpdir(),'forja-legal-status-'));t.after(()=>rmSync(root,{recursive:true,force:true}));
   for(const file of legalFiles) {
     mkdirSync(dirname(join(root,file)),{recursive:true});copyFileSync(join(rootDir,file),join(root,file));
@@ -54,7 +54,7 @@ test('aprovação temporária da Privacidade não promove Termos nem remove pend
   assert.equal(validateLegalPages(root).length,3);
   for(const [file,wrongStatuses] of [
     ['privacidade/index.html',['approved','pending']],
-    ['termos/index.html',['approved','temporary-approved']],
+    ['termos/index.html',['approved','pending']],
   ]) {
     const original=readFileSync(join(root,file),'utf8');
     for(const status of wrongStatuses) {
@@ -64,6 +64,42 @@ test('aprovação temporária da Privacidade não promove Termos nem remove pend
     writeFileSync(join(root,file),original.replace(/data-legal-review="[^"]*"/,''));
     assert.throws(()=>validateLegalPages(root),/Status institucional incorreto/);
     writeFileSync(join(root,file),original);
+  }
+});
+test('links e âncoras públicos navegam sem JavaScript; contato e links externos não iniciam OAuth',async t=>{
+  const external=new Set(['https://developers.google.com/terms/api-services-user-data-policy','https://myaccount.google.com/permissions']);
+  for(const mobile of [false,true]) {
+    const context=await browser.newContext({javaScriptEnabled:false,viewport:mobile?{width:390,height:844}:{width:1280,height:1000}});
+    t.after(()=>context.close());
+    const page=await context.newPage();
+    await page.route('**/*',route=>{
+      const url=new URL(route.request().url());
+      if(url.hostname!=='forja-legal-fixture.invalid')return route.abort();
+      if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:html});
+      const file=legalFiles.find(f=>url.pathname==='/'+f.replace(/index\.html$/,''));
+      return file?route.fulfill({contentType:file.endsWith('.css')?'text/css':'text/html',body:readFileSync(join(rootDir,file))}):route.abort();
+    });
+    for(const name of ['privacidade','termos']) {
+      const start=`https://forja-legal-fixture.invalid/${name}/`;
+      await page.goto(start);
+      const hrefs=await page.locator('a').evaluateAll(links=>[...new Set(links.map(a=>a.getAttribute('href')))]);
+      for(const href of hrefs) {
+        assert.ok(href);
+        const target=new URL(href,start);
+        assert.equal(target.username+target.password,'');
+        if(target.protocol==='mailto:') {assert.equal(href,'mailto:adm@forjaescola.com.br');continue;}
+        assert.equal(target.protocol,'https:');
+        if(target.origin!==new URL(start).origin) {assert.ok(external.has(target.href));continue;}
+        assert.ok(['/','/privacidade/','/termos/'].includes(target.pathname));
+        assert.equal(target.search,'');
+        await page.goto(start);
+        const link=page.locator(`a[href="${href}"]`).first();
+        await link.focus();await link.click();await page.waitForURL(target.href);
+        if(target.hash)assert.ok(await page.evaluate(id=>Boolean(document.getElementById(id)),decodeURIComponent(target.hash.slice(1))));
+        else if(target.pathname==='/')assert.equal(await page.locator('footer #forja-public-legal').count(),1);
+        else assert.equal(await page.locator('[data-legal-review="temporary-approved"]').count(),1);
+      }
+    }
   }
 });
 
