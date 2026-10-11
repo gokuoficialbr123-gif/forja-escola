@@ -23,6 +23,9 @@ e PR #8 legal. Backend primeiro; sem scopes novos, merge, produção ou Google r
 - Revalidado: 36 testes páginas/pipeline em Chromium e 70 testes Google com mocks,
   zero falhas/skips; hash, marker, artefato e diff --check aprovados. Backend,
   index, Termos, CSS, Firebase config e workflows intactos. Preview apenas.
+- Handler pessoal de desconexão reproduzido com Firestore mock falhando:
+  exclusão recusada ainda retorna HTTP200/ok. Proposta de correção e riscos
+  registrada, sem modificar backend; não atribuída como causa do 403.
 
 ## 11/10/2026 — Auditoria final de dados Google e prestadores
 

@@ -445,6 +445,23 @@ ao trocar identidade ou reutilizar state. Testes necessários: aceite ausente/
 inválido, versão, recusa, vínculo state/UID/OIDC, reutilização, reconexão,
 legados, exposição derivada e preservação de conflitos. Nenhum campo foi criado.
 
+**Falha adicional reproduzida com mocks — confirmação da desconexão pessoal:**
+DELETE `/google/calendar/connection` aguarda a remoção da conexão com
+`.delete().catch(()=>{})` e depois retorna `{ok:true}`. Executando somente esse
+handler extraído, com Firestore em memória recusando a exclusão, a resposta
+continuou HTTP200. Zero chamadas Google/banco reais. O erro de revogação Google
+também é capturado separadamente; se revogação e exclusão local falharem, não
+há comprovação de encerramento da conexão apesar da resposta de sucesso.
+
+Proposta antes da liberação, não implementada: não engolir falha de exclusão
+local; devolver erro sanitizado/resultado parcial correto, confirmar o estado
+final e preservar tentativa segura de revogação. Testar falha local, falha de
+revogação, combinação, repetição e ausência de tokens nas respostas/logs. Não
+revogar em massa, apagar dados ou alterar conexão central. Risco da correção:
+frontend precisa diferenciar desconexão concluída de falha parcial; excluir
+somente a credencial/cache pessoais autorizados. Essa falha é distinta do 403
+e recomenda-se corrigi-la antes de liberar professores reais ao novo fluxo.
+
 ### Retenção: o que existe e o que depende de decisão
 
 Calendar recomenda armazenamento local para sync incremental e remoção dos
@@ -524,6 +541,9 @@ Um pedido real de exclusão precisa de execução/limitações fiéis à políti
   justificáveis, URLs públicas definitivas, campos/avisos reais de Branding,
   domínio e verificações que o Console exigir. Não afirmar que todos foram
   inspecionados; não confundir a lista com causa comprovada do 403.
+- Bloqueio técnico recomendado antes da liberação: confirmação falsa de
+  desconexão pessoal quando a exclusão local falha, reproduzida com mocks;
+  proposta acima exige aprovação específica do backend.
 - Complementos: CNPJ não é campo obrigatório de Branding; Termos são opcionais
   no formulário Google. Critérios legais/operacionais reais continuam da escola.
 - Hardening posterior: timeouts pessoais explícitos e avaliação de CSP global.
