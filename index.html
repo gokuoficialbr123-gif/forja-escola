@@ -7734,7 +7734,7 @@ function googlePersonalDisconnectResult(value){
   if(!['completed','partial','failed'].includes(value?.outcome))return null;
   const choose=(v,allowed)=>allowed.includes(v)?v:'unknown';
   const result={outcome:value.outcome,ok:value.ok===true,retryable:value.retryable===true,
-    local:{connection:choose(value.local?.connection,['deleted','failed','retained','not_attempted']),busy:choose(value.local?.busy,['deleted','failed','not_attempted'])},
+    local:{connection:choose(value.local?.connection,['deleted','failed','retained','not_attempted','changed']),busy:choose(value.local?.busy,['deleted','failed','not_attempted'])},
     google:{revocation:choose(value.google?.revocation,['revoked','not_needed','failed','unavailable','deferred_shared_project']),webhook:choose(value.google?.webhook,['stopped','not_needed','failed'])}};
   if(result.local.connection==='deleted'&&result.local.busy!=='deleted')return null;
   if(result.outcome==='completed'&&(!result.ok||result.local.connection!=='deleted'||!['revoked','not_needed'].includes(result.google.revocation)||!['stopped','not_needed'].includes(result.google.webhook)))return null;
@@ -7757,7 +7757,8 @@ function googlePersonalDisconnectResult(value){
     catch(error){result=googlePersonalDisconnectResult(error?.disconnectResult);}
     try{
       if(!result){toast('Não foi possível confirmar a desconexão. Confira sua conexão e tente novamente.','bad');return;}
-      if(result.outcome==='completed')toast('Desconexão local confirmada. Permissões Google são tratadas separadamente.','ok');
+      if(result.local.connection==='changed')toast('A conexão mudou durante a operação. Confira o estado atual antes de desconectar novamente.','bad');
+      else if(result.outcome==='completed')toast('Desconexão local confirmada. Permissões Google são tratadas separadamente.','ok');
       else if(result.local.connection==='deleted'){
         toast('Desconexão local concluída; encerramento no Google pendente.','warn');
         modal('Resultado da desconexão',`<p>A credencial local e os intervalos em cache foram removidos. Aulas, atendimentos e histórico foram preservados.</p><p>A revogação global Google não foi confirmada. Revogar um grant pode afetar todos os clientes OAuth do mesmo projeto para sua conta, incluindo outras integrações. Confirme o impacto com a escola antes de revogar permissões no Google.</p>`);
