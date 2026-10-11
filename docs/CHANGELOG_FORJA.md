@@ -8,6 +8,28 @@ Sem scopes/configuração Google, migração, merge ou produção; testes mocks/
 Ver docs/GOOGLE_PERSONAL_DISCONNECT.md. Sem falso sucesso quando exclusão falha;
 quarentena/repetição e revogação global pendente explícitas. Separado do consentimento
 e PR #8 legal. Backend primeiro; sem scopes novos, merge, produção ou Google real.
+## 11/10/2026 — Auditoria final de dados Google e prestadores
+
+- Relidos os main atuais: frontend 959b72f e backend 3c816cf; sem acesso a
+  contas, banco, credenciais, Console ou operações Google reais.
+- Política esclarece acesso ao ocupado por profissional/admin, consulta central
+  somente admin ativo, Firebase Storage, Resend opcional e WhatsApp opcional.
+  Identificadores de eventos FORJA e links Meet persistidos foram explicitados;
+  não presumida ativação de serviços opcionais ou envio de conteúdo Google a eles.
+- Termos e orientações temporárias aprovadas preservados. Finalidade exclusiva,
+  ausência de venda e publicidade pela escola mantidas; conformidade integral
+  Limited Use não declarada. IA, transferências/prestadores e acesso humano
+  continuam sujeitos a comprovação, inclusive autorização para admins lerem
+  dados derivados. Busca no código não audita práticas externas ou fornecedores.
+- Checklist separa requisitos Google de complementos/CNPJ e hardening futuro.
+  Retenção/exclusão/backups reais não inventariados; nenhum recurso automático
+  ou prazo inventado. Timeout pessoal continua recomendação separada.
+- Validação: 187 testes frontend e 70 testes Google backend com mocks aprovados,
+  sem falhas/skips. Chromium desktop/mobile, links públicos sem JS/login,
+  regressões do portal, marker/hash, allowlist do artefato e diff --check passam.
+- Mesmo PR #8 e Preview; sem mudança de index, CSS, Firebase config, workflows,
+  scopes ou backend. Sem merge, live ou alteração de dados.
+
 ## 10/10/2026 — Termos temporários aprovados e revisão final do Branding
 
 - Júlio aprovou o texto atual dos Termos para uso temporário; mantidas limitações,

@@ -8,6 +8,21 @@ Sem scopes/configuração Google, migração, merge ou produção; testes mocks/
 Ver docs/GOOGLE_PERSONAL_DISCONNECT.md. Sem falso sucesso quando exclusão falha;
 quarentena/repetição e revogação global pendente explícitas. Separado do consentimento
 e PR #8 legal. Backend primeiro; sem scopes novos, merge, produção ou Google real.
+## 11/10/2026 — Auditoria final das páginas e dos fluxos Google
+
+Mesmo PR frontend #8. Fontes main permanecem frontend 959b72f e backend 3c816cf.
+Política corrigida somente para explicitar fatos verificados: Storage de arquivos,
+Resend opcional de códigos, WhatsApp opcional, acesso a ocupado por profissional/
+admin e persistência de IDs de eventos FORJA/Meet em registros operacionais.
+Termos temporários aprovados preservados. Sem alteração de integração/portal.
+Sem provedor de IA identificado no código auditado; práticas externas não provadas.
+Acesso humano e transferências/terceiros ainda exigem confirmação institucional,
+inclusive hipótese admitida pelo Google para leitura de dados derivados por admins.
+Regiões/contratos/operadores/backup reais não inspecionados; nenhuma conta/banco
+acessado. Checklist e evidências em docs/GOOGLE_OAUTH_BRANDING.md, revisão 11/10.
+Tecnicamente preparado para revisão após testes; não declarar conformidade integral
+ou prontidão de submissão Google. Não publicar, fazer merge ou mudar OAuth/backend.
+
 ## 10/10/2026 — Documentos públicos para Google OAuth Branding (em revisão)
 
 Cadastros/convites estão publicados: frontend main 959b72f, backend main 3c816cf.

@@ -9,6 +9,19 @@ Ver docs/GOOGLE_PERSONAL_DISCONNECT.md. Sem falso sucesso quando exclusão falha
 quarentena/repetição e revogação global pendente explícitas. Separado do consentimento
 e PR #8 legal. Backend primeiro; sem scopes novos, merge, produção ou Google real.
 ## 10/10/2026 — Google OAuth Branding: rascunhos públicos, somente PR/Preview
+## 11/10/2026 — Revisão final de privacidade, somente PR #8/Preview
+
+Revisão dos fluxos atuais: política deve explicitar Firebase Storage, Resend
+opcional para códigos de acesso, WhatsApp opcional e acesso aos intervalos pelos
+próprios profissionais/admins. Eventos FORJA podem persistir IDs e links Meet;
+isso não é importação de conteúdo de eventos pessoais. Não presumir configuração
+ativa de serviços opcionais ou uso Google por Resend/Meta sem evidência.
+Busca sem provedores de IA no código não comprova operações externas/prestadores.
+Limited Use: role de admin não prova consentimento/exceção para acesso humano.
+Ver evidências e bloqueios em docs/GOOGLE_OAUTH_BRANDING.md, revisão 11/10.
+Preservar Termos e orientações temporárias aprovadas. Sem backend, OAuth real,
+Console, dados, merge ou live; aguardar autorização para produção.
+
 ## 10/10/2026 — Google OAuth Branding: documentos temporários, somente PR/Preview
 
 Produção atual: frontend main 959b72f (cadastros/convites publicado), backend main

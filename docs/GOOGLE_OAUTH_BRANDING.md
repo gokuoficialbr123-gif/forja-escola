@@ -252,7 +252,8 @@ Nenhum OAuth real ou conta real foi usado nesta auditoria.
 
 ## Fontes oficiais consultadas
 
-Consulta em 10/10/2026, acesso HTTP público. Requisitos podem mudar; conferir avisos
+Consulta em 10/10/2026, repetida em 11/10/2026 para Branding, verificação de scopes,
+Calendar e User Data Policy, por acesso HTTP público. Requisitos podem mudar; conferir avisos
 atuais do projeto no Console antes de submissão.
 
 - [Brand verification: homepage, privacidade, domínios e Branding](https://developers.google.com/identity/protocols/oauth2/production-readiness/brand-verification).
@@ -265,3 +266,90 @@ atuais do projeto no Console antes de submissão.
 
 Não foram alterados Console Google, Search Console, Firebase, Render, domínios,
 usuários ou credenciais durante a preparação.
+
+## Revisão final de fluxos, prestadores e acesso — 11/10/2026
+
+Frontend main `959b72f6d5a398fa3c1f0fbc79a3ce0b2436f580` e backend main
+`3c816cf3080f3fddd77ea9913a3f36419ae3baf3` foram atualizados por fetch e relidos.
+A árvore local do backend é idêntica ao main. Revisão somente de código,
+documentos e metadados públicos do PR: sem banco, contas, tokens, Console ou
+operações Google reais. Aprovações institucionais temporárias permanecem;
+esclarecimentos técnicos não são novas regras institucionais.
+
+### Mapa verificado no código
+
+| Fluxo | Processamento / armazenamento | Acesso ou compartilhamento observado |
+| --- | --- | --- |
+| Google pessoal | `server.js`: `syncGoogleCalendarForProfessionalUnlocked` recebe eventos para sincronização; `upsertGoogleBusy` grava intervalos/metadados em `google_calendar_busy`, sem campos de título, descrição ou participantes no escritor atual. | `GET /google/calendar/busy`: profissional autenticado consulta seus próprios intervalos; admin consulta os profissionais. Aluno/responsável não acessa essa rota. Resposta rotulada Ocupado. Isso não audita dados legados nem ACLs reais do banco. |
+| Eventos FORJA no Google | `createOrUpdateGoogleEvent` envia nome do aluno, matéria/atendimento, datas, local e IDs operacionais; pode criar Meet. `syncForjaEntityGoogle` grava `googleCalendarEventId` e, quando aplicável, `meetLink` em aulas/atendimentos/bloqueios. | Compartilhamentos do calendário Google controlam visibilidade externa. `lessonItemForRole` permite Meet ao admin, professor e aluno vinculado; o serializer de responsável não inclui esse campo. Não afirmar que compromissos pessoais viram aulas ou que todos os perfis recebem todos os links. |
+| Google central | `google-secretaria.js` guarda credencial criptografada e identidade; `google-admin-calendars.js` guarda catálogo e associação explícita. `google-central-freebusy.js` consulta apenas start/end/Ocupado/status, sem persistência de intervalos ou eventos; cache em memória até 60s. | Rotas centrais verificam admin ativo; professores associados precisam ser teacher ativos. Nomes/IDs dos calendários são metadados administrativos, não conteúdo de eventos. A consulta central continua fora da Agenda/booking. |
+| Infraestrutura | Firebase Authentication, Firestore e Storage; Firebase Hosting; API no Render; Google Calendar/Meet. | Render executa o código que recebe eventos pessoais completos e usa credenciais em memória. Criptografia da credencial persistida não significa ausência de processamento pelos provedores. Regiões, contratos, acesso de operadores e backups não foram inspecionados. |
+| E-mail opcional | `server.js`, `sendLoginEmailCode`: Resend recebe destinatário, saudação/primeiro nome e mensagem com código, somente quando configurado. Convite/reset de senha usa Firebase, não esse fluxo. | Não foi consultada a configuração oficial para afirmar que Resend esteja ativo. O payload desse caminho não contém eventos Google. |
+| WhatsApp opcional | `index.html`, `openActivityWhatsapp` e `openTherapyRequestWhatsapp`: ação do usuário abre wa.me com telefone e mensagem escolar, incluindo contexto de atividade/atendimento e eventualmente link de arquivo. `src/whatsapp.js` recebe telefone e envia template/idioma para Meta; `d2.js` contém o chamador de lembretes. | Abertura de link não é entrega de mensagem. Payload Meta inspecionado não inclui eventos Google, Meet ou conteúdo escolar dinâmico; configuração/execução real desse lembrete não foi comprovada. Dockerfile inicia `server.js`; não presumir que o job legado esteja em execução. |
+
+Somente arquivos de código e manifests foram pesquisados: não foi encontrado SDK
+ou endpoint de provedor externo de IA no frontend/backend auditados. As referências
+a treinamentos no sistema são registros educacionais, não prova de treinamento
+de modelos. Essa ausência não comprova práticas fora do código, uso manual de
+ferramentas ou políticas dos prestadores. A escola ainda deve confirmar eventual
+treinamento de IA e transferências relacionadas.
+
+O frontend não recebe refresh/access token Google nas respostas de conexão;
+as respostas centrais usam whitelist e e-mail mascarado. State consumido em
+transação, PKCE, validação OIDC e AES-256-GCM continuam no backend existente.
+Nenhum fluxo foi alterado por este PR. A presença desses controles no código
+não substitui auditoria de permissões reais, contratos ou práticas de suporte.
+
+### Limited Use e acesso humano: limite importante
+
+A fonte Google consultada restringe transferências e leitura humana inclusive
+de dados derivados dos scopes. A visualização de intervalos por administradores
+é um acesso humano a dado derivado; a permissão de role no FORJA, sozinha, não
+comprova a hipótese admitida pela política Google. Não foi comprovado acordo
+afirmativo do usuário para esse acesso específico, nem outra exceção aplicável.
+A escola deve confirmar quem acessa, finalidade, autorização/consentimento e
+controles; se a divulgação ou autorização existente for insuficiente, isso exige
+uma correção própria antes de afirmar conformidade, não uma promessa nesta página.
+
+Também faltam evidências operacionais de prestadores/transferências, uso externo
+de IA, pessoas com acesso técnico e execução de pedidos de exclusão. A política
+descreve essas pendências em vez de afirmar que contratos ou práticas foram
+verificados. O Google exige política fiel e abrangente, não apenas nomear serviços.
+Não enviar uma declaração integral Limited Use enquanto essas questões estiverem
+sem comprovação. Confirmações de finalidade exclusiva, ausência de venda e
+publicidade pela escola permanecem registradas, sem estendê-las aos fornecedores.
+
+### Resultado e sequência para futura publicação
+
+- **Tecnicamente preparado para revisão de publicação**, condicionado à validação
+  dos testes e Preview do HEAD atual. Portal, API, CSS, workflows e scopes não
+  foram modificados nesta revisão; Termos temporários foram preservados.
+- **Ainda não pronto para submissão final ao Google:** confirmar os pontos Limited
+  Use acima e completar a divulgação das práticas operacionais aplicáveis.
+  Depois, obter autorização de publicação das páginas, conferir GET público
+  distinto da SPA e configurar URLs definitivas. O Preview não é o endereço final.
+- No Google Cloud, o proprietário deve conferir Branding/contatos, domínios
+  autorizados/prova de propriedade, avisos de Verify Branding, Audience e
+  classificação/justificativas dos scopes existentes. Não se comprovou o estado
+  desses campos; não acrescentar scopes nem alterar callbacks por suposição.
+- CNPJ não é requisito técnico listado para Branding; conferir a identificação
+  institucional continua pendência da escola. Termos são opcionais no formulário
+  Google. Critérios de retenção, responsáveis, exclusão e inventário de backups
+  precisam refletir práticas reais, mas não exigem inventar prazos ou implementar
+  uma nova rotina automática para preencher o Branding.
+- `googleTokenRequest()` e `googleApi()` pessoais não têm timeout explícito:
+  risco residual de espera/disponibilidade existente, recomendado para hardening
+  separado. Não foi encontrado nexo com exposição nas páginas públicas ou com o
+  erro pessoal de Carlos; não executar OAuth real para diagnosticá-lo aqui.
+- CSP global e outras melhorias do portal exigem escopo/testes próprios. As
+  páginas legais são estáticas, sem código executável ou credenciais; não alterar
+  a política de scripts do portal para concluir esta revisão documental.
+
+Nenhum merge, deploy live, alteração de backend, Google Cloud, banco ou conta
+foi executado. A atualização autorizada limita-se ao mesmo PR frontend #8 e Preview.
+
+Validação local em 11/10: 187 testes frontend aprovados (Chromium real desktop e
+mobile, navegação pública sem JS/login, links, hash/marker, artefato e regressões),
+e 70 testes Google backend com mocks aprovados. Zero falhas/skips em ambas as
+execuções. `validate.mjs`, `prepare-hosting.mjs` e `git diff --check` aprovados.
+Código backend, index do portal, Termos, CSS, config Firebase e workflows intactos.
