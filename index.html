@@ -3797,7 +3797,7 @@ async function api(path,{method="GET",body=null,authRequired=true}={}){
   }
   const response=await fetch(`${FORJA_API_URL}${path}`,{method,headers,body:body==null?undefined:JSON.stringify(body)});
   const data=await response.json().catch(()=>({}));
-  if(!response.ok){const e=new Error(data.error||`Erro ${response.status}`);e.status=response.status;throw e}
+  if(!response.ok){const e=new Error(data.error||`Erro ${response.status}`);e.status=response.status;if(path==="/google/calendar/connection"&&method==="DELETE")e.disconnectResult=googlePersonalDisconnectResult(data);throw e}
   return data;
 }
 
@@ -7726,6 +7726,45 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   };
   const previousAgenda=forjaAgendaPage;
   forjaAgendaPage=function(){const page=previousAgenda();return state.role==='admin'&&state.googleBusyUnavailable?`<div class="system-note" role="status">Consulta Google de um ou mais profissionais indisponível. Verifique o consentimento e a sincronização. Ausência de blocos não comprova horário livre.</div>`+page:page;};
+})();
+</script>
+
+<script id="forja-google-personal-disconnect-script">
+function googlePersonalDisconnectResult(value){
+  if(!['completed','partial','failed'].includes(value?.outcome))return null;
+  const choose=(v,allowed)=>allowed.includes(v)?v:'unknown';
+  const result={outcome:value.outcome,ok:value.ok===true,retryable:value.retryable===true,
+    local:{connection:choose(value.local?.connection,['deleted','failed','retained','not_attempted']),busy:choose(value.local?.busy,['deleted','failed','not_attempted'])},
+    google:{revocation:choose(value.google?.revocation,['revoked','not_needed','failed','unavailable','deferred_shared_project']),webhook:choose(value.google?.webhook,['stopped','not_needed','failed'])}};
+  if(result.local.connection==='deleted'&&result.local.busy!=='deleted')return null;
+  if(result.outcome==='completed'&&(!result.ok||result.local.connection!=='deleted'||!['revoked','not_needed'].includes(result.google.revocation)||!['stopped','not_needed'].includes(result.google.webhook)))return null;
+  return result;
+}
+(function(){
+  'use strict';
+  const previousAction=googleAction,previousPanel=googleCalendarPanel;let pending=false;
+  googleCalendarPanel=function(){
+    const original=previousPanel();if(!['teacher','psychologist'].includes(state.role)||!state.googleCalendar?.item?.disconnectPending)return original;
+    return original.replace('data-google-action="connect"','data-google-action="connect" disabled')+`<section class="p2-card"><h3>Desconexão ainda pendente</h3><p>A conexão está suspensa. A exclusão local ainda precisa ser confirmada. Aulas, atendimentos e histórico permanecem preservados.</p><button class="small-btn danger-btn" data-google-action="disconnect">Tentar concluir desconexão</button></section>`;
+  };
+  googleAction=async function(action,button){
+    if(action!=='disconnect')return previousAction(action,button);
+    if(/^forja-escola--[a-z0-9-]+-[a-z0-9]{8}\.web\.app$/.test(location.hostname)){toast('Desconexão real bloqueada no Preview compartilhado. Nenhuma conta foi alterada.','warn');return;}
+    if(pending||!['teacher','psychologist'].includes(state.role))return;
+    if(!confirm('Desconectar somente sua integração pessoal no FORJA? Aulas e histórico serão preservados. A revogação global Google será tratada separadamente para preservar outras integrações.'))return;
+    pending=true;setBusy(button,true,'Desconectando...');let result=null;
+    try{result=googlePersonalDisconnectResult(await api('/google/calendar/connection',{method:'DELETE'}));}
+    catch(error){result=googlePersonalDisconnectResult(error?.disconnectResult);}
+    try{
+      if(!result){toast('Não foi possível confirmar a desconexão. Confira sua conexão e tente novamente.','bad');return;}
+      if(result.outcome==='completed')toast('Desconexão local confirmada. Permissões Google são tratadas separadamente.','ok');
+      else if(result.local.connection==='deleted'){
+        toast('Desconexão local concluída; encerramento no Google pendente.','warn');
+        modal('Resultado da desconexão',`<p>A credencial local e os intervalos em cache foram removidos. Aulas, atendimentos e histórico foram preservados.</p><p>A revogação global Google não foi confirmada. Revogar um grant pode afetar todos os clientes OAuth do mesmo projeto para sua conta, incluindo outras integrações. Confirme o impacto com a escola antes de revogar permissões no Google.</p>`);
+      }else toast(result.outcome==='failed'?'Falha ao iniciar ou confirmar a desconexão. Tente novamente.':'Desconexão parcial: exclusão local pendente. A conexão está suspensa; use Tentar concluir desconexão.','bad');
+      try{await reloadAndRender();}catch(_){toast('Resultado registrado, mas o status visual não pôde ser atualizado. Recarregue para conferir a conexão.','warn');}
+    }finally{pending=false;setBusy(button,false);}
+  };
 })();
 </script>
 </body>
