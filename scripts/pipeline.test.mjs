@@ -1,3 +1,4 @@
+import {withoutPersonalGoogleChanges} from './personal-google-scope.mjs';
 import assert from 'node:assert/strict';
 import {withoutRegistrationChanges} from './registration-scope.mjs';
 import { test } from 'node:test';
@@ -211,7 +212,7 @@ test('backend sem Etapa 2 central não pode autorizar o novo Preview',async()=>{
 });
 
 test('Somente blocos centrais e Novo usuário podem mudar; Agenda e relatório preservados',()=>{
- const previous=withoutRegistrationChanges(html.toString()).replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
+ const previous=withoutRegistrationChanges(withoutPersonalGoogleChanges(html.toString())).replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
  assert.equal(sha256(Buffer.from(previous)),'cf5b8ffbc9c7827892492864d9d034d318e707bebaefc9ee4967f8ba115f741c');
 });
 

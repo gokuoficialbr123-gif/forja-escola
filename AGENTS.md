@@ -1,3 +1,9 @@
+## 11/10/2026 — Resultado real da desconexão pessoal Google (somente PR/Preview)
+
+Ver docs/GOOGLE_PERSONAL_DISCONNECT.md. Sem falso sucesso quando exclusão falha;
+quarentena/repetição e revogação global pendente explícitas. Separado do consentimento
+e PR #8 legal. Backend primeiro; sem scopes novos, merge, produção ou Google real.
+
 ## 09/10/2026 — Convites automáticos Firebase (mesmo PR #7, sem produção)
 
 Escopo autorizado: mensagens de ativação e Reenviar convite, mantendo cadastro do
