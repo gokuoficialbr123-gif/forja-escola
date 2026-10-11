@@ -8,6 +8,7 @@ export const previewVersion = '6.31.1-secretaria-publicacao-confirmada';
 
 export function assertPersonalPreviewPolicy(health){
   assert.equal(health.googlePersonalConsentPolicy,'personal-busy-secretaria-v1','Render Preview ainda não contém consentimento pessoal versionado.');
+  assert.equal(health.googlePersonalConsultationPolicy,'consent-and-valid-events-v2','Render Preview ainda não valida respostas Google antes de disponibilizar horários.');
 }
 
 export function assertPreviewIsolation(health,apiUrl) {
