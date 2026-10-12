@@ -1,3 +1,4 @@
+import {withoutPersonalGoogleChanges} from './personal-google-scope.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -9,7 +10,7 @@ import { withoutLegalNavigation, portalBeforeLegalSha256, validateLegalPages } f
 
 export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const referenceVersion = '6.31.1-secretaria-drawer-fluido';
-export const referenceSha256 = '9f5c0f8a64738da7c0c1ea3a10cccdd7649b814c03ea03a9062e4e6230f8e9e7';
+export const referenceSha256 = '77260eab9fc1ba25630961e557493f1740662962ab32202aa0a5ee98b0d2f7dc';
 export const sha256 = data => createHash('sha256').update(data).digest('hex');
 
 export function validateInlineScripts(html) {
@@ -42,7 +43,7 @@ export function validate(root = rootDir) {
   assert.equal(marker, referenceVersion, 'Marker da release ativa incorreto.');
   assert.match(release, /dataset\.forjaAgendaVersion\s*=\s*VERSION/, 'Marker não aplicado à versão ativa.');
   assert.equal(sha256(bytes), referenceSha256, 'HTML diferente da base 6.31 preparada para revisão.');
-  assert.equal(sha256(withoutLegalNavigation(html)), portalBeforeLegalSha256, 'Fora da navegação pública, o portal deve permanecer integralmente igual ao main publicado.');
+  assert.equal(sha256(withoutPersonalGoogleChanges(withoutLegalNavigation(html))), portalBeforeLegalSha256, 'Fora da navegação pública, o portal deve permanecer integralmente igual ao main publicado.');
   assert.ok(!/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(html), 'Chave privada não pode entrar no frontend.');
   const central=html.match(/<script id="forja-google-secretaria-script">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(central?.includes("const CENTRAL_POLICY='calendarlist-association-v2'"), 'Marker da conexão central ausente.');

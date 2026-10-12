@@ -1,3 +1,10 @@
+## 12/10/2026 — Ensaio integrado temporário
+
+Combina PR8/9/10 exclusivamente na branch integration/google-agenda-2026-10-12.
+Ler docs/INTEGRATION_REHEARSAL_2026-10-12.md. Sem merge/main, Hosting live,
+Cloud ou dados reais. 209 regressões passaram. Locks e cache entre UIDs
+apresentam bugs preexistentes reproduzidos; aprovação para produção bloqueada.
+
 ## 11/10/2026 — Consentimento Google pessoal (somente PR/Preview)
 
 Modal existente com checkbox desmarcado e aceite versionado no backend.

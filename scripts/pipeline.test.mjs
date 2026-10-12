@@ -242,4 +242,4 @@ test('frontend-only Preview checks the current official backend without requirin
 });
 
 test('Render antigo não passa sem policy de consentimento pessoal',()=>{assert.throws(()=>assertPersonalPreviewPolicy({}),/consentimento/);assert.throws(()=>assertPersonalPreviewPolicy({googlePersonalConsentPolicy:'old'}),/consentimento/);});
-test('Render antigo não passa sem policy de desconexão pessoal',()=>{assert.throws(()=>assertPersonalPreviewPolicy({}),/desconexão/);assert.throws(()=>assertPersonalPreviewPolicy({googlePersonalDisconnectPolicy:'old'}),/desconexão/);});
+test('Render antigo não passa sem policy de desconexão pessoal',()=>{assert.throws(()=>assertPersonalPreviewPolicy({googlePersonalConsentPolicy:'personal-busy-secretaria-v1',googlePersonalConsultationPolicy:'consent-and-valid-events-v2'}),/desconexão/);assert.throws(()=>assertPersonalPreviewPolicy({googlePersonalConsentPolicy:'personal-busy-secretaria-v1',googlePersonalConsultationPolicy:'consent-and-valid-events-v2',googlePersonalDisconnectPolicy:'old'}),/desconexão/);});
