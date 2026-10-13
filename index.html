@@ -6891,7 +6891,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   function v621GoogleBusy(uid,day){
     const out=[];for(const x of [...(state.googleBusy||[]),...v631CentralBusy()]){if(x.managedForja||x.professionalId!==uid)continue;
       if(x.allDay===true){const start=String(x.startDate||''),end=String(x.endDate||'');if(start&&end&&day>=start&&day<end)out.push({id:x.id,start:'00:00',end:'23:59',allDay:true});continue}
-      const sp=zonedDateParts(x.startAt),ep=zonedDateParts(x.endAt);if(!sp||!ep)continue;const sd=`${sp.year}-${sp.month}-${sp.day}`,ed=`${ep.year}-${ep.month}-${ep.day}`;if(day<sd||day>ed)continue;out.push({id:x.id,start:day===sd?`${sp.hour}:${sp.minute}`:'00:00',end:day===ed?`${ep.hour}:${ep.minute}`:'23:59',allDay:false});
+      const sp=zonedDateParts(x.startAt),ep=zonedDateParts(x.endAt);if(!sp||!ep)continue;const sd=`${sp.year}-${sp.month}-${sp.day}`,ed=`${ep.year}-${ep.month}-${ep.day}`;if(day<sd||day>ed)continue;out.push({id:x.id,start:day===sd?`${sp.hour}:${sp.minute}`:'00:00',end:day===ed?`${ep.hour}:${ep.minute}`:'23:59',allDay:false,...(x.source==='google-central'?{source:'google-central'}:{})});
     }return out;
   }
   function v621Lessons(uid,day){return (state.lessons||[]).filter(x=>x.professorId===uid&&String(x.dataAula||'').slice(0,10)===day)}
@@ -7176,7 +7176,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     selected.forEach((teacher,index)=>{
       const uid=teacher.uid,name=teacher.fullName||'Professor',data=v629DayData(uid,day);
       if(filters.availability!==false)for(const p of data.availability){const duration=Math.min(60,Math.max(30,(v621TimeMinutes(p.fim)||0)-(v621TimeMinutes(p.inicio)||0)));html+=`<button type="button" class="v621-block v629-block availability bookable ${v629EventPresentationClass(p.inicio,p.fim)}" style="${v629SlotStyle(p.inicio,p.fim,index,count)}" data-v621-book-slot="${esc(uid)}" data-date="${esc(day)}" data-start="${esc(p.inicio)}" data-duration="${duration}" title="Agendar aula com ${esc(name)}">${v629EventContent(name,"Disponível",p.inicio,p.fim)}</button>`}
-      if(filters.busy!==false)for(const b of data.googleTimed)html+=`<div class="v621-block v629-block busy google ${v629EventPresentationClass(b.start,b.end)}" style="${v629SlotStyle(b.start,b.end,index,count)}" title="Compromisso privado do Google">${v629EventContent(name,"Ocupado · Google",b.start,b.end)}</div>`;
+      if(filters.busy!==false)for(const b of data.googleTimed)html+=`<div class="v621-block v629-block busy google ${v629EventPresentationClass(b.start,b.end)}" style="${v629SlotStyle(b.start,b.end,index,count)}" title="Compromisso privado do Google">${v629EventContent(name,b.source==='google-central'?"Ocupado · Google central":"Ocupado · Google pessoal",b.start,b.end)}</div>`;
       if(filters.busy!==false)for(const b of data.manual)html+=`<div class="v621-block v629-block busy forja ${v629EventPresentationClass(b.start,b.end)}" style="${v629SlotStyle(b.start,b.end,index,count)}">${v629EventContent(name,"Ocupado · FORJA",b.start,b.end)}</div>`;
       if(filters.lesson!==false)for(const l of data.lessons){const end=l.horaFim||addMinutesTime(l.horaAula,60)||'';html+=`<button type="button" class="v621-block v629-block lesson ${v621LessonClass(l)} ${v629EventPresentationClass(l.horaAula,end)}" style="${v629SlotStyle(l.horaAula,end,index,count)}" data-lesson="${esc(l.id)}" title="${esc(`${name} · ${l.nomeAluno||'Aluno'}`)}">${v629EventContent(name,`Aula · ${lessonTitle(l)}`,l.horaAula,end)}</button>`}
     });

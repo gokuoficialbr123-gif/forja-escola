@@ -31,6 +31,14 @@ const patches=[
   [
     "      if(r.availabilityPolicy!=='confirmed-week-v2')throw new Error('Este backend ainda não valida disponibilidade publicada. Use o Preview atualizado antes de marcar a aula.');\n      if(r.centralBookingPolicy!=='central-booking-fail-closed-v1')throw new Error('Este backend ainda não valida ocupado da conta Google central. Aguarde a API atualizada antes de marcar a aula.');",
     "      if(r.availabilityPolicy!=='confirmed-week-v2')throw new Error('Este backend ainda não valida disponibilidade publicada. Use o Preview atualizado antes de marcar a aula.');"
+  ],
+  [
+    "out.push({id:x.id,start:day===sd?`${sp.hour}:${sp.minute}`:'00:00',end:day===ed?`${ep.hour}:${ep.minute}`:'23:59',allDay:false,...(x.source==='google-central'?{source:'google-central'}:{})});",
+    "out.push({id:x.id,start:day===sd?`${sp.hour}:${sp.minute}`:'00:00',end:day===ed?`${ep.hour}:${ep.minute}`:'23:59',allDay:false});"
+  ],
+  [
+    "v629EventContent(name,b.source==='google-central'?\"Ocupado · Google central\":\"Ocupado · Google pessoal\",b.start,b.end)",
+    "v629EventContent(name,\"Ocupado · Google\",b.start,b.end)"
   ]
 ];
 export function withoutCentralBooking(html){for(const [changed,original] of [...patches].reverse()){assert.equal(html.split(changed).length,2,'Etapa 4 patch missing or duplicated');html=html.replace(changed,original);}return html;}
