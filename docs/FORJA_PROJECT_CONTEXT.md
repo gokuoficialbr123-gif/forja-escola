@@ -1,3 +1,12 @@
+## 13/10/2026 — Candidato de release controlada, não publicado
+
+Branch release/agenda-estavel-2026-10-13, baseada no PR12 integrado com fixes11.
+Ler docs/RELEASE_2026-10-13.md. Preservar recibos, OAuth, locks, sessões e cadastros.
+202 testes unitários backend,124 HTTP/emuladores e226 frontend aprovados nesta
+preparação; nenhum teste mutável em produção. Sem merge, deploy ou Google Cloud.
+NO-GO irrestrito: planejar aceite dos profissionais antigos e aprovar limites
+centrais antes de publicar. Artefato oficial sem demos; URL oficial preservada.
+
 ## 13/10/2026 — Etapa 4 preparada, somente PR/Preview
 
 Etapa4 preparada em feat/secretaria-central-booking-etapa-4, base a1fc253. Não publicada. Ocupado central na Agenda, cache UID+geração e drawer com receipt central obrigatório. Preview público agenda-demo é sintético; HTTP verdadeiro testado em emuladores. Ver docs/CENTRAL_BOOKING_ETAPA4.md. Produção e visual preservados; sem scope/Google real; limite de evento próprio permanece explícito.
