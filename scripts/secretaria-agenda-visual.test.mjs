@@ -6,6 +6,7 @@ import { test, before, after } from 'node:test';
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const between=(a,b)=>{const start=html.indexOf(a),end=html.indexOf(b,start);assert.ok(start>=0&&end>start);return html.slice(start,end)};
 const code=[
+ between('  // BEGIN FORJA central booking presentation:', '  async function v621EnsureVisibleWeeks('),
  between('  function v621AdminWeekEntry(', '  async function v621FetchTeacherWeek('),
  between('  function v621GoogleBusy(', '  function v621LessonClass('),
  between('  function v621EventStyle(', '  function v621AllDay('),
@@ -50,7 +51,7 @@ async function fixture(t,{mobile=false,view='week',teachers=1,portalSource=html}
   window.v629SelectedTeachers=()=>selected;window.v621Date=()=>view==='week'?'2026-09-28':'2026-10-04';window.v621View=()=>view;
   window.v621RangeDays=()=>Array.from({length:7},(_,i)=>gAddDays(ws,i));window.todayKey=()=> '2026-10-04';
   window.v623NowLine=()=>'';window.v621LessonClass=()=>'';window.lessonTitle=()=> 'Matemática';window.esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  (0,eval)(code);
+  (0,eval)(code);state.v631CentralRanges={fixture:{from:'2026-01-01',to:'2026-12-31',checkedAt:Date.now(),valid:true,items:[],unavailable:[]}};
   document.querySelector('#calendar').innerHTML=view==='month'?v629MonthCalendar():v629WeekCalendar();
  },{portalSource,code,view,teachers});
  return page;

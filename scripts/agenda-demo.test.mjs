@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import {test,before,after} from 'node:test';
+import {readFileSync,mkdirSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+import {resolve} from 'node:path';
+import {buildHostingArtifact,hostingOptionsFromArgs} from './prepare-hosting.mjs';
+import {previewConfigFromEvent} from './preview-config.mjs';
+const source=readFileSync(new URL('../index.html',import.meta.url));
+const {chromium}=await import(pathToFileURL(resolve(process.env.FORJA_PLAYWRIGHT_MODULE)).href);
+let browser;before(async()=>browser=await chromium.launch({headless:true,executablePath:process.env.FORJA_CHROMIUM_PATH}));after(()=>browser.close());
+test('synthetic Agenda artifact requires explicit Preview option; live source cannot contain doubles',()=>{
+ assert.ok(buildHostingArtifact().bytes.equals(source));assert.ok(!source.includes('forja-agenda-demo'));
+ assert.deepEqual(hostingOptionsFromArgs([]),{});assert.deepEqual(hostingOptionsFromArgs(['--agenda-demo']),{agendaDemo:true});
+ assert.throws(()=>buildHostingArtifact(undefined,{agendaDemo:true,previewApiUrl:'https://forja-api-pr-12.onrender.com'}));
+ const event={repository:{full_name:'owner/repo'},pull_request:{head:{repo:{full_name:'owner/repo'}},body:'<!-- FORJA_PREVIEW_BACKEND=agenda-demo -->'}};assert.deepEqual(previewConfigFromEvent(event),{mode:'agenda-demo',apiUrl:''});
+ const demo=buildHostingArtifact(undefined,{agendaDemo:true});assert.equal(demo.result.apiUrl,null);assert.ok(!demo.bytes.includes('src="https://www.gstatic.com/firebasejs'));assert.ok(demo.bytes.includes('DEMONSTRAÇÃO SINTÉTICA DA AGENDA'));
+});
+for(const mobile of [false,true])test(`Chromium ${mobile?'mobile':'desktop'} full portal demo: busy, real mounted drawer, create, reschedule, cancel, reload, zero real data calls`,async t=>{
+ const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1440,height:1000},locale:'pt-BR',reducedMotion:'reduce'});t.after(()=>page.close());const network=[],errors=[];
+ page.on('pageerror',e=>errors.push(e.message));const html=buildHostingArtifact(undefined,{agendaDemo:true}).bytes.toString();
+ await page.route('**/*',route=>{const u=new URL(route.request().url());if(u.origin==='https://forja-synthetic.invalid'&&u.pathname==='/')return route.fulfill({contentType:'text/html',body:html});network.push(u.hostname);return route.abort();});
+ await page.goto('https://forja-synthetic.invalid');await page.waitForFunction(()=>typeof state!=='undefined'&&state.role==='admin'&&!state.loading);
+ await page.getByRole('button',{name:'Abrir cenário: 19/10/2026'}).click();await page.waitForSelector('.v629-block.busy');assert.match(await page.locator('#workspaceContent').innerText(),/Júlio fictício/);
+ const blocked=await page.evaluate(()=>api('/aulas',{method:'POST',body:{professorId:'DEMO_TEACHER',alunoId:'DEMO_STUDENT',disciplinaId:'demo-math',dataAula:'2026-10-19',horaAula:'14:00',horaFim:'15:00'}}).catch(e=>({status:e.status,message:e.message})));assert.equal(blocked.status,409);
+ await page.locator('[data-v630-open]').first().click();await page.selectOption('#v630Teacher','DEMO_TEACHER');await page.selectOption('#v630Subject','demo-math');await page.selectOption('#v630Student','DEMO_STUDENT');await page.fill('#v630Date','2026-10-19');
+ await page.waitForSelector('[data-v630-slot="13:00"]');assert.equal(await page.locator('[data-v630-slot="14:00"]').count(),0);assert.equal(await page.locator('[data-v630-slot="14:30"]').count(),0);
+ await page.locator('[data-v630-slot="13:00"]').click();await page.fill('#v630Place','Sala sintética');await page.locator('[data-v630-save]').click();await page.waitForFunction(()=>state.lessons.length===1);
+ const id=await page.evaluate(()=>state.lessons[0].id);
+ await page.evaluate(id=>openLesson(id),id);await page.locator('[data-reschedule-lesson]').click();await page.fill('#resTime','15:00');await page.fill('#resEnd','16:00');await page.locator('#modalSave').click();await page.waitForFunction(()=>state.lessons[0].horaAula==='15:00');
+ await page.reload();await page.waitForFunction(()=>state.role==='admin'&&!state.loading&&state.lessons.length===1);assert.equal(await page.evaluate(()=>state.lessons[0].horaAula),'15:00');
+ await page.evaluate(id=>openLesson(id),id);await page.locator('[data-cancel-lesson]').click();await page.fill('#cancelReason','Teste sintético');await page.locator('#modalSave').click();await page.waitForFunction(()=>state.lessons[0].status==='cancelada');
+ await page.getByRole('button',{name:'Abrir cenário: 19/10/2026'}).click();await page.getByRole('button',{name:'Simular falha Google',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#workspaceContent')?.textContent.includes('Consulta Google central ainda não confirmada'));assert.equal(await page.locator('.v629-block.availability').count(),0);
+ await page.getByRole('button',{name:'Restaurar Google simulado',exact:true}).click();await page.waitForSelector('.v629-block.availability');
+ mkdirSync('/tmp/forja-etapa4-visual',{recursive:true});await page.screenshot({path:`/tmp/forja-etapa4-visual/${mobile?'mobile':'desktop'}-synthetic-agenda.png`,fullPage:true});
+ assert.equal(network.filter(x=>/onrender|googleapis|gstatic|firebaseapp/.test(x)).length,0);assert.deepEqual(errors,[]);
+});

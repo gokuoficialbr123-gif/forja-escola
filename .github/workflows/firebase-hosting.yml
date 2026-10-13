@@ -2,7 +2,7 @@ name: Firebase Hosting FORJA
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, fix/availability-session-isolation]
     types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
@@ -41,7 +41,7 @@ jobs:
         id: preview-config
         run: node scripts/preview-config.mjs
       - name: Exigir release atual no Render antes de publicar Preview
-        if: steps.preview-config.outputs.mode != 'invitation-demo'
+        if: steps.preview-config.outputs.mode != 'invitation-demo' && steps.preview-config.outputs.mode != 'agenda-demo'
         env:
           FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
           FORJA_PREVIEW_BACKEND_MODE: ${{ steps.preview-config.outputs.mode }}
@@ -51,7 +51,9 @@ jobs:
           FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
           FORJA_PREVIEW_BACKEND_MODE: ${{ steps.preview-config.outputs.mode }}
         run: |
-          if [ "$FORJA_PREVIEW_BACKEND_MODE" = "invitation-demo" ]; then
+          if [ "$FORJA_PREVIEW_BACKEND_MODE" = "agenda-demo" ]; then
+            node scripts/prepare-hosting.mjs --agenda-demo
+          elif [ "$FORJA_PREVIEW_BACKEND_MODE" = "invitation-demo" ]; then
             node scripts/prepare-hosting.mjs --invitation-demo
           elif [ "$FORJA_PREVIEW_BACKEND_MODE" = "production-unchanged" ]; then
             node scripts/prepare-hosting.mjs
@@ -82,7 +84,9 @@ jobs:
           FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
           FORJA_PREVIEW_BACKEND_MODE: ${{ steps.preview-config.outputs.mode }}
         run: |
-          if [ "$FORJA_PREVIEW_BACKEND_MODE" = "invitation-demo" ]; then
+          if [ "$FORJA_PREVIEW_BACKEND_MODE" = "agenda-demo" ]; then
+            node scripts/verify-hosting.mjs --agenda-demo
+          elif [ "$FORJA_PREVIEW_BACKEND_MODE" = "invitation-demo" ]; then
             node scripts/verify-hosting.mjs --invitation-demo
           elif [ "$FORJA_PREVIEW_BACKEND_MODE" = "production-unchanged" ]; then
             node scripts/verify-hosting.mjs
@@ -90,7 +94,7 @@ jobs:
             node scripts/verify-hosting.mjs --preview
           fi
       - name: Conferir CORS e Auth do backend selecionado
-        if: steps.preview-config.outputs.mode != 'invitation-demo'
+        if: steps.preview-config.outputs.mode != 'invitation-demo' && steps.preview-config.outputs.mode != 'agenda-demo'
         env:
           FORJA_VERIFY_URL: ${{ steps.hosting.outputs.details_url }}
           FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
