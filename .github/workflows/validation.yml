@@ -12,6 +12,9 @@ permissions:
 
 jobs:
   validate:
+    permissions:
+      contents: read
+      checks: write
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -23,6 +26,14 @@ jobs:
           node-version: '22'
       - name: Validar release, hash e JavaScript
         run: node scripts/validate.mjs
+      - name: Diagnóstico projetado read-only, sem tokens Google
+        if: github.event_name == 'push' && github.ref_name == 'fix/secretaria-booking-past-google-2026-10-13'
+        env:
+          AUDIT_FIREBASE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FORJA_ESCOLA }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          npm install --prefix /tmp/forja-readonly --no-save --package-lock=false firebase-admin@13.6.0
+          node scripts/booking-google-metadata-audit.mjs
       - name: Testar proteções do pipeline
         run: node --test scripts/pipeline.test.mjs
       - name: Instalar Chromium para regressões do drawer
