@@ -1,3 +1,11 @@
+## 13/10/2026 — Opção B: release mínima, ainda não publicada
+
+Autorizado portar SOMENTE lock cleanup/backend e isolamento UID/sessão/frontend
+sobre main. Ler docs/MINIMAL_RELEASE_2026-10-13.md. Não importar bases integradas
+dos PRs11, consentimento9, desconexão10, páginas8 ou Etapa4/PR12. Não enfraquecer
+segurança existente. QA só em demo-forja/mocks/Chromium; sem contas/dados reais,
+merge, produção, recursos Render novos ou mudanças Google Cloud.
+
 ## 09/10/2026 — Convites automáticos Firebase (mesmo PR #7, sem produção)
 
 Escopo autorizado: mensagens de ativação e Reenviar convite, mantendo cadastro do
