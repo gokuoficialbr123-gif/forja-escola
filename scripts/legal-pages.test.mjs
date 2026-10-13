@@ -1,3 +1,4 @@
+import {withoutSessionIsolation} from './session-isolation-scope.mjs';
 import {withoutPersonalGoogleChanges} from './personal-google-scope.mjs';
 import assert from 'node:assert/strict';
 import {test, before, after} from 'node:test';
@@ -17,7 +18,7 @@ before(async()=>browser=await chromium.launch({headless:true,...(process.env.FOR
 after(async()=>browser?.close());
 
 test('portal completo, scripts, CSS, API e formulários iguais ao main; somente navegação legal acrescentada',()=>{
-  assert.equal(sha256(withoutPersonalGoogleChanges(withoutLegalNavigation(html))),portalBeforeLegalSha256);
+  assert.equal(sha256(withoutPersonalGoogleChanges(withoutLegalNavigation(withoutSessionIsolation(html)))),portalBeforeLegalSha256);
   assert.throws(()=>withoutLegalNavigation(html+legalNavigation),/exatamente uma vez/);
   assert.throws(()=>withoutLegalNavigation(html.replace(legalNavigation,'')),/exatamente uma vez/);
 });

@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { test, before, after } from 'node:test';
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const sessionCode=html.slice(html.indexOf('// FORJA session isolation:'),html.indexOf('// END FORJA session isolation.')+'// END FORJA session isolation.'.length);
 const {chromium}=await import(process.env.FORJA_PLAYWRIGHT_MODULE?pathToFileURL(resolve(process.env.FORJA_PLAYWRIGHT_MODULE)).href:'playwright');
 let browser;
 before(async()=>browser=await chromium.launch({headless:true,...(process.env.FORJA_CHROMIUM_PATH?{executablePath:process.env.FORJA_CHROMIUM_PATH}:{})}));
@@ -14,7 +15,7 @@ async function fixture(t,{mobile=false,role='admin',active=true,connected=false,
  await page.route('**/*',r=>r.abort());
  if(oauthReturn){await page.route('https://forja-fixture.invalid/**',r=>r.fulfill({contentType:'text/html',body:'<main id="settings"></main><div id="feedback" role="status"></div>'}));await page.goto('https://forja-fixture.invalid/?googleSecretaria=connected')}
  else await page.setContent('<main id="settings"></main><div id="feedback" role="status"></div>');
- await page.evaluate(({html,role,active,connected,error,configured,unsafeUrl,reauth,calendars,base,ageMs,refreshStatus,calendarError,initialPage,revision,freeBusySupported,freeBusyAuthorized,previewStorage,previewApi})=>{
+ await page.evaluate(({html,sessionCode,role,active,connected,error,configured,unsafeUrl,reauth,calendars,base,ageMs,refreshStatus,calendarError,initialPage,revision,freeBusySupported,freeBusyAuthorized,previewStorage,previewApi})=>{
   const parsed=new DOMParser().parseFromString(html,'text/html');
   for(const original of parsed.querySelectorAll('style')){const style=document.createElement('style');style.textContent=original.textContent;document.head.appendChild(style)}
   const code=parsed.getElementById('forja-google-secretaria-script')?.textContent;if(!code)throw Error('Central script missing');
@@ -59,8 +60,8 @@ async function fixture(t,{mobile=false,role='admin',active=true,connected=false,
    if(path===base+'/connect'){if(window.onConnect)await window.onConnect(options.body);return {authUrl:provider.unsafeUrl?'https://attacker.invalid/':'https://accounts.google.com/o/oauth2/v2/auth?scope='+encodeURIComponent('openid email https://www.googleapis.com/auth/calendar.calendarlist.readonly'+(options.body?.purpose==='central-freebusy-v1'?' https://www.googleapis.com/auth/calendar.events.freebusy':''))+'&state=TEST_ONLY_STATE'};}
    throw Error('Unexpected personal/Calendar endpoint');
   };
-  (0,eval)(code);
- },{html,role,active,connected,error,configured,unsafeUrl,reauth,calendars,base,ageMs,refreshStatus,calendarError,initialPage,revision,freeBusySupported,freeBusyAuthorized,previewStorage,previewApi});
+  window.auth={currentUser:{uid:'LOCAL_ADMIN'}};(0,eval)(sessionCode+'\n'+"forjaBeginSession(auth.currentUser);state.role='"+role+"';state.profile={active:"+active+"};state.user=auth.currentUser;\n"+code);
+ },{html,sessionCode,role,active,connected,error,configured,unsafeUrl,reauth,calendars,base,ageMs,refreshStatus,calendarError,initialPage,revision,freeBusySupported,freeBusyAuthorized,previewStorage,previewApi});
  await page.evaluate(async()=>{await loadRoleData();document.getElementById('settings').innerHTML=settingsPage();bindPage()});
  await page.waitForFunction(()=>!state.googleSecretaria.loading&&!state.googleSecretaria.listLoading);
  return page;
