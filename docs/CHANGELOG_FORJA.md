@@ -1,3 +1,12 @@
+## 13/10/2026 — Correção autorizada de cache entre sessões, sem produção
+
+Branch fix/availability-session-isolation derivada do ensaio.
+Ler docs/AVAILABILITY_SESSION_ISOLATION.md. UID+geração, limpeza e
+rejeição de respostas tardias; visual, consentimento e Google preservados.
+218 regressões frontend aprovadas. Sem merge, produção ou dados reais.
+Os dois bloqueios do relatório histórico foram corrigidos nas branches
+coordenadas; não significa publicação ou Limited Use concluído.
+
 ## 12/10/2026 — Ensaio integrado temporário
 
 Combina PR8/9/10 exclusivamente na branch integration/google-agenda-2026-10-12.

@@ -1,3 +1,4 @@
+import {withoutSessionIsolation} from './session-isolation-scope.mjs';
 import {withoutPersonalGoogleChanges} from './personal-google-scope.mjs';
 import assert from 'node:assert/strict';
 import {withoutRegistrationChanges} from './registration-scope.mjs';
@@ -216,7 +217,7 @@ test('backend sem Etapa 2 central não pode autorizar o novo Preview',async()=>{
 });
 
 test('Somente blocos centrais, Novo usuário e rodapé legal podem mudar; Agenda e relatório preservados',()=>{
- const previous=withoutRegistrationChanges(withoutLegalNavigation(withoutPersonalGoogleChanges(html.toString()))).replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
+ const previous=withoutRegistrationChanges(withoutLegalNavigation(withoutPersonalGoogleChanges(withoutSessionIsolation(html.toString())))).replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
  assert.equal(sha256(Buffer.from(previous)),'cf5b8ffbc9c7827892492864d9d034d318e707bebaefc9ee4967f8ba115f741c');
 });
 
