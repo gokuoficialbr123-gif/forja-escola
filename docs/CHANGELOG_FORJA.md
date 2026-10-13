@@ -1,3 +1,7 @@
+## 13/10/2026 — Etapa 4 preparada, somente PR/Preview
+
+Etapa4 preparada em feat/secretaria-central-booking-etapa-4, base a1fc253. Não publicada. Ocupado central na Agenda, cache UID+geração e drawer com receipt central obrigatório. Preview público agenda-demo é sintético; HTTP verdadeiro testado em emuladores. Ver docs/CENTRAL_BOOKING_ETAPA4.md. Produção e visual preservados; sem scope/Google real; limite de evento próprio permanece explícito.
+
 ## 13/10/2026 — Correção autorizada de cache entre sessões, sem produção
 
 Branch fix/availability-session-isolation derivada do ensaio.

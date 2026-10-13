@@ -6,6 +6,7 @@ import { test, before, after } from 'node:test';
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const between=(a,b)=>{const start=html.indexOf(a),end=html.indexOf(b,start);assert.ok(start>=0&&end>start);return html.slice(start,end)};
 const code=[
+ between('  // BEGIN FORJA central booking presentation:', '  async function v621EnsureVisibleWeeks('),
  between('  function v621AdminWeekEntry(', '  async function v621FetchTeacherWeek('),
  between('  function v621GoogleBusy(', '  function v621LessonClass('),
  between('  function v623ManualBusy(', '  function v623NowLine('),
@@ -31,7 +32,7 @@ async function fixture(t,{entry=validEntry,lessons=[],googleBusy=[],cache='v621A
   window.zonedDateParts=x=>Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(x)).map(p=>[p.type,p.value]));
   window.v629SelectedTeachers=()=>[{uid,fullName:'Professor local'}];window.v623NowLine=()=>'';
   window.v629SlotStyle=()=>'';window.v621LessonClass=()=>'';window.lessonTitle=()=> 'Aula';window.esc=x=>String(x??'');
-  (0,eval)(code);
+  (0,eval)(code);state.v631CentralRanges={fixture:{from:'2026-01-01',to:'2026-12-31',checkedAt:Date.now(),valid:true,items:[],unavailable:[]}};
  },{code,entry,lessons,googleBusy,cache,uid,weekStart});
  return page;
 }

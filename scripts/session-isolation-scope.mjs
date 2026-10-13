@@ -1,3 +1,4 @@
+import {withoutCentralBooking} from './central-booking-scope.mjs';
 // Exact inverse of the reviewed session patch; keeps the existing portal byte guards.
 const patches=[
   [
@@ -165,4 +166,4 @@ const patches=[
     "async function loadWeekAvailabilityV616(weekStart,{render=true}={}){\n  const session=forjaCaptureSession();\n  const target=gWeekStart(weekStart||todayKey());\n  try{\n    const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(target)}`);\n    forjaAssertSession(session);state.availabilityWeekStartV616=r.weekStart||target;\n    state.availabilityWeekItemsV616=r.items||{};\n    state.availabilityWeekSavedV616=!!r.hasSavedWeek;\n    if(state.availabilityWeekStartV616===v616CurrentWeek()){\n      state.currentWeekAvailabilityV616=state.availabilityWeekItemsV616;\n      state.weeklyAvailability=state.availabilityWeekItemsV616;\n    }\n    if(render&&[\"teacher\",\"psychologist\"].includes(state.role)&&state.page===\"disponibilidade\")renderPage();\n    return r;\n  }catch(e){\n    if(!forjaSessionCurrent(session))return null;\n    toast(e.message||\"Não foi possível carregar esta semana.\",\"bad\");\n    return null;\n  }\n}\n\n"
   ]
 ];
-export function withoutSessionIsolation(html){for(const [changed,original] of [...patches].reverse()){if(!html.includes(changed))throw Error("Session scope guard: reviewed patch missing");html=html.replace(changed,original);}return html;}
+export function withoutSessionIsolation(html){html=withoutCentralBooking(html);for(const [changed,original] of [...patches].reverse()){if(!html.includes(changed))throw Error("Session scope guard: reviewed patch missing");html=html.replace(changed,original);}return html;}

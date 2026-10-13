@@ -11,7 +11,7 @@ import { withoutLegalNavigation, portalBeforeLegalSha256, validateLegalPages } f
 
 export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const referenceVersion = '6.31.1-secretaria-drawer-fluido';
-export const referenceSha256 = 'beaa5cb07bdcdabd8f53501be31df42f8964079c5287cadc5e59b50325f10e58';
+export const referenceSha256 = 'f0cbf7b33dc1f36d820b23ce5e01614312c88e2ab76e0108d8de853a0204d88d';
 export const sha256 = data => createHash('sha256').update(data).digest('hex');
 
 export function validateInlineScripts(html) {

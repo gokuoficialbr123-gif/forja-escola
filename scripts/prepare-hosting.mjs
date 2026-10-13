@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {agendaDemoArtifact} from './agenda-demo.mjs';
 import {invitationDemoArtifact} from './invitation-demo.mjs';
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -9,9 +10,11 @@ import { legalFiles } from './legal-pages.mjs';
 
 export const productionApiUrl = 'https://forja-api-m1kq.onrender.com';
 
-export function buildHostingArtifact(root = rootDir, { previewApiUrl, invitationDemo=false } = {}) {
+export function buildHostingArtifact(root = rootDir, { previewApiUrl, invitationDemo=false,agendaDemo=false } = {}) {
   const result = validate(root);
   const source = readFileSync(join(root, 'index.html'));
+  assert.ok(!(invitationDemo&&agendaDemo),'Escolha apenas um cenário isolado.');
+  if(agendaDemo){assert.equal(previewApiUrl,undefined);const bytes=agendaDemoArtifact(source);return {bytes,result:{...result,target:'agenda-demo',apiUrl:null,sha256:sha256(bytes),bytes:bytes.length,inlineScripts:validateInlineScripts(bytes.toString())}};}
   if(invitationDemo){
     assert.equal(previewApiUrl,undefined,'Demo não combina backend real.');
     const bytes=invitationDemoArtifact(source);
@@ -29,8 +32,9 @@ export function buildHostingArtifact(root = rootDir, { previewApiUrl, invitation
 }
 
 export function hostingOptionsFromArgs(args = process.argv.slice(2)) {
-  assert.ok(args.length === 0 || (args.length === 1 && ['--preview','--invitation-demo'].includes(args[0])), 'Use somente --preview, --invitation-demo ou nenhum argumento.');
+  assert.ok(args.length === 0 || (args.length === 1 && ['--preview','--invitation-demo','--agenda-demo'].includes(args[0])), 'Use somente --preview, --invitation-demo ou nenhum argumento.');
   if (!args.length) return {}; // Preview environment variables cannot affect production.
+  if(args[0]==='--agenda-demo')return {agendaDemo:true};
   if(args[0]==='--invitation-demo')return {invitationDemo:true};
   return { previewApiUrl: validatePreviewApiUrl(process.env.FORJA_PREVIEW_API_URL) };
 }
