@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { test, before, after } from 'node:test';
 
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const sessionCode=html.slice(html.indexOf('// FORJA session isolation:'),html.indexOf('// END FORJA session isolation.')+'// END FORJA session isolation.'.length);
 // Bounded real function declarations, never extract CSS from JavaScript strings.
 const between=(start,end)=>{const a=html.indexOf(start),b=html.indexOf(end,a);assert.ok(a>=0&&b>a);return html.slice(a,b)};
 const confirmCode=between('async function forjaConfirmAvailabilityWeek(', 'async function v616SaveWeek(');
@@ -24,7 +25,7 @@ async function fixture(t,{accept=true,semana=legacy}={}){
  await page.route('**/*',route=>route.request().url()==='https://forja-publication-test.invalid/'?route.fulfill({contentType:'text/html',body:'<html><body></body></html>'}):route.abort());
  await page.goto('https://forja-publication-test.invalid/');
  const prompts=[];page.on('dialog',async dialog=>{prompts.push(dialog.message());await(accept?dialog.accept():dialog.dismiss())});
- await page.evaluate(({confirmCode,addCode,copyCode,semana})=>{
+ await page.evaluate(({sessionCode,confirmCode,addCode,copyCode,semana})=>{
   window.state={user:{uid:'teacher-local'},availabilityWeekStartV616:'2026-09-28',v621TeacherWeekCache:{'2026-09-28':semana}};
   window.calls=[];window.messages=[];
   window.api=async(url,options)=>{calls.push({url,...options});return {items:options.body?.semana||{},googleSync:{status:'nao_conectado'}}};
@@ -33,8 +34,9 @@ async function fixture(t,{accept=true,semana=legacy}={}){
   window.v625AvailabilityHasConflict=()=>'';
   window.v625MergePeriods=periods=>periods.sort((a,b)=>a.inicio.localeCompare(b.inicio));
   window.renderPage=()=>{};window.setBusy=()=>{};window.toast=text=>messages.push(text);
-  (0,eval)(confirmCode+addCode+copyCode);
- },{confirmCode,addCode,copyCode,semana});
+  window.auth={currentUser:{uid:'teacher-local'}};(0,eval)(sessionCode+'\n'+confirmCode+addCode+copyCode+";forjaBeginSession(auth.currentUser);state.user=auth.currentUser;");
+  state.v621TeacherWeekCache={'2026-09-28':semana};
+ },{sessionCode,confirmCode,addCode,copyCode,semana});
  return {page,prompts};
 }
 test('confirmation in Chromium displays exact inherited window and produces deterministic fingerprint',async t=>{

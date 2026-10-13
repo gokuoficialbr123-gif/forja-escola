@@ -3789,16 +3789,52 @@ async function initFirebase(){
   firebaseReady=true;
 }
 
-async function api(path,{method="GET",body=null,authRequired=true}={}){
-  const headers={"Content-Type":"application/json"};
-  if(authRequired){
-    if(!auth?.currentUser)throw new Error("Sua sessão expirou. Entre novamente.");
-    headers.Authorization=`Bearer ${await auth.currentUser.getIdToken()}`;
+// FORJA session isolation: UID plus generation; no persistence or global timer.
+let forjaSessionUID=null,forjaSessionGeneration=0,forjaSessionDefaults=null,forjaDefaultsRegistered=false,forjaAvailabilityRequestSequence=0;
+const forjaSessionRequests=new Set();
+function forjaCaptureSession(){return {uid:auth?.currentUser?.uid||forjaSessionUID,generation:forjaSessionGeneration};}
+function forjaSessionCurrent(scope){return !!scope&&scope.generation===forjaSessionGeneration&&scope.uid===forjaSessionUID&&scope.uid===auth?.currentUser?.uid;}
+function forjaStaleSession(){const error=new Error('A sessão mudou. Reabra sua agenda.');error.code='FORJA_STALE_SESSION';return error;}
+function forjaAssertSession(scope){if(!forjaSessionCurrent(scope))throw forjaStaleSession();}
+function forjaChangeSession(uid){
+  if(!forjaSessionDefaults&&uid)forjaSessionDefaults=structuredClone(state);
+  forjaSessionGeneration++;forjaAvailabilityRequestSequence++;forjaSessionUID=uid;
+  if(typeof hideProcess==='function')hideProcess();
+  for(const controller of forjaSessionRequests)controller.abort();forjaSessionRequests.clear();
+  if(forjaSessionDefaults){
+    document.querySelector('[data-v630-close]')?.click();
+    if(typeof closeModal==='function')closeModal();
+    for(const key of Object.keys(state))delete state[key];
+    Object.assign(state,structuredClone(forjaSessionDefaults),{v621TeacherWeekCache:{},v621AdminWeekCache:{},googleBusyUnavailable:true});
   }
-  const response=await fetch(`${FORJA_API_URL}${path}`,{method,headers,body:body==null?undefined:JSON.stringify(body)});
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok){const e=new Error(data.error||`Erro ${response.status}`);e.status=response.status;throw e}
-  return data;
+  state.user=null;state.profile=null;state.role=null;
+}
+function forjaCompleteSessionDefaults(){
+  if(forjaDefaultsRegistered)return;
+  for(const key of Object.keys(state))if(!(key in forjaSessionDefaults))forjaSessionDefaults[key]=structuredClone(state[key]);
+  forjaDefaultsRegistered=true;
+}
+function forjaBeginSession(user){if(forjaSessionUID!==user.uid)forjaChangeSession(user.uid);return forjaCaptureSession();}
+function forjaEndSession(){forjaChangeSession(null);}
+// END FORJA session isolation.
+
+async function api(path,{method="GET",body=null,authRequired=true,session=null}={}){
+  const scope=session||(forjaSessionUID?forjaCaptureSession():null),controller=new AbortController();
+  if(scope){forjaAssertSession(scope);forjaSessionRequests.add(controller);}
+  try{
+    const headers={"Content-Type":"application/json"};
+    if(authRequired){
+      const user=auth?.currentUser;if(!user||!scope)throw new Error("Sua sessão expirou. Entre novamente.");
+      headers.Authorization=`Bearer ${await user.getIdToken()}`;
+      forjaAssertSession(scope);
+    }
+    const response=await fetch(`${FORJA_API_URL}${path}`,{method,headers,body:body==null?undefined:JSON.stringify(body),signal:controller.signal});
+    const data=await response.json().catch(()=>({}));
+    if(scope)forjaAssertSession(scope);
+    if(!response.ok){const e=new Error(data.error||`Erro ${response.status}`);e.status=response.status;throw e}
+    return data;
+  }catch(error){if(scope&&!forjaSessionCurrent(scope))throw forjaStaleSession();throw error;}
+  finally{forjaSessionRequests.delete(controller);}
 }
 
 async function publicApi(path,opts={}){return api(path,{...opts,authRequired:false})}
@@ -3859,7 +3895,7 @@ async function enterPortal(){
   try{
     await initFirebase();
     resetLoginForm({keepEmail:true,keepPassword:true,clearError:true});
-    if(auth.currentUser) await auth.signOut().catch(()=>{});
+    if(auth.currentUser){forjaEndSession();await auth.signOut().catch(()=>{});}
     const credential=await auth.signInWithEmailAndPassword(email,password);
     await activateUser(credential.user);
   }catch(e){
@@ -3886,6 +3922,7 @@ async function resendVerification(){
   try{if(!auth.currentUser)throw new Error();await auth.currentUser.sendEmailVerification();toast("Link de verificação reenviado. Confira também Spam ou Lixo eletrônico.","ok");}catch(e){toast("Não foi possível reenviar agora.","bad")}
 }
 async function executeLogout(){
+  forjaEndSession();
   try{await auth?.signOut()}catch(_){}
   state.user=null;state.profile=null;state.role=null;
   resetLoginForm();
@@ -3895,9 +3932,10 @@ async function executeLogout(){
 function logout(){if(!auth?.currentUser){executeLogout();return}modal("Sair da conta",`<div class="system-note"><div><b>Deseja encerrar sua sessão?</b><br>Você precisará entrar novamente com seu e-mail e senha.</div></div>`,"Sair da conta",async btn=>{setBusy(btn,true,"Saindo...");await executeLogout();closeModal()})}
 
 async function activateUser(user){
+  const session=forjaBeginSession(user);
   state.loading=true; setAppVisibility(true); showProcess("Carregando seu perfil...","Validando sua conta e permissões FORJA.","Conta"); $("#workspaceContent").innerHTML=skeleton(5);
   try{
-    const profile=await getProfile();
+    const profile=await getProfile();forjaAssertSession(session);forjaCompleteSessionDefaults();
     const authEmail=String(user?.email||"").trim().toLowerCase();
     const profileEmail=String(profile?.email||"").trim().toLowerCase();
     if(authEmail && profileEmail && authEmail!==profileEmail) throw new Error("A conta autenticada não corresponde ao perfil cadastrado. Saia e entre novamente.");
@@ -3905,19 +3943,21 @@ async function activateUser(user){
     state.user=user; updateProcess("Perfil encontrado","Carregando Registro FORJA, função e preferências.","Perfil");
     state.profile=profile;state.role=profile.role;state.page="inicio";
     updateProcess("Preparando seu portal...","Carregando agenda, notificações e informações do seu perfil.","Portal");
-    await loadRoleData(); renderShell();renderPage();api("/me/acesso",{method:"POST",body:{}}).catch(()=>{});
-  }catch(e){console.error(e);await auth.signOut().catch(()=>{});resetLoginForm({keepEmail:true,keepPassword:false,clearError:true});showLogin();showLoginError(e.message||"Não foi possível abrir o portal.");}
-  finally{state.loading=false;hideProcess();setBusy(document.querySelector('[data-action="enterPortal"]'),false)}
+    await loadRoleData();forjaAssertSession(session); renderShell();renderPage();api("/me/acesso",{method:"POST",body:{}}).catch(()=>{});
+  }catch(e){if(!forjaSessionCurrent(session)||e?.code==='FORJA_STALE_SESSION')return;console.error(e);await auth.signOut().catch(()=>{});resetLoginForm({keepEmail:true,keepPassword:false,clearError:true});showLogin();showLoginError(e.message||"Não foi possível abrir o portal.");}
+  finally{if(forjaSessionCurrent(session)){state.loading=false;hideProcess();setBusy(document.querySelector('[data-action="enterPortal"]'),false)}}
 }
 
 async function loadCatalogs(){
+  const session=forjaCaptureSession();
   const admin=state.role==="admin";
-  const [s,d]=await Promise.all([admin?api("/admin/catalogos/series"):publicApi("/catalogos/series"),admin?api("/admin/catalogos/disciplinas"):publicApi("/catalogos/disciplinas")]);state.series=s.items||[];state.subjects=d.items||[];
+  const [s,d]=await Promise.all([admin?api("/admin/catalogos/series"):publicApi("/catalogos/series"),admin?api("/admin/catalogos/disciplinas"):publicApi("/catalogos/disciplinas")]);forjaAssertSession(session);state.series=s.items||[];state.subjects=d.items||[];
 }
-async function safeLoad(fn,fallback=[],label="Dados"){try{return await fn()}catch(e){console.warn(`[FORJA] ${label}`,e);state.loadIssues.push({label,error:e?.message||"Falha ao carregar"});return fallback}}
+async function safeLoad(fn,fallback=[],label="Dados"){try{return await fn()}catch(e){if(e?.code==='FORJA_STALE_SESSION')throw e;console.warn(`[FORJA] ${label}`,e);state.loadIssues.push({label,error:e?.message||"Falha ao carregar"});return fallback}}
 async function loadRoleData(){
+  const session=forjaCaptureSession();
   state.users=[];state.students=[];state.lessons=[];state.sessions=[];state.notifications=[];state.unavailability=[];state.supportItems=[];state.enrollments=[];state.therapyProjection=[];state.calendar=[];state.announcements=[];state.documents=[];state.linkRequests=[];state.series=[];state.subjects=[];state.weeklyAvailability={};state.periods=[];state.classes=[];state.evaluations=[];state.grades=[];state.tasks=[];state.requests=[];state.schoolConfig={};state.reportSummary={};state.auditItems=[];state.accessHistory=[];state.loadIssues=[];
-  await safeLoad(loadCatalogs,undefined,"Catálogos");
+  await safeLoad(loadCatalogs,undefined,"Catálogos");forjaAssertSession(session);
   const commonNot=safeLoad(()=>api("/notificacoes"),{items:[]},"Notificações").then(x=>state.notifications=x.items||[]);
   const commonCalendar=safeLoad(()=>api("/calendario-escolar"),{items:[]},"Calendário").then(x=>state.calendar=x.items||[]);
   const commonAnnouncements=safeLoad(()=>api("/comunicados"),{items:[]},"Comunicados").then(x=>state.announcements=x.items||[]);
@@ -3937,19 +3977,21 @@ async function loadRoleData(){
     safeLoad(()=>api("/auditoria"),{items:[]},"Auditoria").then(x=>state.auditItems=x.items||[])
   ]):Promise.resolve();
 
+  // Observe shared loads even when a role does not consume one of them.
+  void Promise.allSettled([commonNot,commonCalendar,commonAnnouncements,commonDocuments,commonSupport,commonRequests,commonConfig,commonAcademic,adminExtra]);
   if(state.role==="admin"){
     const [users,lessons,sessions,blocks,enrolls,links]=await Promise.all([
       safeLoad(()=>api("/admin/usuarios"),{users:[]},"Usuários"),safeLoad(()=>api("/aulas"),{items:[]},"Aulas"),safeLoad(()=>api("/sessoes-terapia"),{items:[]},"Sessões"),safeLoad(()=>api("/indisponibilidades"),{items:[]},"Indisponibilidades"),safeLoad(()=>api("/admin/matriculas"),{items:[]},"Matrículas"),safeLoad(()=>api("/admin/vinculos"),{items:[]},"Vínculos familiares"),commonNot,commonCalendar,commonAnnouncements,commonDocuments,commonSupport,commonRequests,commonConfig,commonAcademic,adminExtra
-    ]);state.users=users.users||[];state.students=state.users.filter(x=>x.role==="student"&&x.active!==false);state.lessons=lessons.items||[];state.sessions=sessions.items||[];state.unavailability=blocks.items||[];state.enrollments=enrolls.items||[];state.linkRequests=links.items||[];
+    ]);forjaAssertSession(session);state.users=users.users||[];state.students=state.users.filter(x=>x.role==="student"&&x.active!==false);state.lessons=lessons.items||[];state.sessions=sessions.items||[];state.unavailability=blocks.items||[];state.enrollments=enrolls.items||[];state.linkRequests=links.items||[];
   }else if(state.role==="teacher"){
-    const [lessons,students,blocks,weekly]=await Promise.all([safeLoad(()=>api("/aulas"),{items:[]},"Aulas"),safeLoad(()=>api("/alunos"),{items:[]},"Alunos"),safeLoad(()=>api("/indisponibilidades"),{items:[]},"Indisponibilidades"),safeLoad(()=>api("/disponibilidade-semanal"),{items:{}},"Disponibilidade semanal"),commonNot,commonCalendar,commonAnnouncements,commonDocuments,commonSupport,commonRequests,commonConfig,commonAcademic]);state.lessons=lessons.items||[];state.students=students.items||[];state.unavailability=blocks.items||[];state.weeklyAvailability=weekly.items||{};
+    const [lessons,students,blocks,weekly]=await Promise.all([safeLoad(()=>api("/aulas"),{items:[]},"Aulas"),safeLoad(()=>api("/alunos"),{items:[]},"Alunos"),safeLoad(()=>api("/indisponibilidades"),{items:[]},"Indisponibilidades"),safeLoad(()=>api("/disponibilidade-semanal"),{items:{}},"Disponibilidade semanal"),commonNot,commonCalendar,commonAnnouncements,commonDocuments,commonSupport,commonRequests,commonConfig,commonAcademic]);forjaAssertSession(session);state.lessons=lessons.items||[];state.students=students.items||[];state.unavailability=blocks.items||[];state.weeklyAvailability=weekly.items||{};
   }else if(state.role==="psychologist"){
-    const [sessions,students,blocks,weekly]=await Promise.all([safeLoad(()=>api("/sessoes-terapia"),{items:[]},"Sessões"),safeLoad(()=>api("/alunos"),{items:[]},"Alunos"),safeLoad(()=>api("/indisponibilidades"),{items:[]},"Indisponibilidades"),safeLoad(()=>api("/disponibilidade-semanal"),{items:{}},"Disponibilidade semanal"),commonNot,commonCalendar,commonAnnouncements,commonDocuments,commonRequests,commonConfig]);state.sessions=sessions.items||[];state.students=students.items||[];state.unavailability=blocks.items||[];state.weeklyAvailability=weekly.items||{};
+    const [sessions,students,blocks,weekly]=await Promise.all([safeLoad(()=>api("/sessoes-terapia"),{items:[]},"Sessões"),safeLoad(()=>api("/alunos"),{items:[]},"Alunos"),safeLoad(()=>api("/indisponibilidades"),{items:[]},"Indisponibilidades"),safeLoad(()=>api("/disponibilidade-semanal"),{items:{}},"Disponibilidade semanal"),commonNot,commonCalendar,commonAnnouncements,commonDocuments,commonRequests,commonConfig]);forjaAssertSession(session);state.sessions=sessions.items||[];state.students=students.items||[];state.unavailability=blocks.items||[];state.weeklyAvailability=weekly.items||{};
   }else if(state.role==="student"){
-    const req=[safeLoad(()=>api("/aulas"),{items:[]},"Aulas"),commonNot,commonCalendar,commonAnnouncements,commonDocuments,commonSupport,safeLoad(()=>api("/sessoes-terapia"),{items:[]},"Sessões"),commonRequests,commonConfig,commonAcademic];const out=await Promise.all(req);state.lessons=out[0].items||[];state.sessions=out[6]?.items||[];
+    const req=[safeLoad(()=>api("/aulas"),{items:[]},"Aulas"),commonNot,commonCalendar,commonAnnouncements,commonDocuments,commonSupport,safeLoad(()=>api("/sessoes-terapia"),{items:[]},"Sessões"),commonRequests,commonConfig,commonAcademic];const out=await Promise.all(req);forjaAssertSession(session);state.lessons=out[0].items||[];state.sessions=out[6]?.items||[];
   }else if(state.role==="parent"){
     const [lessons,children,therapy,links]=await Promise.all([safeLoad(()=>api("/aulas"),{items:[]},"Aulas"),safeLoad(()=>api("/alunos"),{items:[]},"Alunos"),safeLoad(()=>api("/responsavel/terapia"),{items:[]},"Terapia"),safeLoad(()=>api("/responsavel/vinculos"),{items:[]},"Vínculos familiares"),commonNot,commonCalendar,commonAnnouncements,commonDocuments,commonSupport,commonRequests,commonConfig,commonAcademic]);
-    state.lessons=lessons.items||[];state.students=children.items||[];state.therapyProjection=therapy.items||[];state.linkRequests=links.items||[];
+    forjaAssertSession(session);state.lessons=lessons.items||[];state.students=children.items||[];state.therapyProjection=therapy.items||[];state.linkRequests=links.items||[];
     if(!state.students.some(x=>x.uid===state.selectedChildId))state.selectedChildId=state.students[0]?.uid||null;
   }
   applySchoolIdentity();
@@ -4581,7 +4623,7 @@ function downloadBlob(content,type,name){const a=document.createElement("a"),u=U
 function exportReport(kind){const rows=reportRows();if(kind==="csv"){downloadBlob('\ufeff'+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(';')).join('\n'),"text/csv;charset=utf-8","forja-relatorio.csv");return}if(kind==="xls"){const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Relatório"><Table>${rows.map(r=>`<Row>${r.map(v=>`<Cell><Data ss:Type="String">${esc(v)}</Data></Cell>`).join('')}</Row>`).join('')}</Table></Worksheet></Workbook>`;downloadBlob(xml,"application/vnd.ms-excel","forja-relatorio.xls");return}const w=window.open("","_blank");if(!w){toast("Permita pop-ups para gerar o PDF.","warn");return}w.document.write(`<html><head><title>Relatório ${esc(schoolDisplayName())}</title><style>body{font-family:Arial;padding:40px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:10px}h1{color:#081f2e}
 </style></head><body><h1>Relatório ${esc(schoolDisplayName())}</h1><p>Gerado em ${new Date().toLocaleString('pt-BR')}</p><table>${rows.map((r,i)=>`<tr>${r.map(v=>i===0?`<th>${esc(v)}</th>`:`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</table></body></html>`);w.document.close();w.focus();setTimeout(()=>w.print(),250)}
 
-async function reloadAndRender(){const page=state.page;$("#workspaceContent").innerHTML=loading("Atualizando dados...");try{await loadRoleData();state.page=page;renderShell();renderPage()}catch(e){console.error(e);$("#workspaceContent").innerHTML=`${loadIssueBanner()}${empty("Não foi possível atualizar os dados",e.message||"Tente novamente.")}`;throw e}}
+async function reloadAndRender(){const session=forjaCaptureSession(),page=state.page;$("#workspaceContent").innerHTML=loading("Atualizando dados...");try{await loadRoleData();forjaAssertSession(session);state.page=page;renderShell();renderPage()}catch(e){if(!forjaSessionCurrent(session))return;console.error(e);$("#workspaceContent").innerHTML=`${loadIssueBanner()}${empty("Não foi possível atualizar os dados",e.message||"Tente novamente.")}`;throw e}}
 function mobileSearch(){modal("Buscar no portal",`<div class="form-grid"><div class="full"><label>O que você procura?</label><div class="mobile-search-field"><input id="mobileGlobalSearch" placeholder="Aluno, aula, tarefa, solicitação..."><button class="btn gold" id="mobileGlobalSearchBtn">Buscar</button></div></div></div>`);const input=$("#mobileGlobalSearch"),go=()=>runGlobalSearch(input?.value||"");$("#mobileGlobalSearchBtn").onclick=go;input?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();go()}})}
 function mobileMore(){const menu=[...(MENUS[state.role]||[])];if(state.role==="student"&&(state.profile?.therapyActive===true||state.sessions.length)&&!menu.some(x=>x[0]==="terapia"))menu.splice(4,0,["terapia","Terapia"]);if(state.role==="parent"&&(state.therapyProjection.length||state.students.some(x=>x.therapyActive===true))&&!menu.some(x=>x[0]==="terapia"))menu.splice(4,0,["terapia","Terapia"]);const primaryIds=MOBILE_PRIMARY[state.role]||[],extras=menu.filter(([id])=>!primaryIds.includes(id));modal("Mais opções",`<div class="mobile-more-heading"><b>Outras áreas do portal</b><small>Conta e notificações ficam nos ícones do topo.</small></div><div class="mobile-more-list">${groupedMobileMenuMarkup(extras)}</div>`);$$('[data-mobile-page]').forEach(b=>b.onclick=()=>{closeModal();navigate(b.dataset.mobilePage)})}
 function quickAction(){const actions=state.role==="admin"?[["Criar aula","newLesson"],["Agendar sessão","newSession"],["Novo usuário","newUser"]]:state.role==="teacher"?[["Marcar ocupado","newUnavailable"]]:state.role==="psychologist"?[["Marcar ocupado","newUnavailable"]]:[];if(!actions.length){toast("Nenhuma ação rápida disponível neste perfil.");return}modal("Ação rápida",actions.map(([l,a])=>`<button class="role-action" data-quick="${a}">${esc(l)} <span>→</span></button>`).join(""));$$('[data-quick]').forEach(b=>b.onclick=()=>{closeModal();action(b.dataset.quick)})}
@@ -6011,10 +6053,11 @@ function v616WeekDays(items={}){return Object.values(items||{}).filter(v=>Array.
 function v616AdminWeekItem(uid){return state.adminAvailabilityWeekV616?.[uid]||null}
 
 async function loadWeekAvailabilityV616(weekStart,{render=true}={}){
+  const session=forjaCaptureSession(),sequence=++forjaAvailabilityRequestSequence;
   const target=gWeekStart(weekStart||todayKey());
   try{
     const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(target)}`);
-    state.availabilityWeekStartV616=r.weekStart||target;
+    forjaAssertSession(session);if(sequence!==forjaAvailabilityRequestSequence)return null;state.availabilityWeekStartV616=r.weekStart||target;
     state.availabilityWeekItemsV616=r.items||{};
     state.availabilityWeekSavedV616=!!r.hasSavedWeek;
     if(state.availabilityWeekStartV616===v616CurrentWeek()){
@@ -6024,6 +6067,7 @@ async function loadWeekAvailabilityV616(weekStart,{render=true}={}){
     if(render&&["teacher","psychologist"].includes(state.role)&&state.page==="disponibilidade")renderPage();
     return r;
   }catch(e){
+    if(!forjaSessionCurrent(session)||sequence!==forjaAvailabilityRequestSequence)return null;
     toast(e.message||"Não foi possível carregar esta semana.","bad");
     return null;
   }
@@ -6031,24 +6075,25 @@ async function loadWeekAvailabilityV616(weekStart,{render=true}={}){
 
 const loadRoleDataBeforeV616=loadRoleData;
 loadRoleData=async function(){
-  await loadRoleDataBeforeV616();
+  const session=forjaCaptureSession();
+  await loadRoleDataBeforeV616();forjaAssertSession(session);
   const current=v616CurrentWeek();
   if(["teacher","psychologist"].includes(state.role)){
     try{
       const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(current)}`);
-      state.currentWeekAvailabilityV616=r.items||{};
+      forjaAssertSession(session);state.currentWeekAvailabilityV616=r.items||{};
       state.weeklyAvailability=r.items||{};
       if(!state.availabilityWeekStartV616)state.availabilityWeekStartV616=current;
       if(state.availabilityWeekStartV616===current){state.availabilityWeekItemsV616=r.items||{};state.availabilityWeekSavedV616=!!r.hasSavedWeek}
-    }catch(e){console.warn("FORJA_AVAILABILITY_WEEK_616",e?.message||e);state.currentWeekAvailabilityV616={};state.weeklyAvailability={}}
+    }catch(e){if(!forjaSessionCurrent(session))throw forjaStaleSession();console.warn("FORJA_AVAILABILITY_WEEK_616",e?.message||e);state.currentWeekAvailabilityV616={};state.weeklyAvailability={}}
   }
   if(state.role==="admin"){
     try{
       const r=await api(`/admin/disponibilidades-semana?weekStart=${encodeURIComponent(current)}`),map={};
-      for(const x of r.items||[])map[x.uid]=x;
+      forjaAssertSession(session);for(const x of r.items||[])map[x.uid]=x;
       state.adminAvailabilityWeekV616=map;
       state.adminAvailabilityWeekStartV616=r.weekStart||current;
-    }catch(e){console.warn("FORJA_ADMIN_WEEK_616",e?.message||e);state.adminAvailabilityWeekV616={}}
+    }catch(e){if(!forjaSessionCurrent(session))throw forjaStaleSession();console.warn("FORJA_ADMIN_WEEK_616",e?.message||e);state.adminAvailabilityWeekV616={}}
   }
 };
 
@@ -6118,12 +6163,12 @@ async function forjaConfirmAvailabilityWeek(weekStart, semana) {
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(payload)));
   return {version:1,fingerprint:Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('')};
 }
-async function v616SaveWeek(btn){
-  let semana;try{semana=v616CollectWeek()}catch(e){toast(e.message,"warn");return}
+async function v616SaveWeek(btn){const session=forjaCaptureSession();
+  let semana;try{semana=v616CollectWeek()}catch(e){if(!forjaSessionCurrent(session))return;toast(e.message,"warn");return}
   setBusy(btn,true,"Salvando...");
-  try{const r=await api("/disponibilidade-semanal",{method:"PATCH",body:{weekStart:state.availabilityWeekStartV616,semana,publicationConfirmation:await forjaConfirmAvailabilityWeek(state.availabilityWeekStartV616,semana)}});state.availabilityWeekItemsV616=r.items||{};state.availabilityWeekSavedV616=true;if(r.weekStart===v616CurrentWeek()){state.currentWeekAvailabilityV616=r.items||{};state.weeklyAvailability=r.items||{}}toast("Disponibilidade desta semana salva.","ok");renderPage()}catch(e){toast(e.message||"Erro ao salvar a semana.","bad")}finally{setBusy(btn,false)}
+  try{const confirmation=await forjaConfirmAvailabilityWeek(state.availabilityWeekStartV616,semana);forjaAssertSession(session);const r=await api("/disponibilidade-semanal",{method:"PATCH",session,body:{weekStart:state.availabilityWeekStartV616,semana,publicationConfirmation:confirmation}});forjaAssertSession(session);state.availabilityWeekItemsV616=r.items||{};state.availabilityWeekSavedV616=true;if(r.weekStart===v616CurrentWeek()){state.currentWeekAvailabilityV616=r.items||{};state.weeklyAvailability=r.items||{}}toast("Disponibilidade desta semana salva.","ok");renderPage()}catch(e){if(!forjaSessionCurrent(session))return;toast(e.message||"Erro ao salvar a semana.","bad")}finally{if(forjaSessionCurrent(session))setBusy(btn,false)}
 }
-async function v616CopyPreviousWeek(btn){setBusy(btn,true,"Copiando...");try{const r=await api("/disponibilidade-semanal/copiar-anterior",{method:"POST",body:{weekStart:state.availabilityWeekStartV616}});state.availabilityWeekItemsV616=r.items||{};state.availabilityWeekSavedV616=true;if(r.weekStart===v616CurrentWeek()){state.currentWeekAvailabilityV616=r.items||{};state.weeklyAvailability=r.items||{}}toast("Semana copiada como rascunho. Revise os períodos e publique para liberar novas aulas.","ok");renderPage()}catch(e){toast(e.message||"A semana anterior não possui disponibilidade salva.","warn")}finally{setBusy(btn,false)}}
+async function v616CopyPreviousWeek(btn){const session=forjaCaptureSession();setBusy(btn,true,"Copiando...");try{const r=await api("/disponibilidade-semanal/copiar-anterior",{method:"POST",session,body:{weekStart:state.availabilityWeekStartV616}});forjaAssertSession(session);state.availabilityWeekItemsV616=r.items||{};state.availabilityWeekSavedV616=true;if(r.weekStart===v616CurrentWeek()){state.currentWeekAvailabilityV616=r.items||{};state.weeklyAvailability=r.items||{}}toast("Semana copiada como rascunho. Revise os períodos e publique para liberar novas aulas.","ok");renderPage()}catch(e){if(!forjaSessionCurrent(session))return;toast(e.message||"A semana anterior não possui disponibilidade salva.","warn")}finally{if(forjaSessionCurrent(session))setBusy(btn,false)}}
 
 // Status de aula é independente do registro pedagógico.
 gStatusMeta=function(l){
@@ -6291,7 +6336,7 @@ polishPortalBlockE=function(){polishPortalBeforeV616();document.documentElement.
 
 initVisualAnimations();
 
-(async()=>{try{await initFirebase();auth.onAuthStateChanged(async user=>{if(state.registrationInProgress||manualLoginInProgress)return;if(user)await activateUser(user);else showPublic();});}catch(e){console.error(e);showPublic();}})();
+(async()=>{try{await initFirebase();auth.onAuthStateChanged(async user=>{if(state.registrationInProgress||manualLoginInProgress)return;if(user)await activateUser(user);else {forjaEndSession();showPublic();}});}catch(e){console.error(e);showPublic();}})();
 
 
 /* ===== FORJA 6.17 — AGENDA VISUAL + GOOGLE CALENDAR ===== */
@@ -6534,17 +6579,18 @@ function v619ProfessionalWeekMap(){
   return state.adminProfessionalWeekMapV619||{};
 }
 async function v619LoadAdminWeek(weekStart,{render=true}={}){
+  const session=forjaCaptureSession();
   if(state.adminProfessionalWeekLoadingV619)return;
   const ws=gWeekStart(weekStart||todayKey());state.adminProfessionalWeekLoadingV619=true;
   try{
     const r=await api(`/admin/disponibilidades-semana?weekStart=${encodeURIComponent(ws)}`),map={};
-    for(const x of r.items||[])map[x.uid]=x;
+    forjaAssertSession(session);for(const x of r.items||[])map[x.uid]=x;
     state.adminProfessionalWeekStartV619=r.weekStart||ws;
     state.adminProfessionalWeekMapV619=map;
     state.adminProfessionalWeekLoadedV619=state.adminProfessionalWeekStartV619;
     if(render&&state.role==='admin'&&state.page==='agenda')renderPage();
-  }catch(e){toast(e.message||'Não foi possível carregar a disponibilidade desta semana.','bad')}
-  finally{state.adminProfessionalWeekLoadingV619=false}
+  }catch(e){if(!forjaSessionCurrent(session))return;toast(e.message||'Não foi possível carregar a disponibilidade desta semana.','bad')}
+  finally{if(forjaSessionCurrent(session))state.adminProfessionalWeekLoadingV619=false}
 }
 function v619ProfessionalSubjects(user){return user?.role==='teacher'?(user.disciplinaIds||[]).map(subjectLabel).filter(Boolean):['Atendimento psicológico']}
 function v619WeekExceptions(uid,ws){const we=gAddDays(ws,6);return (state.unavailability||[]).filter(x=>String(x.status||'ativo')!=='inativo'&&x.professionalId===uid&&String(x.data||'')>=ws&&String(x.data||'')<=we)}
@@ -6794,12 +6840,14 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   }
 
   async function v621FetchTeacherWeek(ws){
+    const session=forjaCaptureSession();
     if(state.availabilityWeekStartV616===ws||state.v621TeacherWeekCache?.[ws])return;
-    try{const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(ws)}`);state.v621TeacherWeekCache[ws]=r.items||{};if(ws===v616CurrentWeek()){state.currentWeekAvailabilityV616=r.items||{};state.weeklyAvailability=r.items||{}}}catch(e){console.warn('FORJA_621_TEACHER_WEEK',e?.message||e)}
+    try{const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(ws)}`);forjaAssertSession(session);state.v621TeacherWeekCache[ws]=r.items||{};if(ws===v616CurrentWeek()){state.currentWeekAvailabilityV616=r.items||{};state.weeklyAvailability=r.items||{}}}catch(e){if(!forjaSessionCurrent(session))return;console.warn('FORJA_621_TEACHER_WEEK',e?.message||e)}
   }
   async function v621FetchAdminWeek(ws){
+    const session=forjaCaptureSession();
     if(state.adminProfessionalWeekLoadedV619===ws||state.adminAvailabilityWeekStartV616===ws||state.v621AdminWeekCache?.[ws])return;
-    try{const r=await api(`/admin/disponibilidades-semana?weekStart=${encodeURIComponent(ws)}`),map={};for(const x of r.items||[])map[x.uid]=x;state.v621AdminWeekCache[ws]=map}catch(e){console.warn('FORJA_621_ADMIN_WEEK',e?.message||e)}
+    try{const r=await api(`/admin/disponibilidades-semana?weekStart=${encodeURIComponent(ws)}`),map={};forjaAssertSession(session);for(const x of r.items||[])map[x.uid]=x;state.v621AdminWeekCache[ws]=map}catch(e){if(!forjaSessionCurrent(session))return;console.warn('FORJA_621_ADMIN_WEEK',e?.message||e)}
   }
   async function v621EnsureVisibleWeeks(role){
     const weeks=v621VisibleWeeks(role);if(role==='teacher')await Promise.all(weeks.map(v621FetchTeacherWeek));else await Promise.all(weeks.map(v621FetchAdminWeek));
@@ -6893,7 +6941,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   adminPage=function(p){if(p==='agenda')return v621AdminAgendaPage();return adminPageBeforeV621(p)};
 
   const loadRoleDataBeforeV621=loadRoleData;
-  loadRoleData=async function(){await loadRoleDataBeforeV621();if(state.role==='teacher')await v621FetchTeacherWeek(gWeekStart(v621Date('teacher')));if(state.role==='admin'){v621SelectedAdminTeacher();await v621FetchAdminWeek(gWeekStart(v621Date('admin')))}};
+  loadRoleData=async function(){const session=forjaCaptureSession();await loadRoleDataBeforeV621();forjaAssertSession(session);if(state.role==='teacher')await v621FetchTeacherWeek(gWeekStart(v621Date('teacher')));if(state.role==='admin'){v621SelectedAdminTeacher();await v621FetchAdminWeek(gWeekStart(v621Date('admin')))}};
 
   async function v621Move(role,action){
     if(role==='teacher'&&state.v621TeacherAvailabilityOpen&&state.v621AvailabilityDirty){toast('Publique ou cancele a disponibilidade antes de mudar de período.','warn');return}
@@ -6921,10 +6969,11 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     try{await api(`/indisponibilidades/${encodeURIComponent(id)}`,{method:'DELETE'});toast('Horário Ocupado removido no FORJA e no Google.','ok');await v625RefreshTeacherAgenda(gWeekStart(v621Date('teacher')));renderPage()}catch(e){toast(e.message||'Erro ao remover horário ocupado.','bad')}
   }
   async function v621PublishAvailability(button){
+    const session=forjaCaptureSession();
     const ws=state.availabilityWeekStartV616||gWeekStart(v621Date('teacher')),semana=v621LocalWeek();setBusy(button,true,'Publicando...');
-    try{const r=await api('/disponibilidade-semanal',{method:'PATCH',body:{weekStart:ws,semana,publicationConfirmation:await forjaConfirmAvailabilityWeek(ws,semana)}});v621SetLocalWeek(r.items||{});state.availabilityWeekSavedV616=true;state.v621AvailabilityDirty=false;const gs=r.googleSync||{};if(gs.status==='sincronizado')toast(`Disponibilidade publicada no FORJA e no Google · ${Number(gs.created||0)+Number(gs.updated||0)} evento(s) sincronizado(s).`,'ok');else if(gs.status==='nao_conectado')toast('Disponibilidade publicada no FORJA. Conecte o Google para espelhar os horários.','warn');else toast(`Disponibilidade salva, mas o Google teve ${Number(gs.failed||1)} falha(s). Abra o Diagnóstico.`,'warn');await reloadAndRender()}catch(e){toast(e.message||'Erro ao publicar disponibilidade.','bad')}finally{setBusy(button,false)}
+    try{const confirmation=await forjaConfirmAvailabilityWeek(ws,semana);forjaAssertSession(session);const r=await api('/disponibilidade-semanal',{method:'PATCH',session,body:{weekStart:ws,semana,publicationConfirmation:confirmation}});forjaAssertSession(session);v621SetLocalWeek(r.items||{});state.availabilityWeekSavedV616=true;state.v621AvailabilityDirty=false;const gs=r.googleSync||{};if(gs.status==='sincronizado')toast(`Disponibilidade publicada no FORJA e no Google · ${Number(gs.created||0)+Number(gs.updated||0)} evento(s) sincronizado(s).`,'ok');else if(gs.status==='nao_conectado')toast('Disponibilidade publicada no FORJA. Conecte o Google para espelhar os horários.','warn');else toast(`Disponibilidade salva, mas o Google teve ${Number(gs.failed||1)} falha(s). Abra o Diagnóstico.`,'warn');await reloadAndRender()}catch(e){if(!forjaSessionCurrent(session))return;toast(e.message||'Erro ao publicar disponibilidade.','bad')}finally{if(forjaSessionCurrent(session))setBusy(button,false)}
   }
-  async function v621CancelAvailability(){const ws=state.availabilityWeekStartV616||gWeekStart(v621Date('teacher'));await loadWeekAvailabilityV616(ws,{render:false});state.v621TeacherWeekCache[ws]=state.availabilityWeekItemsV616||{};state.v621AvailabilityDirty=false;state.v621TeacherAvailabilityOpen=false;renderPage()}
+  async function v621CancelAvailability(){const session=forjaCaptureSession(),ws=state.availabilityWeekStartV616||gWeekStart(v621Date('teacher'));await loadWeekAvailabilityV616(ws,{render:false});if(!forjaSessionCurrent(session))return;state.v621TeacherWeekCache[ws]=state.availabilityWeekItemsV616||{};state.v621AvailabilityDirty=false;state.v621TeacherAvailabilityOpen=false;renderPage()}
   function v625RangesOverlap(aStart,aEnd,bStart,bEnd){
     const a=v621TimeMinutes(aStart),b=v621TimeMinutes(aEnd),c=v621TimeMinutes(bStart),d=v621TimeMinutes(bEnd);return a!=null&&b!=null&&c!=null&&d!=null&&a<d&&b>c;
   }
@@ -6940,29 +6989,32 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     return out.map(({inicio,fim})=>({inicio,fim}));
   }
   async function v625RefreshTeacherAgenda(weekStart=gWeekStart(v621Date('teacher'))){
+    const session=forjaCaptureSession();
     const ws=weekStart||gWeekStart(v621Date('teacher'));
     const [lessons,blocks,weekly,status,busy]=await Promise.all([
       api('/aulas'),api('/indisponibilidades'),api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(ws)}`),
       api('/google/calendar/status').catch(()=>({configured:state.googleCalendar?.configured===true,webhookConfigured:state.googleCalendar?.webhookConfigured===true,item:state.googleCalendar?.item||{}})),
       api('/google/calendar/busy').catch(()=>({items:state.googleBusy||[]}))
     ]);
-    state.lessons=lessons.items||[];state.unavailability=blocks.items||[];state.googleBusy=busy.items||[];
+    forjaAssertSession(session);state.lessons=lessons.items||[];state.unavailability=blocks.items||[];state.googleBusy=busy.items||[];
     state.googleCalendar={configured:status.configured===true,webhookConfigured:status.webhookConfigured===true,item:status.item||{}};
     state.availabilityWeekStartV616=weekly.weekStart||ws;state.availabilityWeekItemsV616=weekly.items||{};state.availabilityWeekSavedV616=!!weekly.hasSavedWeek;state.v621TeacherWeekCache[ws]=weekly.items||{};
     if(ws===v616CurrentWeek()){state.currentWeekAvailabilityV616=weekly.items||{};state.weeklyAvailability=weekly.items||{}}
   }
   async function v625SaveAvailability(day,start,end){
+    const session=forjaCaptureSession();
     const conflict=v625AvailabilityHasConflict(day,start,end);if(conflict)throw new Error(conflict);
     const ws=gWeekStart(day);let base=state.v621TeacherWeekCache?.[ws];if(!base){const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(ws)}`);base=r.items||{}}
-    const items=JSON.parse(JSON.stringify(base||{})),code=v621DayCode(day),periods=[...(items[code]||[]),{inicio:start,fim:end}];items[code]=v625MergePeriods(periods);
-    const saved=await api('/disponibilidade-semanal',{method:'PATCH',body:{weekStart:ws,semana:items,publicationConfirmation:await forjaConfirmAvailabilityWeek(ws,items)}}),gs=saved.googleSync||{};
-    state.v621TeacherWeekCache[ws]=saved.items||items;if(ws===v616CurrentWeek()){state.currentWeekAvailabilityV616=saved.items||items;state.weeklyAvailability=saved.items||items}
+    forjaAssertSession(session);const items=JSON.parse(JSON.stringify(base||{})),code=v621DayCode(day),periods=[...(items[code]||[]),{inicio:start,fim:end}];items[code]=v625MergePeriods(periods);
+    const confirmation=await forjaConfirmAvailabilityWeek(ws,items);forjaAssertSession(session);const saved=await api('/disponibilidade-semanal',{method:'PATCH',session,body:{weekStart:ws,semana:items,publicationConfirmation:confirmation}}),gs=saved.googleSync||{};
+    forjaAssertSession(session);state.v621TeacherWeekCache[ws]=saved.items||items;if(ws===v616CurrentWeek()){state.currentWeekAvailabilityV616=saved.items||items;state.weeklyAvailability=saved.items||items}
     return gs;
   }
   async function v625RemoveAvailability(day,sourceStart,sourceEnd){
+    const session=forjaCaptureSession();
     const ws=gWeekStart(day);let base=state.v621TeacherWeekCache?.[ws];if(!base){const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(ws)}`);base=r.items||{}}
-    const items=JSON.parse(JSON.stringify(base||{})),code=v621DayCode(day);items[code]=(items[code]||[]).filter(p=>!(String(p.inicio)===String(sourceStart)&&String(p.fim)===String(sourceEnd)));if(!items[code].length)delete items[code];
-    const saved=await api('/disponibilidade-semanal',{method:'PATCH',body:{weekStart:ws,semana:items,publicationConfirmation:await forjaConfirmAvailabilityWeek(ws,items)}});state.v621TeacherWeekCache[ws]=saved.items||items;if(ws===v616CurrentWeek()){state.currentWeekAvailabilityV616=saved.items||items;state.weeklyAvailability=saved.items||items}renderPage();
+    forjaAssertSession(session);const items=JSON.parse(JSON.stringify(base||{})),code=v621DayCode(day);items[code]=(items[code]||[]).filter(p=>!(String(p.inicio)===String(sourceStart)&&String(p.fim)===String(sourceEnd)));if(!items[code].length)delete items[code];
+    const confirmation=await forjaConfirmAvailabilityWeek(ws,items);forjaAssertSession(session);const saved=await api('/disponibilidade-semanal',{method:'PATCH',session,body:{weekStart:ws,semana:items,publicationConfirmation:confirmation}});forjaAssertSession(session);state.v621TeacherWeekCache[ws]=saved.items||items;if(ws===v616CurrentWeek()){state.currentWeekAvailabilityV616=saved.items||items;state.weeklyAvailability=saved.items||items}renderPage();
   }
   function v625SetSlotType(mode){
     const type=$('#v625SlotType');if(type)type.value=mode;$$('[data-v625-modal-type]').forEach(b=>b.classList.toggle('active',b.dataset.v625ModalType===mode));const note=$('#v625SlotTypeNote');if(note)note.innerHTML=mode==='busy'?'<div class="v625-danger-note"><b>Ocupado</b> bloqueia novos agendamentos. Se houver aula já marcada no período, ela será encaminhada para remarcação.</div>':'<div class="v625-availability-note"><b>Disponível</b> libera o período para a Secretaria e também é espelhado no Google como horário livre do FORJA.</div>';
@@ -7156,23 +7208,24 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   }
 
   async function v629RefreshSecretaryAgenda({syncGoogle=true,render=true}={}){
+    const session=forjaCaptureSession();
     if(state.v629SecretaryRefreshBusy||state.role!=='admin')return;state.v629SecretaryRefreshBusy=true;
     const expectedDate=v621Date('admin'),expectedView=v621View('admin');
     try{
       if(syncGoogle&&(state.googleConnections||[]).some(x=>x.connected))await api('/admin/google-calendar/sync',{method:'POST',body:{}}).catch(e=>console.warn('FORJA_629_ADMIN_SYNC',e?.message||e));
-      const [connections,busy,lessons,blocks]=await Promise.all([
+      forjaAssertSession(session);const [connections,busy,lessons,blocks]=await Promise.all([
         api('/admin/google-calendar/connections').catch(()=>({configured:state.googleCalendar?.configured===true,webhookConfigured:state.googleCalendar?.webhookConfigured===true,items:state.googleConnections||[]})),
         api('/google/calendar/busy').catch(()=>({items:state.googleBusy||[]})),
         api('/aulas').catch(()=>({items:state.lessons||[]})),
         api('/indisponibilidades').catch(()=>({items:state.unavailability||[]}))
       ]);
-      state.googleCalendar={configured:connections.configured===true,webhookConfigured:connections.webhookConfigured===true,item:{}};state.googleConnections=connections.items||[];state.googleBusy=busy.items||[];state.lessons=lessons.items||[];state.unavailability=blocks.items||[];
+      forjaAssertSession(session);state.googleCalendar={configured:connections.configured===true,webhookConfigured:connections.webhookConfigured===true,item:{}};state.googleConnections=connections.items||[];state.googleBusy=busy.items||[];state.lessons=lessons.items||[];state.unavailability=blocks.items||[];
       const weeks=v621VisibleWeeks('admin');
-      await Promise.all(weeks.map(async ws=>{try{const r=await api(`/admin/disponibilidades-semana?weekStart=${encodeURIComponent(ws)}`),map={};for(const x of r.items||[])map[x.uid]=x;state.v621AdminWeekCache[ws]=map;if(state.adminProfessionalWeekLoadedV619===ws)state.adminProfessionalWeekMapV619=map;if(state.adminAvailabilityWeekStartV616===ws)state.adminAvailabilityWeekV616=map}catch(e){console.warn('FORJA_629_WEEK',e?.message||e)}}));
-      state.v629SecretaryLastRefreshAt=Date.now();
+      await Promise.all(weeks.map(async ws=>{try{const r=await api(`/admin/disponibilidades-semana?weekStart=${encodeURIComponent(ws)}`),map={};forjaAssertSession(session);for(const x of r.items||[])map[x.uid]=x;state.v621AdminWeekCache[ws]=map;if(state.adminProfessionalWeekLoadedV619===ws)state.adminProfessionalWeekMapV619=map;if(state.adminAvailabilityWeekStartV616===ws)state.adminAvailabilityWeekV616=map}catch(e){console.warn('FORJA_629_WEEK',e?.message||e)}}));
+      forjaAssertSession(session);state.v629SecretaryLastRefreshAt=Date.now();
       if(render&&state.role==='admin'&&state.page==='agenda'&&v621Date('admin')===expectedDate&&v621View('admin')===expectedView)renderPage();
-    }catch(e){console.warn('FORJA_629_REFRESH',e?.message||e);if(render)toast(e.message||'Não foi possível atualizar a disponibilidade.','bad')}
-    finally{state.v629SecretaryRefreshBusy=false}
+    }catch(e){if(!forjaSessionCurrent(session))return;console.warn('FORJA_629_REFRESH',e?.message||e);if(render)toast(e.message||'Não foi possível atualizar a disponibilidade.','bad')}
+    finally{if(forjaSessionCurrent(session))state.v629SecretaryRefreshBusy=false}
   }
 
   function v629FilterTeacherRows(value){state.v629SecretaryTeacherSearch=String(value||'');const q=state.v629SecretaryTeacherSearch.trim().toLowerCase();$$('[data-v629-teacher-row]').forEach(row=>row.classList.toggle('hidden',!!q&&!String(row.dataset.search||'').includes(q)))}
@@ -7674,7 +7727,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   const previousSettings=settingsPage;
   settingsPage=function(){return previousSettings()+centralCard()};
   const previousLoad=loadRoleData;
-  loadRoleData=async function(){await previousLoad();centralNotice();restoreCentralView();if(!centralAdmin()){state.googleSecretaria=fresh();centralOwner=null}else if(centralVisible()){viewEntry=null;enterCentralView()}};
+  loadRoleData=async function(){const session=forjaCaptureSession();await previousLoad();forjaAssertSession(session);centralNotice();restoreCentralView();if(!centralAdmin()){state.googleSecretaria=fresh();centralOwner=null}else if(centralVisible()){viewEntry=null;enterCentralView()}};
   const previousBind=bindPage;
   bindPage=function(){previousBind();bindCentral();enterCentralView()};
   document.documentElement.dataset.forjaGoogleSecretariaPolicy=CENTRAL_POLICY;
