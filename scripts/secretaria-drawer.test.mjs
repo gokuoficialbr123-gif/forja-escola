@@ -55,7 +55,7 @@ async function fixture(t, { mobile = false, linksFail = false, portalSource = ht
     window.$ = q => document.querySelector(q); window.$$ = q => [...document.querySelectorAll(q)];
     window.subjectLabel = id => state.subjects.find(s=>s.id===id)?.nome || id;
     window.googleProfessionalConnected = () => true;
-    window.todayKey = () => '2026-10-03'; window.fmtDate = v => v;
+    window.crypto.randomUUID ||= ()=> '11111111-1111-4111-8111-111111111111';window.todayKey = () => '2026-10-03'; window.fmtDate = v => v;
     window.bindPage = () => {}; window.polishPortalBlockE = () => {};
     window.renderPage = () => { renders++;const calendar=document.querySelector('.v621-week-wrap');calendar.replaceWith(calendar.cloneNode(true)); }; window.reloadAndRender = async () => renderPage();
     window.toast = (...args) => messages.push(args);
@@ -78,7 +78,7 @@ async function fixture(t, { mobile = false, linksFail = false, portalSource = ht
 async function choose(page,id,value) { await page.locator('#'+id).focus();await page.locator('#'+id).selectOption(value); }
 async function eligible(page) { await choose(page,'v630Subject','math');await choose(page,'v630Student','s1'); }
 async function respond(page,index=0,slots=[{inicio:'10:00',fim:'11:00',status:'disponivel'},{inicio:'11:00',fim:'12:00',status:'ocupado'}]) {
-  await page.evaluate(({index,slots})=>pending[index].resolve({availabilityPolicy:'confirmed-week-v2',items:[{uid:'t1',slots}]}),{index,slots});
+  await page.evaluate(({index,slots})=>pending[index].resolve({availabilityPolicy:'confirmed-week-v2',bookingSafetyPolicy:'future-live-google-v1',serverNow:'2026-10-03T06:00:00-03:00',items:[{uid:'t1',googleVerification:{status:'verified'},slots:slots.map(x=>({...x,startAt:'2026-10-03T'+x.inicio+':00-03:00'}))}]}),{index,slots});
   await page.waitForTimeout(20);
 }
 async function identity(page) {
@@ -168,8 +168,8 @@ test('confirmação envia contrato existente; conflito final mantém drawer e co
   const page=await fixture(t);await eligible(page);await respond(page);await page.locator('#v630Place').fill('Sala A');await page.locator('[data-v630-slot]').click();
   await page.locator('[data-v630-save]').click();
   const call=await page.evaluate(()=>calls.find(x=>x.url==='/aulas'));
-  assert.equal(call.method,'POST');assert.deepEqual(call.body,{alunoId:'s1',professorId:'t1',disciplinaId:'math',serieId:'g1',dataAula:'2026-10-03',horaAula:'10:00',horaFim:'11:00',modalidade:'presencial',localAula:'Sala A',meetLink:'',criarMeet:false});
-  await page.evaluate(()=>pending[1].reject(new Error('HORARIO_OCUPADO')));await respond(page,2,[]);
+  assert.equal(call.method,'POST');assert.match(call.body.bookingRequestId,/^[a-f0-9-]{36}$/i);delete call.body.bookingRequestId;assert.deepEqual(call.body,{alunoId:'s1',professorId:'t1',disciplinaId:'math',serieId:'g1',dataAula:'2026-10-03',horaAula:'10:00',horaFim:'11:00',modalidade:'presencial',localAula:'Sala A',meetLink:'',criarMeet:false});
+  await page.evaluate(()=>pending[1].reject(Object.assign(new Error('HORARIO_OCUPADO'),{status:409,code:'PROFISSIONAL_OCUPADO_AULA'})));await respond(page,2,[]);
   assert.equal(await page.locator('#v630BookingRoot').getAttribute('aria-hidden'),'false');
   assert.equal(await page.locator('[data-v630-save]').isDisabled(),true);await identity(page);
 });
@@ -200,7 +200,7 @@ test('Meet preservado mas oculto não impede confirmação presencial',async t=>
   await page.locator('#v630Meet').fill('rascunho incompleto');await choose(page,'v630Mode','presencial');
   await page.locator('#v630Place').fill('Sala A');await page.locator('[data-v630-slot]').click();await page.locator('[data-v630-save]').click();
   assert.equal(await page.evaluate(()=>calls.find(x=>x.url==='/aulas')?.body.meetLink),'');
-  await page.evaluate(()=>pending[1].resolve({ok:true}));await page.waitForFunction(()=>!state.v630Booking.open);
+  await page.evaluate(()=>pending[1].resolve({ok:true,bookingState:'created',item:{id:'emulator-booking',professorId:'t1',horaAula:'10:00'}}));await page.waitForFunction(()=>!state.v630Booking.open);
   assert.equal(await page.evaluate(()=>document.querySelector('#background').inert),false);
 });
 
@@ -250,7 +250,7 @@ test('relatório/PDF conserva seu CSS original e não recebe o estilo do drawer'
 test('backend antigo sem política de publicação gera erro explícito, nunca slots legados',async t=>{
  const page=await fixture(t);await eligible(page);
  await page.evaluate(()=>pending[0].resolve({items:[{uid:'t1',slots:[{inicio:'20:00',fim:'21:00',status:'disponivel'}]}]}));
- await page.waitForFunction(()=>state.v630Booking.error.includes('disponibilidade publicada'));
+ await page.waitForFunction(()=>state.v630Booking.error.includes('consulta segura'));
  assert.equal(await page.locator('[data-v630-slot]').count(),0);assert.equal(await page.locator('[data-v630-save]').isDisabled(),true);
 });
 
@@ -263,4 +263,50 @@ test('CSS colocado só na string do relatório não estiliza o portal (controle 
  const page=await fixture(t,{portalSource:wrong});
  const actual=await page.evaluate(()=>({width:getComputedStyle(nodes.drawer).width,columns:getComputedStyle(document.querySelector('.v630-steps')).gridTemplateColumns.split(' ').length,realStylesContainBlock:[...document.querySelectorAll('style')].some(el=>el.textContent.includes('/* 6.31: scoped'))}));
  assert.deepEqual(actual,{width:'470px',columns:4,realStylesContainBlock:false});
+});
+
+async function readyToConfirm(t){const page=await fixture(t);await eligible(page);await respond(page);await page.locator('#v630Place').fill('Sala A');await page.locator('[data-v630-slot]').click();return page}
+test('Google failure before confirmation preserves selections, local and drawer/scroll',async t=>{
+ const page=await fixture(t);await eligible(page);await page.locator('#v630Place').fill('Sala A');
+ await page.evaluate(()=>pending[0].reject(Object.assign(new Error('O professor precisa reconectar seu Google pessoal. A Secretaria não confirmou horários livres.'),{bookingState:'not_created'})));
+ await page.waitForFunction(()=>!state.v630Booking.loading);
+ assert.equal(await page.locator('[data-v630-slot]').count(),0);assert.equal(await page.locator('[data-v630-save]').isDisabled(),true);
+ assert.equal(await page.locator('#v630Teacher').inputValue(),'t1');assert.equal(await page.locator('#v630Student').inputValue(),'s1');assert.equal(await page.locator('#v630Place').inputValue(),'Sala A');assert.match(await page.locator('#v631Slots').innerText(),/professor precisa reconectar/);await identity(page);
+});
+test('past starts never appear even if response mistakenly labels them free; server clock ignores browser zone',async t=>{
+ const page=await fixture(t);await eligible(page);
+ await page.evaluate(()=>pending[0].resolve({availabilityPolicy:'confirmed-week-v2',bookingSafetyPolicy:'future-live-google-v1',serverNow:'2026-10-13T20:30:00Z',items:[{uid:'t1',googleVerification:{status:'verified'},slots:[{inicio:'09:00',fim:'10:00',status:'disponivel',startAt:'2026-10-13T12:00:00Z'},{inicio:'17:30',fim:'18:30',status:'disponivel',startAt:'2026-10-13T20:30:00Z'},{inicio:'18:00',fim:'19:00',status:'disponivel',startAt:'2026-10-13T21:00:00Z'}]}]}));
+ await page.waitForFunction(()=>!state.v630Booking.loading);assert.deepEqual(await page.locator('[data-v630-slot]').evaluateAll(xs=>xs.map(x=>x.dataset.v630Slot)),['18:00']);
+});
+test('selected slot that starts while drawer is open cannot be submitted',async t=>{
+ const page=await readyToConfirm(t);await page.evaluate(()=>{state.v630Booking.serverNowMs=Date.parse('2026-10-03T10:01:00-03:00');document.querySelector('[data-v630-save]').click()});
+ assert.equal(await page.evaluate(()=>calls.filter(x=>x.url==='/aulas').length),0);assert.match(await page.evaluate(()=>messages.at(-1)[0]),/horário futuro/);
+});
+test('confirmation single flight, frozen fields and real result update Agenda',async t=>{
+ const page=await readyToConfirm(t);await page.evaluate(()=>{const b=document.querySelector('[data-v630-save]');b.onclick();b.onclick()});
+ assert.equal(await page.evaluate(()=>calls.filter(x=>x.url==='/aulas').length),1);assert.equal(await page.locator('#v630Teacher').isDisabled(),true);
+ await page.evaluate(()=>pending[1].resolve({ok:true,bookingState:'created',item:{id:'COMMITTED',professorId:'t1',dataAula:'2026-10-03',horaAula:'10:00',horaFim:'11:00',status:'agendada'},warnings:['Sincronização Google pendente. Não crie outra aula.']}));
+ await page.waitForFunction(()=>!state.v630Booking.open);assert.equal(await page.evaluate(()=>state.lessons[0].id),'COMMITTED');assert.ok(await page.evaluate(()=>messages.some(x=>x[0].includes('registrada no FORJA'))));assert.ok(!await page.evaluate(()=>messages.some(x=>x[0].includes('marcada e sincronização'))));assert.equal(await page.evaluate(()=>state.v629SecretaryFilters.lesson),true);
+});
+test('network ambiguity recovers the SAME immutable request; no second parallel POST or edited retry',async t=>{
+ const page=await readyToConfirm(t);await page.locator('[data-v630-save]').click();const first=await page.evaluate(()=>calls.find(x=>x.url==='/aulas').body);
+ await page.evaluate(()=>pending[1].reject(new Error('Falha de rede após envio')));await page.waitForFunction(()=>state.v630Booking.pendingRecovery&&!state.v630Booking.saving);
+ assert.equal(await page.locator('#v630Date').isDisabled(),true);assert.equal(await page.locator('#v630Place').inputValue(),'Sala A');
+ await page.locator('.v630-close').click();await page.evaluate(()=>document.querySelector('#v630EdgeTab').click());await page.locator('[data-v630-save]').click();
+ const second=await page.evaluate(()=>calls.filter(x=>x.url==='/aulas')[1].body);assert.deepEqual(second,first);
+ await page.evaluate(()=>pending[2].resolve({ok:true,bookingState:'created',replayed:true,item:{id:'ONE_ONLY'}}));await page.waitForFunction(()=>!state.v630Booking.open);assert.equal(await page.evaluate(()=>state.lessons.length),1);
+});
+test('Agenda reload error after commit is a warning, not failed booking or new POST',async t=>{
+ const page=await readyToConfirm(t);await page.evaluate(()=>{window.reloadAndRender=async()=>{state.lessons=[];throw Error('TEST_RELOAD_FAILURE')}});await page.locator('[data-v630-save]').click();
+ await page.evaluate(()=>pending[1].resolve({ok:true,bookingState:'created',item:{id:'KEPT_COMMITTED'}}));await page.waitForFunction(()=>messages.some(x=>x[0].includes('atualização da Agenda falhou')));
+ assert.equal(await page.evaluate(()=>state.lessons[0].id),'KEPT_COMMITTED');assert.equal(await page.evaluate(()=>state.v630Booking.open),false);assert.equal(await page.evaluate(()=>calls.filter(x=>x.url==='/aulas').length),1);
+});
+test('definitive no-create result preserves values, reloads slots, unfreezes form',async t=>{
+ const page=await readyToConfirm(t);await page.locator('[data-v630-save]').click();await page.evaluate(()=>pending[1].reject(Object.assign(new Error('Google pessoal inválido: professor precisa reconectar'),{bookingState:'not_created',status:503})));
+ await respond(page,2,[]);await page.waitForFunction(()=>!state.v630Booking.saving);assert.equal(await page.locator('#v630Teacher').isDisabled(),false);assert.equal(await page.locator('#v630Student').inputValue(),'s1');assert.equal(await page.locator('#v630Place').inputValue(),'Sala A');assert.equal(await page.evaluate(()=>state.v630Booking.pendingBody),null);
+});
+test('late successful booking response cannot write into another UID/session',async t=>{
+ const page=await readyToConfirm(t);await page.evaluate(()=>{window.forjaCaptureSession=()=>({uid:'ADMIN_A',generation:1});window.forjaSessionCurrent=()=>false});await page.locator('[data-v630-save]').click();
+ await page.evaluate(()=>{state.lessons=[{id:'ADMIN_B_ONLY'}];pending[1].resolve({ok:true,bookingState:'created',item:{id:'ADMIN_A_PRIVATE'}})});await page.waitForTimeout(60);
+ assert.deepEqual(await page.evaluate(()=>state.lessons.map(x=>x.id)),['ADMIN_B_ONLY']);assert.equal(await page.evaluate(()=>messages.length),0);
 });
