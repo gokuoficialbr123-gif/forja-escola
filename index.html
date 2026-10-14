@@ -3831,7 +3831,7 @@ async function api(path,{method="GET",body=null,authRequired=true,session=null}=
     const response=await fetch(`${FORJA_API_URL}${path}`,{method,headers,body:body==null?undefined:JSON.stringify(body),signal:controller.signal});
     const data=await response.json().catch(()=>({}));
     if(scope)forjaAssertSession(scope);
-    if(!response.ok){const e=new Error(data.error||`Erro ${response.status}`);e.status=response.status;e.code=data.code;e.bookingState=data.bookingState;e.googleVerification=data.googleVerification;throw e}
+    if(!response.ok){const e=new Error(data.error||`Erro ${response.status}`);e.status=response.status;e.code=data.code;e.bookingState=data.bookingState;e.googleVerification=data.googleVerification;if(data.code==='BOOKING_REQUEST_CHANGED')e.bookingExistingItem=data.item;throw e}
     return data;
   }catch(error){if(scope&&!forjaSessionCurrent(scope))throw forjaStaleSession();throw error;}
   finally{forjaSessionRequests.delete(controller);}
@@ -7509,22 +7509,38 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     }
     saveFlight=true;b.saving=true;setBusy(button,true,'Confirmando...');v630Freeze();
     try{
-      const result=await api('/aulas',{method:'POST',body});if(!active())return;
+      let result;
+      try{result=await api('/aulas',{method:'POST',body})}catch(e){
+        if(e.code!=='BOOKING_REQUEST_CHANGED')throw e;
+        let item=e.bookingExistingItem;
+        // Compatibility with an older API response: read this UID-bound receipt,
+        // never send a new UUID or guess that the original operation failed.
+        if(!item?.id&&session?.uid){try{
+          const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(session.uid+'|'+body.bookingRequestId.toLowerCase()));
+          const id='booking_'+[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
+          const receipt=await api('/aulas/'+id);if(receipt.item?.createdById===session.uid)item=receipt.item;
+        }catch{}}
+        if(!item?.id||(session&&item.createdById!==session.uid))throw e;
+        result={item,replayed:true,requestChanged:true,warnings:[]};
+      }
+      if(!active())return;
       if(!result?.item?.id)throw new Error('Não foi possível conferir o resultado da solicitação.');
       state.lessons=[...(state.lessons||[]).filter(x=>x.id!==result.item.id),result.item];
-      state.adminLessonAgendaDateG=body.dataAula;
-      state.v629SecretarySelectedTeacherIds=[...new Set([...(state.v629SecretarySelectedTeacherIds||[]),body.professorId])];
+      state.adminLessonAgendaDateG=result.item.dataAula||body.dataAula;
+      state.v629SecretarySelectedTeacherIds=[...new Set([...(state.v629SecretarySelectedTeacherIds||[]),result.item.professorId||body.professorId])];
       state.v629SecretarySelectionTouched=true;state.v629SecretaryFilters={...(state.v629SecretaryFilters||{}),lesson:true};
       const saved=Object.fromEntries(['users','students','subjects','series','lessons','sessions','unavailability','googleConnections','secretarySubjectLinksD'].filter(k=>state[k]!==undefined).map(k=>[k,state[k]]));
-      toast(result.replayed?'Solicitação já processada: confira a aula registrada na Agenda.':'Aula registrada no FORJA.','ok');
+      toast(result.requestChanged?'Esta chave já pertence a uma aula com outros dados. Nenhuma nova aula foi criada; confira o registro existente na Agenda.':result.replayed?'Solicitação já processada: confira a aula registrada na Agenda.':'Aula registrada no FORJA.',result.requestChanged?'warn':'ok');
       for(const warning of result.warnings||[])toast(warning,'warn');
       Object.assign(b,BOOKING_DEFAULTS,{date:b.date,duration:b.duration,pendingBody:null,pendingRecovery:false});v630Close();
-      try{await reloadAndRender()}catch{if(!active())return;Object.assign(state,saved);if(typeof renderShell==='function')renderShell();renderPage();toast('A aula foi registrada. A atualização da Agenda falhou; recarregue a página sem criar outra aula.','warn')}
+      try{await reloadAndRender()}catch{if(!active())return;Object.assign(state,saved);if(typeof renderShell==='function')renderShell();renderPage();toast(result.requestChanged?'O registro existente foi identificado, mas a atualização da Agenda falhou. Recarregue antes de nova marcação.':'A aula foi registrada. A atualização da Agenda falhou; recarregue a página sem criar outra aula.','warn')}
     }catch(e){
       if(!active())return;
-      const definite=e.bookingState==='not_created'||e.status===400||(e.status===409&&e.code!=='BOOKING_REQUEST_CHANGED');
+      const unresolved=e.code==='AGENDA_EM_PROCESSAMENTO'||e.bookingState==='in_progress'||e.code==='BOOKING_REQUEST_CHANGED';
+      const definitiveConflicts=['PROFISSIONAL_OCUPADO_AULA','PROFISSIONAL_OCUPADO_SESSAO','PROFISSIONAL_INDISPONIVEL','ALUNO_OCUPADO','PROFISSIONAL_OCUPADO_GOOGLE','DISCIPLINA_NAO_VINCULADA','PROFESSOR_SEM_DISCIPLINAS','BOOKING_START_PASSED','BOOKING_REQUEST_INVALID'];
+      const definite=!unresolved&&(e.bookingState==='not_created'||e.status===400||(e.status===409&&definitiveConflicts.includes(e.code)));
       if(definite){b.pendingBody=null;b.pendingRecovery=false;toast(e.message||'A aula não foi criada.','bad');await v630LoadSlots().catch(()=>{})}
-      else{b.pendingRecovery=true;b.error='Resultado ainda não confirmado. Clique em Confirmar aula para recuperar esta mesma solicitação, sem criar outra aula.';toast(b.error,'warn');v630Update(['slots'])}
+      else{b.pendingRecovery=true;b.error=e.code==='BOOKING_REQUEST_CHANGED'?'Não foi possível ler o registro desta solicitação. Confira a Agenda antes de tentar novamente; a chave foi preservada.':'Resultado ainda não confirmado. Aguarde e clique em Confirmar aula para recuperar esta mesma solicitação, sem criar outra aula.';toast(b.error,'warn');v630Update(['slots'])}
     }finally{saveFlight=false;if(active()){b.saving=false;setBusy(button,false);v630Update(['details']);v630Freeze()}}
   }
 

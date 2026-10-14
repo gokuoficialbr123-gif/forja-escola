@@ -31,7 +31,7 @@ permanece NÃO comprovada. Não afirmar invalid_grant sem evidência do provedor
 Policy `bookingSafetyPolicy: future-live-google-v1` em health e consulta scoped
 admin+teacher+professor+matéria+aluno. Slots mantêm `confirmed-week-v2` e recebem
 `startAt`; resposta tem `serverNow` UTC. Comparação estrita início>agora, conversão
-America/Sao_Paulo. POST revalida antes da consulta e dentro da transação final.
+America/Sao_Paulo. POST revalida antes da consulta e dentro da transação final. A decisão de nova criação ocorre sob lock, após reler o recibo.
 
 A consulta scoped verifica Google pessoal ao vivo antes de oferecer slots, com
 paginação completa limitada (20 páginas de250) e deadline10s. Cancelados e
@@ -103,7 +103,38 @@ reverter backend ao SHAaf31d453 se necessário. Não excluir aulas, recibos,
 históricos, usuários ou conexões. Campos novos são tolerados pelo código anterior.
 Não alterar Google Cloud, scopes, central, Make/n8n ou visual aprovado.
 
-Resultados locais registrados: backend180 unitários,133 integrações HTTP/Auth/
-Firestore (incluindo Chromium pareado), frontend194 testes de regressão/Chromium.
+Resultados locais registrados: backend181 unitários,138 integrações HTTP/Auth/
+Firestore (incluindo Chromium pareado), frontend199 testes de regressão/Chromium.
 Sem falhas/cancelados/skips na execução aprovada; novos checks do PR devem
 confirmar novamente os commits publicados na branch. Nenhum teste de produção.
+
+## Revisão final dos PRs14 — 14/10/2026 (não publicado)
+
+- AGENDA_EM_PROCESSAMENTO agora tem code próprio e bookingState=in_progress.
+  Frontend preserva corpo/UUID tanto nesse caso quanto em409 desconhecido. Somente
+  rejeição explícita/400 ou códigos de conflitos definitivos autorizam descartar
+  a tentativa. Não se gera UUID novo por contenção de lock.
+- BOOKING_REQUEST_CHANGED devolve o registro existente somente ao mesmo criador
+  autenticado. A interface reconcilia esse registro com aviso de que nenhuma nova
+  aula foi criada; não continua tentando indefinidamente um corpo incompatível.
+  Para resposta antiga sem item, faz GET read-only do recibo derivado de UID/UUID
+  e confere createdById. Se a leitura falhar, conserva a chave e orienta conferir
+  a Agenda; não presume falha nem libera outra criação. UID diferente é recusado.
+- PATCH /aulas/:id compara data/início/fim normalizados. Só mudança efetiva é
+  remarcação e precisa ter início futuro em America/Sao_Paulo, antes e depois da
+  consulta de conflitos dentro dos locks. Duração alterada de aula já iniciada
+  também é recusada. Campos de horário repetidos sem mudança não reabrem aula,
+  não resetam status e não impedem edição histórica por causa da data passada.
+- Regressões:181 unitários backend,138 integrações Auth/Firestore/HTTP/Chromium
+  pareado e199 testes frontend. Novos testes de concorrência usam Google retido
+  por controle IPC exclusivamente no mock para eliminar dependência de latência.
+- Preservados aquisição/liberação de locks, verificação Google, permissões,
+  sessão/UID e regras de conflitos. Sem OAuth real, banco real, merge ou deploy.
+- Ordem futura permanece backend aprovado primeiro, validar Render e contratos,
+  depois frontend aprovado e validar Hosting. Nenhum passo executado nesta revisão.
+
+
+A criação também relê o recibo após adquirir os locks, antes dos conflitos.
+Se a tentativa anterior terminou entre a leitura inicial e a aquisição, retorna
+replay em vez de um falso conflito definitivo. Cenário reproduzido com dois POSTs
+HTTP e uma barreira somente no emulador.

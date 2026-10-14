@@ -310,3 +310,37 @@ test('late successful booking response cannot write into another UID/session',as
  await page.evaluate(()=>{state.lessons=[{id:'ADMIN_B_ONLY'}];pending[1].resolve({ok:true,bookingState:'created',item:{id:'ADMIN_A_PRIVATE'}})});await page.waitForTimeout(60);
  assert.deepEqual(await page.evaluate(()=>state.lessons.map(x=>x.id)),['ADMIN_B_ONLY']);assert.equal(await page.evaluate(()=>messages.length),0);
 });
+
+for(const response of [{status:409,code:'AGENDA_EM_PROCESSAMENTO',bookingState:'in_progress'},{status:409}])test('ambiguous lock/409 preserves UUID through another recovery attempt '+JSON.stringify(response),async t=>{
+ const page=await readyToConfirm(t);await page.locator('[data-v630-save]').click();
+ const first=await page.evaluate(()=>calls.find(x=>x.url==='/aulas').body);
+ await page.evaluate(()=>pending[1].reject(new Error('Lost first response')));await page.waitForFunction(()=>state.v630Booking.pendingRecovery&&!state.v630Booking.saving);
+ await page.locator('[data-v630-save]').click();await page.evaluate(response=>pending[2].reject(Object.assign(new Error('Operation still running'),response)),response);await page.waitForFunction(()=>!state.v630Booking.saving);
+ assert.equal(await page.evaluate(()=>state.v630Booking.pendingBody.bookingRequestId),first.bookingRequestId);assert.equal(await page.evaluate(()=>state.v630Booking.pendingRecovery),true);assert.equal(await page.locator('#v630Date').isDisabled(),true);
+ await page.locator('[data-v630-save]').click();assert.deepEqual(await page.evaluate(()=>calls.filter(x=>x.url==='/aulas').map(x=>x.body)),[first,first,first]);
+ await page.evaluate(()=>pending[3].resolve({ok:true,bookingState:'created',replayed:true,item:{id:'ONE_AFTER_IN_PROGRESS'}}));await page.waitForFunction(()=>!state.v630Booking.open);assert.equal(await page.evaluate(()=>state.lessons.length),1);
+});
+test('BOOKING_REQUEST_CHANGED reconciles existing record even if reload fails, without new creation or stuck recovery',async t=>{
+ const page=await readyToConfirm(t);await page.evaluate(()=>window.reloadAndRender=async()=>{throw Error('SYNTHETIC_RELOAD_FAILURE')});await page.locator('[data-v630-save]').click();
+ await page.evaluate(()=>pending[1].reject(Object.assign(new Error('Request payload differs'),{status:409,code:'BOOKING_REQUEST_CHANGED',bookingState:'existing_request',bookingExistingItem:{id:'PREVIOUS_RECEIPT',dataAula:'2026-10-04',horaAula:'14:00',professorId:'t2'}})));
+ await page.waitForFunction(()=>!state.v630Booking.open);assert.equal(await page.evaluate(()=>state.lessons[0].id),'PREVIOUS_RECEIPT');assert.equal(await page.evaluate(()=>state.adminLessonAgendaDateG),'2026-10-04');assert.equal(await page.evaluate(()=>state.v630Booking.pendingRecovery),false);assert.equal(await page.evaluate(()=>state.v630Booking.pendingBody),null);
+ assert.equal(await page.evaluate(()=>calls.filter(x=>x.url==='/aulas').length),1);assert.ok(await page.evaluate(()=>messages.some(([text,kind])=>text.includes('Nenhuma nova aula foi criada')&&kind==='warn')));
+ assert.ok(await page.evaluate(()=>messages.some(([text])=>text.includes('O registro existente foi identificado'))));assert.ok(!await page.evaluate(()=>messages.some(([text])=>text.startsWith('A aula foi registrada'))));
+ await page.evaluate(()=>document.querySelector('#v630EdgeTab').click());assert.equal(await page.locator('#v630Teacher').isDisabled(),false);
+});
+test('older BOOKING_REQUEST_CHANGED response is recovered by read-only UID-bound receipt lookup',async t=>{
+ const page=await readyToConfirm(t);
+ const {createHash}=await import('node:crypto');await page.exposeFunction('fixtureDigest',bytes=>[...createHash('sha256').update(Buffer.from(bytes)).digest()]);
+ await page.evaluate(()=>{window.forjaCaptureSession=()=>({uid:'ADMIN_RECEIPT',generation:1});window.forjaSessionCurrent=()=>true;Object.defineProperty(crypto,'subtle',{value:{digest:async(_algo,data)=>new Uint8Array(await fixtureDigest([...data])).buffer}})});
+ await page.locator('[data-v630-save]').click();const request=await page.evaluate(()=>calls.find(x=>x.url==='/aulas').body);
+ await page.evaluate(()=>pending[1].reject(Object.assign(new Error('Legacy changed response'),{status:409,code:'BOOKING_REQUEST_CHANGED',bookingState:'existing_request'})));
+ await page.waitForFunction(()=>pending.length===3);const id='booking_'+createHash('sha256').update('ADMIN_RECEIPT|'+request.bookingRequestId.toLowerCase()).digest('hex');
+ assert.equal(await page.evaluate(()=>calls.at(-1).url),'/aulas/'+id);assert.equal(await page.evaluate(()=>calls.at(-1).method),'GET');
+ await page.evaluate(id=>pending[2].resolve({ok:true,item:{id,createdById:'ADMIN_RECEIPT',dataAula:'2026-10-03',professorId:'t1'}}),id);
+ await page.waitForFunction(()=>!state.v630Booking.open);assert.equal(await page.evaluate(()=>state.v630Booking.pendingBody),null);assert.equal(await page.evaluate(()=>calls.filter(x=>x.url==='/aulas').length),1);
+});
+test('changed receipt whose read fails retains key and does not silently create another booking',async t=>{
+ const page=await readyToConfirm(t);await page.locator('[data-v630-save]').click();const key=await page.evaluate(()=>state.v630Booking.pendingBody.bookingRequestId);
+ await page.evaluate(()=>pending[1].reject(Object.assign(new Error('Cannot read receipt'),{status:409,code:'BOOKING_REQUEST_CHANGED',bookingState:'existing_request'})));await page.waitForFunction(()=>!state.v630Booking.saving);
+ assert.equal(await page.evaluate(()=>state.v630Booking.pendingBody.bookingRequestId),key);assert.match(await page.locator('#v631Slots').innerText(),/Confira a Agenda/);assert.equal(await page.evaluate(()=>calls.filter(x=>x.url==='/aulas').length),1);
+});
