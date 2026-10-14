@@ -3831,7 +3831,7 @@ async function api(path,{method="GET",body=null,authRequired=true,session=null}=
     const response=await fetch(`${FORJA_API_URL}${path}`,{method,headers,body:body==null?undefined:JSON.stringify(body),signal:controller.signal});
     const data=await response.json().catch(()=>({}));
     if(scope)forjaAssertSession(scope);
-    if(!response.ok){const e=new Error(data.error||`Erro ${response.status}`);e.status=response.status;e.code=data.code;e.bookingState=data.bookingState;e.googleVerification=data.googleVerification;if(data.code==='BOOKING_REQUEST_CHANGED')e.bookingExistingItem=data.item;throw e}
+    if(!response.ok){const e=new Error(data.error||`Erro ${response.status}`);e.status=response.status;e.code=data.code;e.bookingState=data.bookingState;e.googleVerification=data.googleVerification;e.googleDiagnosis=data.googleDiagnosis;if(data.code==='BOOKING_REQUEST_CHANGED')e.bookingExistingItem=data.item;throw e}
     return data;
   }catch(error){if(scope&&!forjaSessionCurrent(scope))throw forjaStaleSession();throw error;}
   finally{forjaSessionRequests.delete(controller);}
@@ -6745,7 +6745,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   googleAction=async function(action,button){
     setBusy(button,true,action==="connect"?"Abrindo Google...":"Processando...");
     try{
-      if(action==="connect"){const r=await api("/google/calendar/connect",{method:"POST",body:{}});if(!r.authUrl)throw new Error("URL de conexão não recebida");location.assign(r.authUrl);return}
+      if(action==="connect"){const session=forjaCaptureSession();const r=await api("/google/calendar/connect",{method:"POST",body:{},session});forjaAssertSession(session);if(!r.authUrl)throw new Error("URL de conexão não recebida");location.assign(r.authUrl);return}
       if(action==="sync"){
         const r=await api("/google/calendar/sync",{method:"POST",body:{}}),b=r.backfill||{};
         toast(`Google ⇄ FORJA atualizado · ${Number(r.processed||0)} mudança(s) lida(s) · ${Number(b.synchronized||0)} item(ns) enviado(s)${Number(b.covered||0)?` · ${Number(b.covered)} já coberto(s) pelo Google`:''}.`,"ok");
@@ -7775,6 +7775,72 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   const previousBind=bindPage;
   bindPage=function(){previousBind();bindCentral();enterCentralView()};
   document.documentElement.dataset.forjaGoogleSecretariaPolicy=CENTRAL_POLICY;
+})();
+</script>
+
+<script id="forja-google-personal-diagnostics-script">
+(()=>{
+  const POLICY='personal-google-diagnostics-v1';
+  const labels={authorization_invalid:'Autorização Google inválida',credential_missing:'Credencial indisponível',server_configuration:'Configuração OAuth do servidor',credential_decryption:'Falha de descriptografia',network:'Falha de rede',timeout:'Tempo de consulta esgotado',access_denied:'Acesso ao calendário recusado',rate_limited:'Limite de consultas Google',provider_unavailable:'Google temporariamente indisponível',provider_request_rejected:'Solicitação recusada pelo Google',invalid_response:'Resposta Google inválida'};
+  const instructions={professional_reconnect:'O titular precisa reconectar a mesma conta Google. Não é necessário desconectar antes. Se o Google bloquear por Testing, a administração precisa revisar a liberação do aplicativo.',administrator:'A administração precisa revisar a integração no backend. Reconectar não resolve necessariamente esta falha; não desconecte a conta como tentativa de correção.',professional_and_administrator:'O profissional e a administração precisam revisar o acesso ao calendário. Não é possível confirmar horários livres enquanto a consulta falhar.',retry_later:'Tente novamente mais tarde. Se a falha persistir, avise a administração. Nenhum horário foi confirmado como livre.'};
+  const flights=new Map(),notices=new WeakMap();
+  function professional(){return ['teacher','psychologist'].includes(state.role)&&state.profile?.active===true}
+  function valid(d){return d?.policy===POLICY&&(d.status==='verified'||(d.status==='unavailable'&&Object.hasOwn(labels,d.failureKind)&&Object.hasOwn(instructions,d.resolution)))}
+  function diagnosis(){const g=state.googleCalendar||{};return valid(g.personalDiagnosis)?g.personalDiagnosis:valid(g.item?.lastFailure)?g.item.lastFailure:null}
+  function detail(d){
+    if(!valid(d))return '<p>O erro anterior não contém uma causa verificável. Execute o Diagnóstico para consultar a conexão atual; não é possível concluir que a autorização expirou.</p>';
+    if(d.status==='verified')return '<p><b>Consulta Google verificada agora.</b> Isso não confirma o sucesso de uma sincronização anterior nem garante que um horário específico esteja livre. A marcação continua verificando os conflitos no servidor.</p>';
+    const stage=({configuration:'Configuração',credential:'Credencial armazenada',token:'Autorização no Google',calendar_api:'API Google Calendar'})[d.stage]||'Consulta Google';
+    const at=typeof d.checkedAt==='string'&&Number.isFinite(Date.parse(d.checkedAt))?fmtDateTime(d.checkedAt):'—';
+    return `<p><b>${esc(labels[d.failureKind])}</b><br>${esc(instructions[d.resolution])}</p>${d.failureKind==='authorization_invalid'?'<p>A resposta não distingue, sozinha, expiração de revogação.</p>':''}<p>Etapa: ${esc(stage)}${Number.isInteger(d.providerHttpStatus)&&d.providerHttpStatus>=400&&d.providerHttpStatus<=599?` · HTTP ${d.providerHttpStatus}`:''} · Verificação: ${esc(at)}</p>`;
+  }
+  function canReconnect(d){return valid(d)&&d.status==='unavailable'&&['authorization_invalid','credential_missing'].includes(d.failureKind)&&d.resolution==='professional_reconnect'&&d.reconnectRequired===true&&state.googleCalendar?.item?.connected===true}
+  function reconnectButton(d){return canReconnect(d)?'<button class="small-btn" data-personal-google-reconnect>Reconectar Google</button><p>Se a nova autorização for recusada ou bloqueada, a conexão anterior será preservada.</p>':''}
+  function bindReconnect(root){root.querySelectorAll('[data-personal-google-reconnect]').forEach(b=>{b.onclick=()=>googleAction('connect',b)})}
+  function decorate(){
+    if(!professional())return;
+    const d=diagnosis(),hasError=state.googleCalendar?.item?.lastSyncStatus==='erro';
+    const targets=new Set([...document.querySelectorAll('.v622-sync'),...Array.from(document.querySelectorAll('[data-google-action="sync"]')).map(b=>b.closest('.p2-card')).filter(Boolean)]);
+    for(const target of targets){
+      const hiddenDiagnostics=target.matches('.v622-sync')&&state.googleCalendar?.item?.connected===true&&!target.querySelector('[data-v620-google-diagnostics]')?.getClientRects().length;
+      let box=notices.get(target);
+      if(!d&&!hasError&&!hiddenDiagnostics){box?.remove();notices.delete(target);continue}
+      if(!box){box=document.createElement('div');box.className='system-note';box.dataset.personalGoogleStatus='';box.setAttribute('role','status');const anchor=target.closest('.v622-topbar');if(anchor)anchor.after(box);else target.append(box);notices.set(target,box)}
+      box.innerHTML=(d||hasError?detail(d):'<p>Consulte o diagnóstico da conexão Google pessoal sem alterar a agenda.</p>')+reconnectButton(d)+(hiddenDiagnostics?'<button class="small-btn" data-personal-google-diagnose>Diagnóstico Google</button>':'');bindReconnect(box);box.querySelector('[data-personal-google-diagnose]')?.addEventListener('click',e=>diagnose(e.currentTarget));
+    }
+    document.querySelectorAll('[data-v620-google-diagnostics]').forEach(b=>{b.onclick=()=>diagnose(b)});
+  }
+  async function diagnose(button){
+    if(!professional())return;
+    const session=forjaCaptureSession(),key=session.uid+'|'+session.generation;
+    if(flights.has(key))return flights.get(key);
+    const active=()=>forjaSessionCurrent(session)&&professional();
+    setBusy(button,true,'Verificando...');
+    const flight=(async()=>{
+      let d;
+      try{const r=await api('/google/calendar/diagnostics');if(!active())return;d=valid(r.googleDiagnosis)?r.googleDiagnosis:null}
+      catch(e){if(!active())return;d=valid(e.googleDiagnosis)?e.googleDiagnosis:null}
+      if(!active())return;
+      if(d)state.googleCalendar.personalDiagnosis=d;
+      modal('Diagnóstico Google pessoal',`<div class="system-note">${detail(d)}${reconnectButton(d)}</div><p>Eventos pessoais permanecem privados. Este diagnóstico não sincroniza, não desconecta e não altera a disponibilidade.</p>`);
+      bindReconnect(document.getElementById('modal'));decorate();
+    })();
+    flights.set(key,flight);
+    try{await flight}finally{flights.delete(key);if(active())setBusy(button,false)}
+  }
+  const previousApi=api;
+  api=async function(path,options={}){
+    const personal=/^\/google\/calendar\/(?:status|diagnostics|sync|watch\/renew)(?:\?|$)/.test(path);
+    const session=personal&&professional()?forjaCaptureSession():null;
+    const observe=d=>{if(session&&forjaSessionCurrent(session)&&professional()&&valid(d)){state.googleCalendar.personalDiagnosis=d;decorate()}};
+    try{const r=await previousApi(path,options);observe(r.googleDiagnosis||r.item?.lastFailure);return r}
+    catch(e){observe(e.googleDiagnosis);throw e}
+  };
+  const previousBind=bindPage;
+  bindPage=function(){previousBind();decorate()};
+  const previousModalBind=bindModalActions;
+  bindModalActions=function(){previousModalBind();decorate()};
+  document.documentElement.dataset.forjaGooglePersonalDiagnosticsPolicy=POLICY;
 })();
 </script>
 

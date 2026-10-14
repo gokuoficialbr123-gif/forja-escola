@@ -1,3 +1,13 @@
+## 14/10/2026 — Diagnóstico Google pessoal e Reconectar (não publicado)
+
+- Diferenciar autorização inválida, configuração, descriptografia, rede e API;
+  retornar somente metadados operacionais sanitizados, sem conteúdo de eventos.
+- Reconectar a mesma conta sem DELETE, preservando autorização anterior em recusa.
+- Agenda/conta com orientação e diagnóstico acessível também no celular;
+  respostas vinculadas ao UID/geração e prevenção de diagnóstico concorrente.
+- Preservar todas as verificações Google/booking do PR14 e a integração central.
+- Somente PRs em rascunho; nenhum deploy, conta ou Google Cloud real alterado.
+
 ## Revisão final dos PRs14 — 14/10/2026 (não publicado)
 
 - AGENDA_EM_PROCESSAMENTO agora tem code próprio e bookingState=in_progress.

@@ -1,3 +1,12 @@
+## 14/10/2026 — Diagnóstico/reconexão Google pessoal (somente draft)
+
+Autorizado implementar somente diagnóstico sanitizado por categoria e Reconectar
+sem desconexão prévia. PR14 já publicado; bases atuais registradas em
+`docs/GOOGLE_PERSONAL_DIAGNOSTICS.md`. Preservar conflitos, locks, UID/sessão,
+OAuth/PKCE/OIDC, conexões legadas e central. Não importar PR8–12/consentimento/
+desconexão/Etapa4. Testes só demo-forja/mocks/Chromium; sem OAuth real, dados reais,
+Google Cloud, merge ou qualquer deploy. Erro real Carlos ainda não comprovado.
+
 ## 14/10/2026 — Hotfix Marcar aula (NÃO publicado)
 
 Escopo atual autorizado: futuro America/Sao_Paulo, verificação Google pessoal
