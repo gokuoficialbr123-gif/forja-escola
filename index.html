@@ -3831,7 +3831,7 @@ async function api(path,{method="GET",body=null,authRequired=true,session=null}=
     const response=await fetch(`${FORJA_API_URL}${path}`,{method,headers,body:body==null?undefined:JSON.stringify(body),signal:controller.signal});
     const data=await response.json().catch(()=>({}));
     if(scope)forjaAssertSession(scope);
-    if(!response.ok){const e=new Error(data.error||`Erro ${response.status}`);e.status=response.status;throw e}
+    if(!response.ok){const e=new Error(data.error||`Erro ${response.status}`);e.status=response.status;e.code=data.code;e.bookingState=data.bookingState;e.googleVerification=data.googleVerification;if(data.code==='BOOKING_REQUEST_CHANGED')e.bookingExistingItem=data.item;throw e}
     return data;
   }catch(error){if(scope&&!forjaSessionCurrent(scope))throw forjaStaleSession();throw error;}
   finally{forjaSessionRequests.delete(controller);}
@@ -7259,7 +7259,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   const VERSION='6.31.1-secretaria-drawer-fluido';
   const BOOKING_DEFAULTS={open:false,teacherId:'',subjectId:'',studentId:'',date:'',duration:60,slotStart:'',slotEnd:'',mode:'presencial',place:'',meetLink:'',slots:[],loading:false,error:'',preferredStart:''};
   state.v630Booking=Object.assign({},BOOKING_DEFAULTS,state.v630Booking||{});
-  let slotRequestSeq=0, linksRequestSeq=0, scrollLock=null, deferredAgendaRender=false, returnFocus=null;
+  let slotRequestSeq=0, linksRequestSeq=0, scrollLock=null, deferredAgendaRender=false, returnFocus=null, saveFlight=false;
 
   function v630Teachers(){return (state.users||[]).filter(x=>x.role==='teacher'&&x.active===true)}
   function v630Teacher(id){return v630Teachers().find(x=>x.uid===id)||null}
@@ -7333,6 +7333,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   }
   function v630Open(prefill={}){
     const b=v630Booking(),alreadyOpen=b.open;returnFocus=alreadyOpen?returnFocus:document.activeElement;b.open=true;
+    if(saveFlight||b.pendingRecovery){if(b.pendingRecovery)b.error='Resultado ainda não confirmado. Clique em Confirmar aula para recuperar esta mesma solicitação, sem criar outra aula.';v630Mount();v630LockBackground();v630Update(['teacher','subjects','students','details','slots']);v630Freeze();return}
     if(!b.date)b.date=v630InitialDate();if(!b.teacherId)b.teacherId=v630InitialTeacher();
     if(prefill.teacherId&&v630Teacher(prefill.teacherId)&&b.teacherId!==prefill.teacherId){b.teacherId=prefill.teacherId;v630ResetAfter('teacher')}
     if(prefill.date)b.date=prefill.date;if(prefill.duration)b.duration=Number(prefill.duration)||60;
@@ -7394,7 +7395,10 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     const b=v630Booking(),t=v630Teacher(b.teacherId),s=v630Student(b.studentId),time=b.slotStart&&b.slotEnd?`${b.slotStart}–${b.slotEnd}`:'—';
     return `<div class="v630-summary"><div class="v630-summary-row"><span>Professor</span><b>${esc(t?.fullName||'—')}</b></div><div class="v630-summary-row"><span>Matéria</span><b>${esc(v630SubjectName(b.subjectId))}</b></div><div class="v630-summary-row"><span>Aluno</span><b>${esc(s?.fullName||'—')}</b></div><div class="v630-summary-row"><span>Aula</span><b>${esc(`${v630DateLabel(b.date)} · ${time}`)}</b></div><div class="v630-summary-row"><span>Modalidade</span><b>${esc(b.mode==='online'?'Online':'Presencial')}</b></div></div>`;
   }
-  function v630CanSave(){const b=v630Booking();return !!(!b.loading&&!b.saving&&v630SubjectsForTeacher(b.teacherId).some(x=>x.id===b.subjectId)&&v630StudentHasSubject(b.studentId,b.subjectId)&&b.date&&b.slots.some(x=>x.inicio===b.slotStart&&x.fim===b.slotEnd)&&(b.mode==='online'||String(b.place||'').trim()))}
+  function v630Future(slot){const b=v630Booking();return Number.isFinite(b.serverNowMs)&&Date.parse(slot?.startAt)>b.serverNowMs+Math.max(0,performance.now()-b.serverNowTick)}
+  const v630FrozenFields=new WeakMap();
+  function v630Freeze(){const b=v630Booking(),root=v630Root();if(!root)return;for(const el of root.querySelectorAll('input,select')){if(b.saving||b.pendingRecovery){if(!v630FrozenFields.has(el))v630FrozenFields.set(el,el.disabled);el.disabled=true}else if(v630FrozenFields.has(el)){el.disabled=v630FrozenFields.get(el);v630FrozenFields.delete(el)}}}
+  function v630CanSave(){const b=v630Booking();if(saveFlight||b.saving)return false;if(b.pendingRecovery&&b.pendingBody)return true;return !!(!b.loading&&v630SubjectsForTeacher(b.teacherId).some(x=>x.id===b.subjectId)&&v630StudentHasSubject(b.studentId,b.subjectId)&&b.date&&b.slots.some(x=>x.inicio===b.slotStart&&x.fim===b.slotEnd&&v630Future(x))&&(b.mode==='online'||String(b.place||'').trim()))}
   function v630DrawerHtml(){
     const b=v630Booking();
     return `<div class="v630-drawer-head"><div><small>SECRETARIA · AULAS</small><h2 id="v631Title">Marcar aula</h2><p>Professor → Matéria → Aluno → Data/Duração → Horários → Confirmar</p></div><button type="button" class="v630-close" data-v630-close aria-label="Fechar">×</button></div>
@@ -7430,7 +7434,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     const steps=v630StepState(),first=steps.findIndex(x=>!x);
     root.querySelectorAll('[data-v631-step]').forEach((el,i)=>{el.classList.toggle('done',steps[i]);el.classList.toggle('current',i===(first<0?5:first))});
     root.querySelector('[data-v630-save]').disabled=!v630CanSave();
-    scroll.scrollTop=top;
+    v630Freeze();scroll.scrollTop=top;
   }
   function v630Render(){v630Update(['teacher','subjects','students','details','slots'])}
 
@@ -7460,8 +7464,10 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     try{
       const q=new URLSearchParams({data:requested.date,role:'teacher',professionalId:requested.teacherId,disciplinaId:requested.subjectId,alunoId:requested.studentId,duracaoMinutos:String(requested.duration)});
       const r=await api(`/profissionais/disponibilidade?${q}`);if(!current())return;
-      if(r.availabilityPolicy!=='confirmed-week-v2')throw new Error('Este backend ainda não valida disponibilidade publicada. Use o Preview atualizado antes de marcar a aula.');
-      const item=(r.items||[]).find(x=>x.uid===requested.teacherId);b.slots=(item?.slots||[]).filter(x=>x.status==='disponivel');b.loading=false;
+      if(r.availabilityPolicy!=='confirmed-week-v2'||r.bookingSafetyPolicy!=='future-live-google-v1')throw new Error('A consulta segura de horários requer a atualização da API pela administração. Nenhum horário foi confirmado como livre.');
+      b.serverNowMs=Date.parse(r.serverNow);b.serverNowTick=performance.now();if(!Number.isFinite(b.serverNowMs))throw new Error('Não foi possível conferir o horário atual do servidor. Consulte novamente.');
+      const item=(r.items||[]).find(x=>x.uid===requested.teacherId);if(!['verified','not_applicable'].includes(item?.googleVerification?.status)&&item?.slots?.length)throw new Error('Não foi possível verificar a fonte Google deste professor. Nenhum horário foi confirmado como livre.');
+      b.slots=(item?.slots||[]).filter(x=>x.status==='disponivel'&&v630Future(x));b.loading=false;
       const wanted=preferredStart||b.preferredStart||'',match=b.slots.find(x=>x.inicio===wanted);
       if(match){b.slotStart=match.inicio;b.slotEnd=match.fim}b.preferredStart='';v630Update(['slots']);
     }catch(e){if(!current())return;b.loading=false;b.error=e.message||'Erro ao consultar disponibilidade.';v630Update(['slots'])}
@@ -7474,7 +7480,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     field('v630Student').onchange=()=>{const b=v630Booking(),id=field('v630Student').value;b.studentId=v630StudentHasSubject(id,b.subjectId)?id:'';v630LoadSlots()};
     field('v630Date').onchange=()=>{v630Booking().date=field('v630Date').value;v630LoadSlots()};
     field('v630Duration').onchange=()=>{v630Booking().duration=Number(field('v630Duration').value)||60;v630LoadSlots()};
-    root.querySelector('#v631Slots').onclick=e=>{const btn=e.target.closest('[data-v630-slot]'),b=v630Booking();if(!btn||b.loading||!b.slots.some(x=>x.inicio===btn.dataset.v630Slot&&x.fim===btn.dataset.end))return;b.slotStart=btn.dataset.v630Slot;b.slotEnd=btn.dataset.end;root.querySelectorAll('[data-v630-slot]').forEach(el=>{const selected=el===btn;el.classList.toggle('selected',selected);el.setAttribute('aria-pressed',String(selected))});v630Update()};
+    root.querySelector('#v631Slots').onclick=e=>{const btn=e.target.closest('[data-v630-slot]'),b=v630Booking();if(!btn||b.loading||b.saving||saveFlight||b.pendingRecovery||!b.slots.some(x=>x.inicio===btn.dataset.v630Slot&&x.fim===btn.dataset.end))return;b.slotStart=btn.dataset.v630Slot;b.slotEnd=btn.dataset.end;root.querySelectorAll('[data-v630-slot]').forEach(el=>{const selected=el===btn;el.classList.toggle('selected',selected);el.setAttribute('aria-pressed',String(selected))});v630Update()};
     field('v630Mode').onchange=()=>{v630Booking().mode=field('v630Mode').value;v630Update(['details'])};
     field('v630Place').oninput=()=>{v630Booking().place=field('v630Place').value;v630Update()};
     field('v630Meet').oninput=()=>{v630Booking().meetLink=field('v630Meet').value};
@@ -7488,16 +7494,54 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   }
 
   async function v630Save(button){
-    const b=v630Booking(),teacher=v630Teacher(b.teacherId),student=v630Student(b.studentId);if(!v630CanSave()||!teacher||!student){toast('Complete professor, matéria, aluno, horário e modalidade.','warn');return}
-    const meet=b.mode==='online'?String(b.meetLink||'').trim():'';if(meet&&typeof isGoogleMeetClientUrl==='function'&&!isGoogleMeetClientUrl(meet)){toast('Use um link https://meet.google.com/...','warn');return}
-    const body={alunoId:student.uid,professorId:teacher.uid,disciplinaId:b.subjectId,serieId:student.serieId||'',dataAula:b.date,horaAula:b.slotStart,horaFim:b.slotEnd,modalidade:b.mode,localAula:b.mode==='presencial'?String(b.place||'').trim():'',meetLink:meet,criarMeet:false};
-    const fixed=typeof safeHttpUrl==='function'?safeHttpUrl(teacher.meetLinkFixo||''):'';if(body.modalidade==='online'&&!meet&&!fixed&&v630ConnectedTeacher(teacher.uid))body.criarMeet=true;
-    if(body.modalidade==='online'&&!meet&&!fixed&&!body.criarMeet){toast('Esse professor precisa de Meet configurado ou Google conectado para aula online.','warn');return}
-    b.saving=true;setBusy(button,true,'Confirmando...');
+    const b=v630Booking();if(saveFlight||b.saving)return;
+    const session=typeof forjaCaptureSession==='function'?forjaCaptureSession():null;
+    const active=()=>!session||forjaSessionCurrent(session);
+    let body=b.pendingRecovery?b.pendingBody:null;
+    if(!body){
+      const teacher=v630Teacher(b.teacherId),student=v630Student(b.studentId);
+      if(!v630CanSave()||!teacher||!student){toast('Confira os campos e consulte um horário futuro antes de confirmar.','warn');return}
+      const meet=b.mode==='online'?String(b.meetLink||'').trim():'';if(meet&&typeof isGoogleMeetClientUrl==='function'&&!isGoogleMeetClientUrl(meet)){toast('Use um link https://meet.google.com/...','warn');return}
+      body={alunoId:student.uid,professorId:teacher.uid,disciplinaId:b.subjectId,serieId:student.serieId||'',dataAula:b.date,horaAula:b.slotStart,horaFim:b.slotEnd,modalidade:b.mode,localAula:b.mode==='presencial'?String(b.place||'').trim():'',meetLink:meet,criarMeet:false,bookingRequestId:crypto.randomUUID()};
+      const fixed=typeof safeHttpUrl==='function'?safeHttpUrl(teacher.meetLinkFixo||''):'';if(body.modalidade==='online'&&!meet&&!fixed&&v630ConnectedTeacher(teacher.uid))body.criarMeet=true;
+      if(body.modalidade==='online'&&!meet&&!fixed&&!body.criarMeet){toast('Esse professor precisa de Meet configurado ou Google conectado para aula online.','warn');return}
+      b.pendingBody=structuredClone(body);
+    }
+    saveFlight=true;b.saving=true;setBusy(button,true,'Confirmando...');v630Freeze();
     try{
-      await api('/aulas',{method:'POST',body});toast('Aula marcada e sincronização com o Google do professor processada.','ok');Object.assign(state.v630Booking,BOOKING_DEFAULTS,{date:b.date,duration:b.duration});v630Close();await reloadAndRender();
-    }catch(e){toast(e.message||'Não foi possível marcar a aula.','bad');await v630LoadSlots().catch(()=>{})}
-    finally{b.saving=false;setBusy(button,false);v630Update()}
+      let result;
+      try{result=await api('/aulas',{method:'POST',body})}catch(e){
+        if(e.code!=='BOOKING_REQUEST_CHANGED')throw e;
+        let item=e.bookingExistingItem;
+        // Compatibility with an older API response: read this UID-bound receipt,
+        // never send a new UUID or guess that the original operation failed.
+        if(!item?.id&&session?.uid){try{
+          const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(session.uid+'|'+body.bookingRequestId.toLowerCase()));
+          const id='booking_'+[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
+          const receipt=await api('/aulas/'+id);if(receipt.item?.createdById===session.uid)item=receipt.item;
+        }catch{}}
+        if(!item?.id||(session&&item.createdById!==session.uid))throw e;
+        result={item,replayed:true,requestChanged:true,warnings:[]};
+      }
+      if(!active())return;
+      if(!result?.item?.id)throw new Error('Não foi possível conferir o resultado da solicitação.');
+      state.lessons=[...(state.lessons||[]).filter(x=>x.id!==result.item.id),result.item];
+      state.adminLessonAgendaDateG=result.item.dataAula||body.dataAula;
+      state.v629SecretarySelectedTeacherIds=[...new Set([...(state.v629SecretarySelectedTeacherIds||[]),result.item.professorId||body.professorId])];
+      state.v629SecretarySelectionTouched=true;state.v629SecretaryFilters={...(state.v629SecretaryFilters||{}),lesson:true};
+      const saved=Object.fromEntries(['users','students','subjects','series','lessons','sessions','unavailability','googleConnections','secretarySubjectLinksD'].filter(k=>state[k]!==undefined).map(k=>[k,state[k]]));
+      toast(result.requestChanged?'Esta chave já pertence a uma aula com outros dados. Nenhuma nova aula foi criada; confira o registro existente na Agenda.':result.replayed?'Solicitação já processada: confira a aula registrada na Agenda.':'Aula registrada no FORJA.',result.requestChanged?'warn':'ok');
+      for(const warning of result.warnings||[])toast(warning,'warn');
+      Object.assign(b,BOOKING_DEFAULTS,{date:b.date,duration:b.duration,pendingBody:null,pendingRecovery:false});v630Close();
+      try{await reloadAndRender()}catch{if(!active())return;Object.assign(state,saved);if(typeof renderShell==='function')renderShell();renderPage();toast(result.requestChanged?'O registro existente foi identificado, mas a atualização da Agenda falhou. Recarregue antes de nova marcação.':'A aula foi registrada. A atualização da Agenda falhou; recarregue a página sem criar outra aula.','warn')}
+    }catch(e){
+      if(!active())return;
+      const unresolved=e.code==='AGENDA_EM_PROCESSAMENTO'||e.bookingState==='in_progress'||e.code==='BOOKING_REQUEST_CHANGED';
+      const definitiveConflicts=['PROFISSIONAL_OCUPADO_AULA','PROFISSIONAL_OCUPADO_SESSAO','PROFISSIONAL_INDISPONIVEL','ALUNO_OCUPADO','PROFISSIONAL_OCUPADO_GOOGLE','DISCIPLINA_NAO_VINCULADA','PROFESSOR_SEM_DISCIPLINAS','BOOKING_START_PASSED','BOOKING_REQUEST_INVALID'];
+      const definite=!unresolved&&(e.bookingState==='not_created'||e.status===400||(e.status===409&&definitiveConflicts.includes(e.code)));
+      if(definite){b.pendingBody=null;b.pendingRecovery=false;toast(e.message||'A aula não foi criada.','bad');await v630LoadSlots().catch(()=>{})}
+      else{b.pendingRecovery=true;b.error=e.code==='BOOKING_REQUEST_CHANGED'?'Não foi possível ler o registro desta solicitação. Confira a Agenda antes de tentar novamente; a chave foi preservada.':'Resultado ainda não confirmado. Aguarde e clique em Confirmar aula para recuperar esta mesma solicitação, sem criar outra aula.';toast(b.error,'warn');v630Update(['slots'])}
+    }finally{saveFlight=false;if(active()){b.saving=false;setBusy(button,false);v630Update(['details']);v630Freeze()}}
   }
 
   const renderPageBeforeV631=renderPage;

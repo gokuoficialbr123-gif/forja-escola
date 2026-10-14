@@ -1,3 +1,37 @@
+## Revisão final dos PRs14 — 14/10/2026 (não publicado)
+
+- AGENDA_EM_PROCESSAMENTO agora tem code próprio e bookingState=in_progress.
+  Frontend preserva corpo/UUID tanto nesse caso quanto em409 desconhecido. Somente
+  rejeição explícita/400 ou códigos de conflitos definitivos autorizam descartar
+  a tentativa. Não se gera UUID novo por contenção de lock.
+- BOOKING_REQUEST_CHANGED devolve o registro existente somente ao mesmo criador
+  autenticado. A interface reconcilia esse registro com aviso de que nenhuma nova
+  aula foi criada; não continua tentando indefinidamente um corpo incompatível.
+  Para resposta antiga sem item, faz GET read-only do recibo derivado de UID/UUID
+  e confere createdById. Se a leitura falhar, conserva a chave e orienta conferir
+  a Agenda; não presume falha nem libera outra criação. UID diferente é recusado.
+- PATCH /aulas/:id compara data/início/fim normalizados. Só mudança efetiva é
+  remarcação e precisa ter início futuro em America/Sao_Paulo, antes e depois da
+  consulta de conflitos dentro dos locks. Duração alterada de aula já iniciada
+  também é recusada. Campos de horário repetidos sem mudança não reabrem aula,
+  não resetam status e não impedem edição histórica por causa da data passada.
+- Regressões:181 unitários backend,138 integrações Auth/Firestore/HTTP/Chromium
+  pareado e199 testes frontend. Novos testes de concorrência usam Google retido
+  por controle IPC exclusivamente no mock para eliminar dependência de latência.
+- Preservados aquisição/liberação de locks, verificação Google, permissões,
+  sessão/UID e regras de conflitos. Sem OAuth real, banco real, merge ou deploy.
+- Ordem futura permanece backend aprovado primeiro, validar Render e contratos,
+  depois frontend aprovado e validar Hosting. Nenhum passo executado nesta revisão.
+
+## 14/10/2026 — Hotfix Marcar aula (NÃO publicado)
+
+Escopo atual autorizado: futuro America/Sao_Paulo, verificação Google pessoal
+antes de ofertar slots e resultado/idempotência seguros da criação. Ler
+`docs/BOOKING_HOTFIX_2026-10-14.md`. Base main pós-PR13; preservar locks e isolamento
+UID/sessão. Não importar PR8–12/consentimento/Etapa4. Testes só demo-forja/mocks/
+Chromium. Sem merge, qualquer deploy, OAuth real, IAM ou dados reais. Metadados
+reais negados código7: não concluir que token real expirou/revogou.
+
 ## 13/10/2026 — Opção B: release mínima, ainda não publicada
 
 Autorizado portar SOMENTE lock cleanup/backend e isolamento UID/sessão/frontend

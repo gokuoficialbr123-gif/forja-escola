@@ -1,3 +1,12 @@
+## 14/10/2026 — Hotfix Marcar aula (NÃO publicado)
+
+Escopo atual autorizado: futuro America/Sao_Paulo, verificação Google pessoal
+antes de ofertar slots e resultado/idempotência seguros da criação. Ler
+`docs/BOOKING_HOTFIX_2026-10-14.md`. Base main pós-PR13; preservar locks e isolamento
+UID/sessão. Não importar PR8–12/consentimento/Etapa4. Testes só demo-forja/mocks/
+Chromium. Sem merge, qualquer deploy, OAuth real, IAM ou dados reais. Metadados
+reais negados código7: não concluir que token real expirou/revogou.
+
 ## 13/10/2026 — Opção B: release mínima, ainda não publicada
 
 Autorizado portar SOMENTE lock cleanup/backend e isolamento UID/sessão/frontend
