@@ -1,3 +1,11 @@
+## 15/10/2026 — Correção pontual: aula contratada não é cancelada pelo relógio
+
+Preparado, não publicado. Ler `LESSON_READONLY_AUDIT.md`. Remover cancelamento/backfill
+em consultas e classificação visual falsa; preservar registros e indicar conferência
+sem atribuir falta/realização. QA exclusivamente demo-forja/mocks/Chromium.
+Sem merge/deploy/OAuth/dados reais. PR separado da disponibilidade fixa;
+Missões2/3 não iniciadas. Autorizações novas do usuário prevalecem sobre histórico abaixo.
+
 ## 14/10/2026 — Diagnóstico/reconexão Google pessoal (somente draft)
 
 Autorizado implementar somente diagnóstico sanitizado por categoria e Reconectar
