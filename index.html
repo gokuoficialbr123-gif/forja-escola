@@ -7864,12 +7864,14 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   api=async function(path,options={}){
     const weekly=/^\/disponibilidade-semanal(?:\/copiar-anterior)?(?:\?|$)/.test(path),scope=professional()&&weekly?forjaCaptureSession():null;
     const requestWeek=weekly?(new URL(path,'https://forja.invalid').searchParams.get('weekStart')||options.body?.weekStart||gWeekStart(spToday())):null;
+    const adminScope=state.role==='admin'&&/^\/admin\/disponibilidades-semana(?:\?|$)/.test(path)?forjaCaptureSession():null;
     const requestId=scope?++state.forjaFixedRequestCounter:0,epoch=state.forjaFixedEpoch;
     if(scope)state.forjaFixedRequestIds[requestWeek]=requestId;
     const fresh=()=>scope&&current(scope)&&epoch===state.forjaFixedEpoch&&state.forjaFixedRequestIds[requestWeek]===requestId;
     try{
       let r=await previousApi(path,options);
-      if(fresh()&&r.fixedAvailabilityPolicy===POLICY){state.forjaFixedWeeks[r.weekStart]={scope,value:clone(r)};}
+      if(adminScope&&current(adminScope))updateWeekNotice(r);
+      if(fresh()&&r.fixedAvailabilityPolicy===POLICY){state.forjaFixedWeeks[r.weekStart]={scope,value:clone(r)};updateWeekNotice();}
       if(fresh()&&options.method&&options.method!=='GET'&&state.forjaFixedWeeks?.[r.weekStart]){
         const read=await previousApi('/disponibilidade-semanal?weekStart='+encodeURIComponent(r.weekStart),{session:scope});
         if(fresh()&&read.fixedAvailabilityPolicy===POLICY)state.forjaFixedWeeks[read.weekStart]={scope,value:clone(read)};
@@ -7960,6 +7962,18 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
       const flight=api('/disponibilidade-semanal?weekStart='+ws,{session:scope}).then(()=>{if(current(scope)&&state.page==='agenda')renderPage();}).catch(()=>{if(current(scope)){state.forjaFixedWeeks[ws]={scope,value:{effectiveItems:{}}};toast('Não foi possível verificar a disponibilidade desta semana.','warn');}}).finally(()=>pendingWeeks.delete(key));pendingWeeks.set(key,flight);
     }
   }
+  function updateWeekNotice(response=null){
+    const host=document.getElementById('fixedWeekNotice');if(!host)return;
+    const admin=state.role==='admin',uid=admin?document.getElementById('fixedProfessional')?.value:state.user?.uid;
+    const day=admin?state.adminLessonAgendaDateG:state.role==='teacher'?state.teacherLessonAgendaDateG:state.agendaDate;
+    const ws=state.page==='disponibilidade'?(state.availabilityWeekStartV616||gWeekStart(spToday())):gWeekStart(day||spToday());
+    const entry=admin?(response?.weekStart===ws?response.items?.find(x=>x.uid===uid):null)||state.adminProfessionalWeekMapV619?.[uid]||state.v621AdminWeekCache?.[ws]?.[uid]:state.forjaFixedWeeks?.[ws]?.value;
+    if(!entry||entry.weekStart!==ws){host.textContent='Consulte a semana para conferir a origem dos períodos; horário livre depende da verificação de conflitos.';return;}
+    if(entry.hasSavedWeek===true){
+      const empty=entry.savedWeekEmpty===true,published=entry.publicationValid===true;
+      host.textContent=`Semana de ${ws}: ${empty?'semana específica vazia':published?'semana específica publicada':'semana específica não publicada (rascunho ou legado)'}. `+(empty||!published?'O padrão fixo não substitui esta semana. Nenhum horário é liberado por ela. Para liberar horários, o profissional deve revisar os períodos e publicar a semana pelo fluxo existente.':'Ela prevalece sobre o padrão fixo; exceções e conflitos ainda reduzem os períodos.');
+    }else host.textContent=`Semana de ${ws}: sem semana específica. O padrão só vale se estiver confirmado, habilitado e vigente; exceções e conflitos podem reduzir os períodos.`;
+  }
   const previousBind=bindPage;
   bindPage=function(){
     previousBind();
@@ -7967,10 +7981,11 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     const content=document.getElementById('workspaceContent');if(!content)return;
     if(!document.getElementById('forjaFixedEntry')){
       const admin=state.role==='admin',professionals=(state.users||[]).filter(u=>['teacher','psychologist'].includes(u.role)&&u.active===true);
-      content.insertAdjacentHTML('afterbegin',`<div id="forjaFixedEntry" class="quick-row">${admin?`<label>Profissional<select id="fixedProfessional">${professionals.map(u=>`<option value="${esc(u.uid)}">${esc(u.fullName||roleLabel(u.role))}</option>`).join('')}</select></label>`:''}<button type="button" class="small-btn" data-fixed-open>${admin?'Consultar disponibilidade fixa':'Disponibilidade fixa'}</button><small>Padrão semanal + exceções. Semanas específicas têm prioridade.</small></div>`);
+      content.insertAdjacentHTML('afterbegin',`<div id="forjaFixedEntry" class="quick-row">${admin?`<label>Profissional<select id="fixedProfessional">${professionals.map(u=>`<option value="${esc(u.uid)}">${esc(u.fullName||roleLabel(u.role))}</option>`).join('')}</select></label>`:''}<button type="button" class="small-btn" data-fixed-open>${admin?'Consultar disponibilidade fixa':'Disponibilidade fixa'}</button><small id="fixedWeekNotice" role="status">Padrão semanal + exceções. Semanas específicas têm prioridade.</small></div>`);
       content.querySelector('[data-fixed-open]').onclick=e=>open(e.currentTarget);
+      if(admin)content.querySelector('#fixedProfessional').onchange=()=>updateWeekNotice();
     }
-    loadPsychWeeks();
+    updateWeekNotice();loadPsychWeeks();
   };
   document.documentElement.dataset.forjaFixedAvailabilityPolicy=POLICY;
 })();

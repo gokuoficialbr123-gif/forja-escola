@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const referenceVersion = '6.31.1-secretaria-drawer-fluido';
-export const referenceSha256 = '89398d8488316f3ce3301bebbae7e68f8129b4e3fef25d6aea2ae01442ad1c87';
+export const referenceSha256 = '880a180380aede5f4142f9957b98002690ad619927e3be1afa714c38bc4856b3';
 export const sha256 = data => createHash('sha256').update(data).digest('hex');
 
 export function validateInlineScripts(html) {

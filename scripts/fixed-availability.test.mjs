@@ -9,7 +9,7 @@ const {chromium}=await import(pathToFileURL(resolve(process.env.FORJA_PLAYWRIGHT
 let browser;before(async()=>browser=await chromium.launch({headless:true,...(process.env.FORJA_CHROMIUM_PATH?{executablePath:process.env.FORJA_CHROMIUM_PATH}:{})}));after(async()=>browser?.close());
 const origin='https://forja-fixed-fixture.invalid';
 const sdk=`(()=>{let notify=()=>{};const make=uid=>({uid,email:uid+'@forja.invalid',emailVerified:true,getIdToken:async()=> 'LOCAL_'+uid});const auth={currentUser:make('A'),setPersistence:async()=>{},onAuthStateChanged:cb=>{notify=cb;Promise.resolve().then(()=>cb(auth.currentUser));return()=>{}},signOut:async()=>{auth.currentUser=null;notify(null)},signInWithEmailAndPassword:async email=>{const user=make(email.split('@')[0].toUpperCase());auth.currentUser=user;notify(user);return {user}}};const factory=()=>auth;factory.Auth={Persistence:{SESSION:'session'}};window.firebase={apps:[],initializeApp:()=>firebase.apps.push({}),auth:factory};})();`;
-async function fixture(t,{mobile=false,status=200,policy=POLICY,hold=false}={}){
+async function fixture(t,{mobile=false,status=200,policy=POLICY,hold=false,weekOverride={}}={}){
  const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:900}});t.after(()=>page.close());page.setDefaultTimeout(7000);const requests=[],errors=[];let release;const gate=new Promise(r=>release=r);
  page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{window.FORJA_FIREBASE_CONFIG={apiKey:'local-only',projectId:'demo-forja',authDomain:'forja.invalid'};const prev=fetch;window.fetch=(url,options={})=>prev(url,{...options,signal:undefined});});
@@ -24,7 +24,7 @@ async function fixture(t,{mobile=false,status=200,policy=POLICY,hold=false}={}){
   let body={items:[],users:[],item:{}},code=200;
   if(u.pathname==='/me')body={profile:{uid,role:({A:'teacher',B:'psychologist',C:'admin'})[uid],active:true,fullName:'Sintético '+uid}};
   if(u.pathname==='/admin/usuarios')body={users:[{uid:'A',role:'teacher',active:true,fullName:'Professor A'},{uid:'B',role:'psychologist',active:true,fullName:'Psicólogo B'},{uid:'D',role:'teacher',active:false,fullName:'Inativo'}]};
-  if(u.pathname==='/disponibilidade-semanal')body={weekStart:u.searchParams.get('weekStart')||'2026-10-12',items:{1:[{inicio:'13:00',fim:'17:00'}]},effectiveItems:{1:[{inicio:'13:00',fim:'14:00'}]},fixedAvailabilityPolicy:POLICY,origins:{1:'fixed'}};
+  if(u.pathname==='/disponibilidade-semanal')body={weekStart:u.searchParams.get('weekStart')||'2026-10-12',items:{1:[{inicio:'13:00',fim:'17:00'}]},effectiveItems:{1:[{inicio:'13:00',fim:'14:00'}]},fixedAvailabilityPolicy:POLICY,origins:{1:'fixed'},...weekOverride};
   if(u.pathname==='/disponibilidade-padrao'){
    if(hold&&r.method()==='GET'&&uid==='A')await gate;
    if(r.method()==='PATCH'){code=status;body=status===409?{error:'O padrão mudou em outra sessão. Reabra e revise antes de confirmar.'}:{ok:true,revision:1};}
@@ -78,4 +78,11 @@ test('late response for the same week cannot replace a newer effective configura
  await p.evaluate(()=>{window.oldFixedWeek=api('/disponibilidade-semanal?weekStart=2030-01-07')});await ready;
  await p.evaluate(()=>api('/disponibilidade-semanal?weekStart=2030-01-07'));release();await p.evaluate(()=>oldFixedWeek);
  assert.deepEqual(await p.evaluate(()=>forjaFixedWeekItems('2030-01-07',{})['1']),[{inicio:'13:00',fim:'14:00'}]);
+});
+for(const [empty,published,expected] of [[true,false,/semana específica vazia/],[false,false,/rascunho ou legado/],[true,true,/semana específica vazia/],[false,true,/semana específica publicada/]])test(`week precedence notice empty=${empty} published=${published}`,async t=>{
+ const f=await fixture(t,{weekOverride:{hasSavedWeek:true,savedWeekEmpty:empty,publicationValid:published}}),p=f.page;
+ await p.evaluate(()=>navigate('agenda'));await p.evaluate(()=>api('/disponibilidade-semanal?weekStart='+gWeekStart(todayKey())));
+ assert.match(await p.locator('#fixedWeekNotice').innerText(),expected);
+ if(empty||!published)assert.match(await p.locator('#fixedWeekNotice').innerText(),/não substitui esta semana/);
+ assert.equal(f.requests.filter(x=>x.method==='PATCH').length,0);
 });

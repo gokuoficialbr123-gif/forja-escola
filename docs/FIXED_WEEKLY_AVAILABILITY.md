@@ -1,3 +1,14 @@
+## Revisão crítica de15/10/2026 — preparada, sem publicação
+
+A precedência não mudou: documento semanal existente (inclusive vazio/rascunho)
+impede herança automática. API agora informa hasSavedWeek/savedWeekEmpty também
+à Secretaria; aviso na interface explica semana vazia/não publicada/publicada e
+que o padrão não substitui esse registro. Leituras não apagam nem promovem legado.
+Cancelamento implícito e classificação visual falsa identificados no main foram
+corrigidos SEPARADAMENTE nos PRs17 backend/frontend. Devem ser compostos antes
+da publicação da Missão1. Aulas antigas canceladas não foram restauradas.
+Nenhum merge/deploy ou dado real utilizado.
+
 # Missão 1 — disponibilidade semanal fixa (preparada, NÃO publicada)
 
 Bases relidas em 15/10/2026: backend `1b4012d45ba3ae2d31c4214440307bff27564b4a`, frontend
