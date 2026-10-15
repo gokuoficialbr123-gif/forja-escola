@@ -1,3 +1,15 @@
+## 15/10/2026 — Missão1 preparada para revisão (NÃO publicada)
+
+Padrão semanal confirmado/versionado por profissional, vigência e exceções,
+resolução sem materializar semanas, consulta da Secretaria e UI preservada.
+Semanas existentes prevalecem; legado não é promovido; Google/futuro/conflitos/locks
+continuam restringindo horários. QA somente emuladores/Chromium/mocks.
+Validados: 193 testes unitários backend, 160 de integração (incluindo Chromium
+pareado), 220 da suíte completa frontend e 8 específicos finais do novo editor.
+Hash inverso comprova restante do HTML idêntico ao main pós-PR15.
+Ver `FIXED_WEEKLY_AVAILABILITY.md`; SHAs/checks finais nos PRs em rascunho.
+Nenhum merge, publicação ou escrita real nesta entrega.
+
 ## 14/10/2026 — Diagnóstico Google pessoal e Reconectar (não publicado)
 
 - Diferenciar autorização inválida, configuração, descriptografia, rede e API;

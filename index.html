@@ -6833,7 +6833,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   }
   function v621AvailabilityForDay(role,uid,day){
     const ws=gWeekStart(day),code=v621DayCode(day);
-    if(role==='teacher')return (v621TeacherAvailabilityForWeek(ws)?.[code]||[]).map(x=>({...x}));
+    if(role==='teacher')return (forjaFixedWeekItems(ws,v621TeacherAvailabilityForWeek(ws))?.[code]||[]).map(x=>({...x}));
     const entry=v621AdminWeekEntry(ws,uid);
     if(entry?.availabilityPolicy!=='confirmed-week-v2'||entry.publicationValid!==true||entry.weekStart!==ws)return [];
     return (entry.disponibilidade?.[code]||[]).map(x=>({...x}));
@@ -7841,6 +7841,138 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   const previousModalBind=bindModalActions;
   bindModalActions=function(){previousModalBind();decorate()};
   document.documentElement.dataset.forjaGooglePersonalDiagnosticsPolicy=POLICY;
+})();
+</script>
+
+<style id="forja-fixed-availability-style">
+#forjaFixedForm fieldset{min-width:0;margin:10px 0;padding:12px;border:1px solid #d5deeb;border-radius:10px}
+#forjaFixedForm .quick-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:end;gap:8px;margin:8px 0}
+#forjaFixedForm label{min-width:0}#forjaFixedForm input:not([type=checkbox]),#forjaFixedForm select{width:100%;min-width:0;box-sizing:border-box}
+#forjaFixedForm [data-fixed-exception]{padding:10px 0;border-bottom:1px solid #d5deeb;margin-bottom:10px}
+#forjaFixedForm #fixedFeedback{color:#8f2f20;white-space:normal}
+</style>
+<script id="forja-fixed-availability-script">
+(function(){
+  'use strict';
+  const POLICY='confirmed-recurring-week-v1',DAYS=[[1,'Segunda'],[2,'Terça'],[3,'Quarta'],[4,'Quinta'],[5,'Sexta'],[6,'Sábado'],[0,'Domingo']];
+  state.forjaFixedWeeks={};state.forjaFixedEpoch=0;state.forjaFixedRequestIds={};state.forjaFixedRequestCounter=0;
+  const professional=()=>['teacher','psychologist'].includes(state.role);
+  const current=scope=>forjaSessionCurrent(scope);
+  const clone=x=>JSON.parse(JSON.stringify(x));
+  const spToday=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const previousApi=api;
+  api=async function(path,options={}){
+    const weekly=/^\/disponibilidade-semanal(?:\/copiar-anterior)?(?:\?|$)/.test(path),scope=professional()&&weekly?forjaCaptureSession():null;
+    const requestWeek=weekly?(new URL(path,'https://forja.invalid').searchParams.get('weekStart')||options.body?.weekStart||gWeekStart(spToday())):null;
+    const requestId=scope?++state.forjaFixedRequestCounter:0,epoch=state.forjaFixedEpoch;
+    if(scope)state.forjaFixedRequestIds[requestWeek]=requestId;
+    const fresh=()=>scope&&current(scope)&&epoch===state.forjaFixedEpoch&&state.forjaFixedRequestIds[requestWeek]===requestId;
+    try{
+      let r=await previousApi(path,options);
+      if(fresh()&&r.fixedAvailabilityPolicy===POLICY){state.forjaFixedWeeks[r.weekStart]={scope,value:clone(r)};}
+      if(fresh()&&options.method&&options.method!=='GET'&&state.forjaFixedWeeks?.[r.weekStart]){
+        const read=await previousApi('/disponibilidade-semanal?weekStart='+encodeURIComponent(r.weekStart),{session:scope});
+        if(fresh()&&read.fixedAvailabilityPolicy===POLICY)state.forjaFixedWeeks[read.weekStart]={scope,value:clone(read)};
+      }
+      return r;
+    }catch(e){
+      if(fresh()&&(!options.method||options.method==='GET')){
+        const ws=new URL(path,'https://forja.invalid').searchParams.get('weekStart');
+        if(ws&&state.forjaFixedWeeks?.[ws])state.forjaFixedWeeks[ws]={scope,value:{effectiveItems:{},fixedAvailabilityPolicy:POLICY}};
+      }
+      throw e;
+    }
+  };
+  window.forjaFixedWeekItems=function(ws,fallback){
+    const entry=state.forjaFixedWeeks?.[ws];
+    return entry&&current(entry.scope)?entry.value.effectiveItems||{}:fallback;
+  };
+  function periodRow(day,p={}){return `<div class="quick-row" data-fixed-period="${day}"><label>De <input type="time" data-fixed-start value="${esc(p.inicio||'')}" aria-label="Início ${day}"></label><label>Até <input type="time" data-fixed-end value="${esc(p.fim||'')}" aria-label="Fim ${day}"></label><button type="button" class="small-btn" data-fixed-remove>Remover</button></div>`;}
+  function exceptionRow(x={}){return `<div class="form-grid" data-fixed-exception><label>Tipo<select data-fixed-kind>${[['vacation','Férias'],['holiday','Feriado'],['date','Data específica']].map(([v,l])=>`<option value="${v}" ${x.kind===v?'selected':''}>${l}</option>`).join('')}</select></label><label>Primeiro dia<input type="date" data-fixed-first value="${esc(x.startDate||'')}"></label><label>Último dia<input type="date" data-fixed-last value="${esc(x.endDate||'')}"></label><label>A partir de<input type="time" data-fixed-ex-start value="${esc(x.inicio||'')}"></label><label>Até<input type="time" data-fixed-ex-end value="${esc(x.fim||'')}"></label><button type="button" class="small-btn" data-fixed-remove>Remover exceção</button></div>`;}
+  function collect(form){
+    const semana={};
+    for(const [day] of DAYS){
+      const periods=[...form.querySelectorAll(`[data-fixed-period="${day}"]`)].map(r=>({inicio:r.querySelector('[data-fixed-start]').value,fim:r.querySelector('[data-fixed-end]').value}));
+      for(const p of periods)if(!p.inicio||!p.fim||p.fim<=p.inicio)throw Error('Confira início e fim de cada período.');
+      periods.sort((a,b)=>a.inicio.localeCompare(b.inicio)||a.fim.localeCompare(b.fim));
+      for(let i=1;i<periods.length;i++)if(periods[i].inicio<periods[i-1].fim)throw Error('Há períodos sobrepostos no mesmo dia.');
+      if(periods.length)semana[String(day)]=periods;
+    }
+    const canonical={};for(let day=0;day<7;day++)if(semana[day])canonical[String(day)]=semana[day];
+    const exceptions=[...form.querySelectorAll('[data-fixed-exception]')].map(r=>({kind:r.querySelector('[data-fixed-kind]').value,startDate:r.querySelector('[data-fixed-first]').value,endDate:r.querySelector('[data-fixed-last]').value,inicio:r.querySelector('[data-fixed-ex-start]').value,fim:r.querySelector('[data-fixed-ex-end]').value})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
+    for(const x of exceptions)if(!x.startDate||!x.endDate||x.endDate<x.startDate||((x.inicio||x.fim)&&(!x.inicio||!x.fim||x.fim<=x.inicio)))throw Error('Confira as datas e os horários das exceções. Deixe ambos os horários vazios para bloquear o dia inteiro.');
+    const validFrom=form.querySelector('#fixedFrom').value,validUntil=form.querySelector('#fixedUntil').value||null;
+    if(!validFrom||validFrom<spToday()||(validUntil&&validUntil<validFrom))throw Error('A vigência deve começar hoje ou no futuro e terminar após o início.');
+    return {enabled:form.querySelector('#fixedEnabled').checked,validFrom,validUntil,semana:canonical,exceptions};
+  }
+  async function open(button){
+    const scope=forjaCaptureSession(),readonly=state.role==='admin',uid=readonly?document.getElementById('fixedProfessional')?.value:state.user?.uid;
+    if(!uid)return toast('Selecione um profissional ativo.','warn');
+    setBusy(button,true,'Carregando...');
+    try{
+      const r=await api('/disponibilidade-padrao'+(readonly?'?professionalId='+encodeURIComponent(uid):''),{session:scope});
+      if(!current(scope))return;
+      if(r.policy!==POLICY)throw Error('Este backend ainda não oferece disponibilidade fixa. Nenhuma alteração foi feita.');
+      const item=r.item||{enabled:true,validFrom:spToday(),validUntil:null,semana:{},exceptions:[]};
+      modal(readonly?'Disponibilidade fixa do profissional':'Minha disponibilidade fixa',`<div id="forjaFixedForm"><p>Repete semanalmente em America/Sao_Paulo, somente durante a vigência. Semanas já salvas têm prioridade. Exceções, aulas, bloqueios e Google podem reduzir os períodos; o servidor verifica os horários antes de agendar.</p><div class="form-grid"><label>Começa em<input id="fixedFrom" type="date" min="${spToday()}" value="${esc(item.validFrom)}"></label><label>Termina em (opcional)<input id="fixedUntil" type="date" value="${esc(item.validUntil||'')}"></label></div><label><input id="fixedEnabled" type="checkbox" ${item.enabled?'checked':''}> Padrão habilitado a partir da vigência</label><p>Para alterar um padrão iniciado no passado, escolha hoje ou uma data futura. O histórico e as aulas existentes serão preservados.</p>${DAYS.map(([day,label])=>`<fieldset><legend>${label}</legend><div data-fixed-day="${day}">${(item.semana[day]||[]).map(p=>periodRow(day,p)).join('')}</div><button type="button" class="small-btn" data-fixed-add="${day}">+ Período</button></fieldset>`).join('')}<h3>Exceções</h3><p>Férias, feriados e datas sem atendimento. Sem horários, bloqueiam o dia inteiro. Não cancelam aulas já marcadas.</p><div id="fixedExceptions">${(item.exceptions||[]).map(exceptionRow).join('')}</div><button type="button" class="small-btn" id="fixedAddException">+ Exceção</button><h3>Histórico de versões</h3><ul>${(r.history||[]).map(v=>`<li>Versão ${Number(v.revision)} · ${esc(v.validFrom)}${v.validUntil?' a '+esc(v.validUntil):' em diante'} · ${v.enabled?'habilitada':'suspensa'}</li>`).join('')||'<li>Nenhuma publicação.</li>'}</ul><p>Uma versão futura já agendada continua valendo em sua data. Para substituí-la, publique uma versão com o mesmo início.</p>${readonly?'<p>Somente o próprio profissional pode confirmar alterações.</p>':'<label><input type="checkbox" id="fixedConfirm"> Confirmo estes dias, horários, vigência e exceções para novas marcações.</label>'}<p id="fixedFeedback" role="status"></p></div>`,readonly?null:'Confirmar padrão',readonly?null:async saveButton=>{
+        if(!current(scope))return;
+        const form=document.getElementById('forjaFixedForm'),feedback=form.querySelector('#fixedFeedback');
+        if(!form.querySelector('#fixedConfirm').checked){feedback.textContent='Confirme explicitamente a configuração antes de salvar.';return;}
+        let input;try{input=collect(form)}catch(e){feedback.textContent=e.message;return;}
+        setBusy(saveButton,true,'Salvando...');
+        try{
+          const expectedRevision=Number(r.revision||0),payload={policy:POLICY,timeZone:'America/Sao_Paulo',professionalId:uid,revision:expectedRevision+1,...input};
+          const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(payload)));
+          const fingerprint=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
+          forjaAssertSession(scope);
+          await api('/disponibilidade-padrao',{method:'PATCH',session:scope,body:{...input,expectedRevision,confirmation:{version:1,accepted:true,fingerprint}}});
+          forjaAssertSession(scope);state.forjaFixedEpoch++;state.forjaFixedWeeks={};state.v621TeacherWeekCache={};state.v621AdminWeekCache={};
+          closeModal();toast('Padrão confirmado no FORJA. Aulas existentes foram preservadas.','ok');await reloadAndRender();
+        }catch(e){if(current(scope)&&feedback.isConnected)feedback.textContent=e.message||'Não foi possível confirmar o padrão.';}
+        finally{if(current(scope))setBusy(saveButton,false);}
+      });
+      const form=document.getElementById('forjaFixedForm');
+      if(readonly){form.querySelectorAll('input,select,button').forEach(x=>x.disabled=true);return;}
+      form.addEventListener('click',e=>{
+        const add=e.target.closest('[data-fixed-add]'),remove=e.target.closest('[data-fixed-remove]');
+        if(add||remove||e.target.closest('#fixedAddException'))form.querySelector('#fixedConfirm').checked=false;
+        if(add){const day=add.dataset.fixedAdd,host=form.querySelector(`[data-fixed-day="${day}"]`);if(host.children.length<12)host.insertAdjacentHTML('beforeend',periodRow(day));}
+        if(remove)remove.closest('[data-fixed-period],[data-fixed-exception]')?.remove();
+        if(e.target.closest('#fixedAddException')&&form.querySelectorAll('[data-fixed-exception]').length<100)form.querySelector('#fixedExceptions').insertAdjacentHTML('beforeend',exceptionRow());
+      });
+      form.addEventListener('input',e=>{if(e.target.id!=='fixedConfirm')form.querySelector('#fixedConfirm').checked=false;});
+    }catch(e){if(current(scope))toast(e.message||'Não foi possível carregar o padrão.','bad');}
+    finally{if(current(scope))setBusy(button,false);}
+  }
+  const previousEvents=agendaOwnAvailabilityEvents;
+  agendaOwnAvailabilityEvents=function(keys){
+    if(state.role!=='psychologist')return previousEvents(keys);
+    const events=[];
+    for(const key of keys){const ws=gWeekStart(key),entry=state.forjaFixedWeeks?.[ws];if(!entry||!current(entry.scope))continue;const day=String(agendaUtcDate(key).getUTCDay());for(const p of entry.value.effectiveItems?.[day]||[])events.push({id:`avail-${key}-${p.inicio}-${p.fim}`,kind:'disponibilidade',date:key,start:p.inicio,end:p.fim,title:'Disponível',sub:'Disponibilidade confirmada',status:'disponivel',professionalId:state.user?.uid||''});}
+    return events;
+  };
+  const pendingWeeks=new Map();
+  function loadPsychWeeks(){
+    if(state.role!=='psychologist'||state.page!=='agenda')return;
+    const scope=forjaCaptureSession();
+    for(const ws of new Set(agendaRangeKeys().map(gWeekStart))){
+      const key=scope.uid+'|'+scope.generation+'|'+state.forjaFixedEpoch+'|'+ws;if(state.forjaFixedWeeks?.[ws]||pendingWeeks.has(key))continue;
+      const flight=api('/disponibilidade-semanal?weekStart='+ws,{session:scope}).then(()=>{if(current(scope)&&state.page==='agenda')renderPage();}).catch(()=>{if(current(scope)){state.forjaFixedWeeks[ws]={scope,value:{effectiveItems:{}}};toast('Não foi possível verificar a disponibilidade desta semana.','warn');}}).finally(()=>pendingWeeks.delete(key));pendingWeeks.set(key,flight);
+    }
+  }
+  const previousBind=bindPage;
+  bindPage=function(){
+    previousBind();
+    if(!['agenda','disponibilidade'].includes(state.page)||!['admin','teacher','psychologist'].includes(state.role))return;
+    const content=document.getElementById('workspaceContent');if(!content)return;
+    if(!document.getElementById('forjaFixedEntry')){
+      const admin=state.role==='admin',professionals=(state.users||[]).filter(u=>['teacher','psychologist'].includes(u.role)&&u.active===true);
+      content.insertAdjacentHTML('afterbegin',`<div id="forjaFixedEntry" class="quick-row">${admin?`<label>Profissional<select id="fixedProfessional">${professionals.map(u=>`<option value="${esc(u.uid)}">${esc(u.fullName||roleLabel(u.role))}</option>`).join('')}</select></label>`:''}<button type="button" class="small-btn" data-fixed-open>${admin?'Consultar disponibilidade fixa':'Disponibilidade fixa'}</button><small>Padrão semanal + exceções. Semanas específicas têm prioridade.</small></div>`);
+      content.querySelector('[data-fixed-open]').onclick=e=>open(e.currentTarget);
+    }
+    loadPsychWeeks();
+  };
+  document.documentElement.dataset.forjaFixedAvailabilityPolicy=POLICY;
 })();
 </script>
 

@@ -1,3 +1,12 @@
+## Missão1: somente QA local e PRs em rascunho
+
+Autorizada somente a Missão1, sobre main pós-PR15. Ler
+`FIXED_WEEKLY_AVAILABILITY.md`. Preservar semanas, aulas, locks, UID/sessão e Google.
+Sem merge, qualquer deploy Firebase/Render, OAuth real, dados reais ou Google Cloud.
+Missões2/3, consentimento/PR9, desconexão/PR10 e Etapa4 não entram nesta entrega.
+Testes mutáveis exclusivamente em demo-forja com DOIS emuladores e Google simulado.
+Padrão só com confirmação explícita/hash e versão; leituras não migram legado.
+
 ## 09/10/2026 — Convites automáticos Firebase (mesmo PR #7, sem produção)
 
 Escopo autorizado: mensagens de ativação e Reenviar convite, mantendo cadastro do

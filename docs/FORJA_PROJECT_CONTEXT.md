@@ -1,3 +1,12 @@
+## 15/10/2026 — Disponibilidade fixa preparada, NÃO publicada
+
+Autorizada somente a Missão1, sobre main pós-PR15. Ler
+`FIXED_WEEKLY_AVAILABILITY.md`. Preservar semanas, aulas, locks, UID/sessão e Google.
+Sem merge, qualquer deploy Firebase/Render, OAuth real, dados reais ou Google Cloud.
+Missões2/3, consentimento/PR9, desconexão/PR10 e Etapa4 não entram nesta entrega.
+Testes mutáveis exclusivamente em demo-forja com DOIS emuladores e Google simulado.
+Padrão só com confirmação explícita/hash e versão; leituras não migram legado.
+
 ## 14/10/2026 — Diagnóstico/reconexão Google pessoal (somente draft)
 
 Autorizado implementar somente diagnóstico sanitizado por categoria e Reconectar
