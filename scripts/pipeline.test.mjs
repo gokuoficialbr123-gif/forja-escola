@@ -1,3 +1,4 @@
+import {legalFiles,withoutLegalNavigation,portalBeforeLegalSha256,validateLegalPages} from './legal-pages.mjs';
 import {withoutFixedAvailability} from './fixed-availability-scope.mjs';
 import {withoutLessonReadPolicy} from './lesson-read-policy-scope.mjs';
 import {withoutPersonalGoogleDiagnostics} from './personal-google-diagnostics-scope.mjs';
@@ -7,9 +8,9 @@ import assert from 'node:assert/strict';
 import {withoutRegistrationChanges} from './registration-scope.mjs';
 import { test } from 'node:test';
 import { createServer } from 'node:http';
-import { copyFileSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { rootDir, referenceVersion, referenceSha256, sha256, validate, validateInlineScripts } from './validate.mjs';
 import { buildHostingArtifact, hostingOptionsFromArgs, prepareHosting, productionApiUrl } from './prepare-hosting.mjs';
 import { verifyHosting } from './verify-hosting.mjs';
@@ -20,7 +21,7 @@ const html = readFileSync(join(rootDir, 'index.html'));
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'forja-pipeline-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  for (const file of ['index.html', 'firebase.json', '.firebaserc']) copyFileSync(join(rootDir, file), join(root, file));
+  for (const file of ['index.html', 'firebase.json', '.firebaserc',...legalFiles]) { mkdirSync(dirname(join(root,file)),{recursive:true});copyFileSync(join(rootDir,file),join(root,file)); }
   return root;
 }
 
@@ -59,7 +60,7 @@ test('artefato contém somente o HTML e sua preparação é repetível', t => {
   prepareHosting(root);
   writeFileSync(join(root, '.firebase-public', 'nao-publicar.txt'), 'documentação');
   prepareHosting(root);
-  assert.deepEqual(readdirSync(join(root, '.firebase-public')), ['index.html']);
+  assert.deepEqual(readdirSync(join(root, '.firebase-public')), ['assets', 'index.html', 'privacidade', 'termos']);
   assert.ok(readFileSync(join(root, '.firebase-public', 'index.html')).equals(html));
 });
 test('verificação pública aguarda propagação e recusa bytes errados com mesmo marker', async t => {
@@ -108,7 +109,7 @@ test('artefato Preview muda somente a declaração da API e preserva a fonte ofi
   assert.notEqual(result.sha256, referenceSha256);
   assert.equal(artifact.toString().includes(productionApiUrl), false);
   assert.equal(artifact.toString().includes(previewApiUrl), true);
-  assert.deepEqual(readdirSync(join(root, '.firebase-public')), ['index.html']);
+  assert.deepEqual(readdirSync(join(root, '.firebase-public')), ['assets', 'index.html', 'privacidade', 'termos']);
 });
 
 test('preparar produção depois de Preview restaura integralmente o artefato oficial', t => {
@@ -216,7 +217,7 @@ test('backend sem Etapa 2 central não pode autorizar o novo Preview',async()=>{
 });
 
 test('Somente blocos centrais e Novo usuário podem mudar; Agenda e relatório preservados',()=>{
- const previous=withoutRegistrationChanges(withoutSessionIsolation(withoutBookingHotfix(withoutPersonalGoogleDiagnostics(withoutLessonReadPolicy(withoutFixedAvailability(html.toString())))))).replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
+ const previous=withoutRegistrationChanges(withoutSessionIsolation(withoutBookingHotfix(withoutPersonalGoogleDiagnostics(withoutLessonReadPolicy(withoutFixedAvailability(withoutLegalNavigation(html.toString()))))))).replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
  assert.equal(sha256(Buffer.from(previous)),'cf5b8ffbc9c7827892492864d9d034d318e707bebaefc9ee4967f8ba115f741c');
 });
 

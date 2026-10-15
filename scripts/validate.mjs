@@ -1,3 +1,4 @@
+import {legalFiles,withoutLegalNavigation,portalBeforeLegalSha256,validateLegalPages} from './legal-pages.mjs';
 import {withoutFixedAvailability} from './fixed-availability-scope.mjs';
 import {withoutLessonReadPolicy} from './lesson-read-policy-scope.mjs';
 import {withoutPersonalGoogleDiagnostics} from './personal-google-diagnostics-scope.mjs';
@@ -13,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const referenceVersion = '6.31.1-secretaria-drawer-fluido';
-export const referenceSha256 = 'f59d5a1bd282239ab41bdef80468464ea3c242cd81df93d998fda81015426508';
+export const referenceSha256 = '1e3ba1324a73027d7a6c9b8b565338d86eca2424045a8fe308e02d844f7f0e69';
 export const sha256 = data => createHash('sha256').update(data).digest('hex');
 
 export function validateInlineScripts(html) {
@@ -46,7 +47,8 @@ export function validate(root = rootDir) {
   assert.equal(marker, referenceVersion, 'Marker da release ativa incorreto.');
   assert.match(release, /dataset\.forjaAgendaVersion\s*=\s*VERSION/, 'Marker não aplicado à versão ativa.');
   assert.equal(sha256(bytes), referenceSha256, 'HTML diferente da base 6.31 preparada para revisão.');
-  assert.equal(sha256(withoutSessionIsolation(withoutBookingHotfix(withoutPersonalGoogleDiagnostics(withoutLessonReadPolicy(withoutFixedAvailability(html)))))), '3d6908cd807c5b2abf3a7620b2d4275738bb28931478e4340fe84c4557e6cf1f', 'Fora do isolamento de sessão, o portal deve ser idêntico ao main publicado.');
+  assert.equal(sha256(withoutSessionIsolation(withoutBookingHotfix(withoutPersonalGoogleDiagnostics(withoutLessonReadPolicy(withoutFixedAvailability(withoutLegalNavigation(html))))))), '3d6908cd807c5b2abf3a7620b2d4275738bb28931478e4340fe84c4557e6cf1f', 'Fora do isolamento de sessão, o portal deve ser idêntico ao main publicado.');
+  assert.equal(sha256(withoutLegalNavigation(html)),portalBeforeLegalSha256,'Fora do rodapé legal, portal igual à produção #16/#17.');
   assert.ok(!/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(html), 'Chave privada não pode entrar no frontend.');
   const central=html.match(/<script id="forja-google-secretaria-script">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(central?.includes("const CENTRAL_POLICY='calendarlist-association-v2'"), 'Marker da conexão central ausente.');
@@ -57,7 +59,7 @@ export function validate(root = rootDir) {
   assert.equal(config.hosting?.public, '.firebase-public', 'Pasta publicada deve ser isolada.');
   assert.deepEqual(config.hosting?.rewrites, [{ source: '**', destination: '/index.html' }]);
   const checked = validateInlineScripts(html);
-  return { version: marker, sha256: referenceSha256, inlineScripts: checked, bytes: bytes.length };
+  return { version: marker, sha256: referenceSha256, inlineScripts: checked, bytes: bytes.length, legalPages:validateLegalPages(root) };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
