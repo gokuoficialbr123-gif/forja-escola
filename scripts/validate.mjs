@@ -1,3 +1,4 @@
+import {withoutPersonalGoogleDiagnostics} from './personal-google-diagnostics-scope.mjs';
 import {withoutBookingHotfix} from './booking-hotfix-scope.mjs';
 import {withoutSessionIsolation} from './session-isolation-scope.mjs';
 import assert from 'node:assert/strict';
@@ -10,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const referenceVersion = '6.31.1-secretaria-drawer-fluido';
-export const referenceSha256 = '27ec4e17d5efabab9dcd0bf8aee3ed8833b5a993066209a162df098cb9ed3c1e';
+export const referenceSha256 = 'f69da6d09262862de3863f0c319be7598f7ae5a514ff8c8ecdff0a56c3acc9b0';
 export const sha256 = data => createHash('sha256').update(data).digest('hex');
 
 export function validateInlineScripts(html) {
@@ -43,7 +44,7 @@ export function validate(root = rootDir) {
   assert.equal(marker, referenceVersion, 'Marker da release ativa incorreto.');
   assert.match(release, /dataset\.forjaAgendaVersion\s*=\s*VERSION/, 'Marker não aplicado à versão ativa.');
   assert.equal(sha256(bytes), referenceSha256, 'HTML diferente da base 6.31 preparada para revisão.');
-  assert.equal(sha256(withoutSessionIsolation(withoutBookingHotfix(html))), '3d6908cd807c5b2abf3a7620b2d4275738bb28931478e4340fe84c4557e6cf1f', 'Fora do isolamento de sessão, o portal deve ser idêntico ao main publicado.');
+  assert.equal(sha256(withoutSessionIsolation(withoutBookingHotfix(withoutPersonalGoogleDiagnostics(html)))), '3d6908cd807c5b2abf3a7620b2d4275738bb28931478e4340fe84c4557e6cf1f', 'Fora do isolamento de sessão, o portal deve ser idêntico ao main publicado.');
   assert.ok(!/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(html), 'Chave privada não pode entrar no frontend.');
   const central=html.match(/<script id="forja-google-secretaria-script">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(central?.includes("const CENTRAL_POLICY='calendarlist-association-v2'"), 'Marker da conexão central ausente.');
