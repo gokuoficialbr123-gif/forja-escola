@@ -97,6 +97,10 @@ jobs:
           FORJA_PREVIEW_API_URL: ${{ steps.preview-config.outputs.api_url }}
           FORJA_PREVIEW_BACKEND_MODE: ${{ steps.preview-config.outputs.mode }}
         run: node scripts/verify-preview-backend.mjs
+      - name: Conferir páginas legais públicas do Preview
+        env:
+          FORJA_VERIFY_URL: ${{ steps.hosting.outputs.details_url }}
+        run: node scripts/verify-legal-pages.mjs
 
   production:
     needs: validate
@@ -125,3 +129,7 @@ jobs:
         env:
           FORJA_VERIFY_URL: https://forja-escola.web.app
         run: node scripts/verify-hosting.mjs
+      - name: Conferir páginas legais públicas de produção
+        env:
+          FORJA_VERIFY_URL: https://forja-escola.web.app
+        run: node scripts/verify-legal-pages.mjs

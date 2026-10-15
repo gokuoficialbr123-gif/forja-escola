@@ -1,3 +1,12 @@
+## 15/10/2026 — Publicação das páginas legais temporárias aprovadas
+
+PR8 atualizado sobre a produção #16/#17, sem importar código funcional antigo.
+Somente rodapé público, HTML/CSS legais e allowlist/testes do artefato Hosting.
+Contato adm@forjaescola.com.br; finalidade agenda, sem venda/publicidade confirmadas.
+IA, terceiros, acesso humano e procedimentos operacionais permanecem não comprovados.
+Sem declaração integral Limited Use, mudança OAuth, DNS ou backend.
+Aprovação temporária não se torna definitiva. Preservar todos os fluxos do portal.
+
 ## 15/10/2026 — Publicação controlada da disponibilidade fixa
 
 #17 já publicado e verificado (backend84ad4fd, frontend972b29d). #16 atualizado
