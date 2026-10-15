@@ -1,3 +1,19 @@
+## 15/10/2026 — Publicação controlada da disponibilidade fixa
+
+#17 já publicado e verificado (backend84ad4fd, frontend972b29d). #16 atualizado
+sobre essas bases, preservando leituras sem cancelamento implícito e isolamento
+UID/sessão. Publicação de #16 autorizada pelo proprietário: testes completos,
+backend primeiro e prova de SHA no health, depois Firebase. Sem migração,
+padrões fictícios, dados reais de QA, OAuth ou DNS. Histórico abaixo permanece.
+
+## 15/10/2026 — Correção pontual: aula contratada não é cancelada pelo relógio
+
+Preparado, não publicado. Ler `LESSON_READONLY_AUDIT.md`. Remover cancelamento/backfill
+em consultas e classificação visual falsa; preservar registros e indicar conferência
+sem atribuir falta/realização. QA exclusivamente demo-forja/mocks/Chromium.
+Sem merge/deploy/OAuth/dados reais. PR separado da disponibilidade fixa;
+Missões2/3 não iniciadas. Autorizações novas do usuário prevalecem sobre histórico abaixo.
+
 ## Revisão crítica de15/10/2026 — preparada, sem publicação
 
 A precedência não mudou: documento semanal existente (inclusive vazio/rascunho)

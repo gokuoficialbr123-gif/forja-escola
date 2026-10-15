@@ -5368,7 +5368,6 @@ function lessonClientEndMs(l){
 function lessonOperationalStatus(l){
   const stored=String(l?.status||"agendada").toLowerCase();
   if(/cancel/.test(stored)||/conclu/.test(stored)||stored==="em_andamento"||stored==="remarcacao_solicitada")return stored;
-  const end=lessonClientEndMs(l);if(end!=null&&Date.now()>end+15*60000&&!l?.iniciadoEm&&!l?.finalizadoEm)return "cancelada_automaticamente";
   return stored;
 }
 const nextItemsBeforeBlockA=nextItems;
@@ -7988,6 +7987,14 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     updateWeekNotice();loadPsychWeeks();
   };
   document.documentElement.dataset.forjaFixedAvailabilityPolicy=POLICY;
+})();
+</script>
+
+<script id="forja-lesson-read-policy-script">
+(function(){
+  const previousSub=lessonSub;
+  lessonSub=function(l){const text=previousSub(l);return ['admin','teacher'].includes(state.role)&&l?.operationalReview?.required===true?text+' · Registro de realização pendente; conferir com a Secretaria':text;};
+  document.documentElement.dataset.forjaLessonReadPolicy='contracted-lessons-readonly-v1';
 })();
 </script>
 
