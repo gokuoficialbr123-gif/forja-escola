@@ -1,3 +1,4 @@
+import {withoutFixedAvailability} from './fixed-availability-scope.mjs';
 import {withoutLessonReadPolicy} from './lesson-read-policy-scope.mjs';
 import {withoutPersonalGoogleDiagnostics} from './personal-google-diagnostics-scope.mjs';
 import {withoutBookingHotfix} from './booking-hotfix-scope.mjs';
@@ -12,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const referenceVersion = '6.31.1-secretaria-drawer-fluido';
-export const referenceSha256 = '813edba2aecccc0e3d964a1d3a7337e7650ba70d935f54fc9d6f63b056e9c271';
+export const referenceSha256 = 'f59d5a1bd282239ab41bdef80468464ea3c242cd81df93d998fda81015426508';
 export const sha256 = data => createHash('sha256').update(data).digest('hex');
 
 export function validateInlineScripts(html) {
@@ -45,7 +46,7 @@ export function validate(root = rootDir) {
   assert.equal(marker, referenceVersion, 'Marker da release ativa incorreto.');
   assert.match(release, /dataset\.forjaAgendaVersion\s*=\s*VERSION/, 'Marker não aplicado à versão ativa.');
   assert.equal(sha256(bytes), referenceSha256, 'HTML diferente da base 6.31 preparada para revisão.');
-  assert.equal(sha256(withoutSessionIsolation(withoutBookingHotfix(withoutPersonalGoogleDiagnostics(withoutLessonReadPolicy(html))))), '3d6908cd807c5b2abf3a7620b2d4275738bb28931478e4340fe84c4557e6cf1f', 'Fora do isolamento de sessão, o portal deve ser idêntico ao main publicado.');
+  assert.equal(sha256(withoutSessionIsolation(withoutBookingHotfix(withoutPersonalGoogleDiagnostics(withoutLessonReadPolicy(withoutFixedAvailability(html)))))), '3d6908cd807c5b2abf3a7620b2d4275738bb28931478e4340fe84c4557e6cf1f', 'Fora do isolamento de sessão, o portal deve ser idêntico ao main publicado.');
   assert.ok(!/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(html), 'Chave privada não pode entrar no frontend.');
   const central=html.match(/<script id="forja-google-secretaria-script">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(central?.includes("const CENTRAL_POLICY='calendarlist-association-v2'"), 'Marker da conexão central ausente.');

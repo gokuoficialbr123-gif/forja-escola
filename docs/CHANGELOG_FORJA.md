@@ -1,3 +1,11 @@
+## 15/10/2026 — Publicação controlada da disponibilidade fixa
+
+#17 já publicado e verificado (backend84ad4fd, frontend972b29d). #16 atualizado
+sobre essas bases, preservando leituras sem cancelamento implícito e isolamento
+UID/sessão. Publicação de #16 autorizada pelo proprietário: testes completos,
+backend primeiro e prova de SHA no health, depois Firebase. Sem migração,
+padrões fictícios, dados reais de QA, OAuth ou DNS. Histórico abaixo permanece.
+
 ## 15/10/2026 — Correção pontual: aula contratada não é cancelada pelo relógio
 
 Preparado, não publicado. Ler `LESSON_READONLY_AUDIT.md`. Remover cancelamento/backfill
@@ -5,6 +13,29 @@ em consultas e classificação visual falsa; preservar registros e indicar confe
 sem atribuir falta/realização. QA exclusivamente demo-forja/mocks/Chromium.
 Sem merge/deploy/OAuth/dados reais. PR separado da disponibilidade fixa;
 Missões2/3 não iniciadas. Autorizações novas do usuário prevalecem sobre histórico abaixo.
+
+## Revisão crítica de15/10/2026 — preparada, sem publicação
+
+A precedência não mudou: documento semanal existente (inclusive vazio/rascunho)
+impede herança automática. API agora informa hasSavedWeek/savedWeekEmpty também
+à Secretaria; aviso na interface explica semana vazia/não publicada/publicada e
+que o padrão não substitui esse registro. Leituras não apagam nem promovem legado.
+Cancelamento implícito e classificação visual falsa identificados no main foram
+corrigidos SEPARADAMENTE nos PRs17 backend/frontend. Devem ser compostos antes
+da publicação da Missão1. Aulas antigas canceladas não foram restauradas.
+Nenhum merge/deploy ou dado real utilizado.
+
+## 15/10/2026 — Missão1 preparada para revisão (NÃO publicada)
+
+Padrão semanal confirmado/versionado por profissional, vigência e exceções,
+resolução sem materializar semanas, consulta da Secretaria e UI preservada.
+Semanas existentes prevalecem; legado não é promovido; Google/futuro/conflitos/locks
+continuam restringindo horários. QA somente emuladores/Chromium/mocks.
+Validados: 193 testes unitários backend, 160 de integração (incluindo Chromium
+pareado), 220 da suíte completa frontend e 8 específicos finais do novo editor.
+Hash inverso comprova restante do HTML idêntico ao main pós-PR15.
+Ver `FIXED_WEEKLY_AVAILABILITY.md`; SHAs/checks finais nos PRs em rascunho.
+Nenhum merge, publicação ou escrita real nesta entrega.
 
 ## 14/10/2026 — Diagnóstico Google pessoal e Reconectar (não publicado)
 
