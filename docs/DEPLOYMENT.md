@@ -1,3 +1,10 @@
+## 16/10/2026 — Missão2 contínua, NÃO publicar nesta rodada
+
+PR18/19 permanecem Draft. Ver configuração futura/limites em
+`docs/RECURRING_LESSONS.md`: executor horário independente, cursor/recibos,
+secret exclusivo e flags explícitas; contínuo bloqueado sem heartbeat recente.
+Nenhuma configuração real, merge, deploy ou QA mutável real autorizado agora.
+
 ## 16/10/2026 — Missão 2: aulas semanais finitas (somente Draft)
 
 Autorizado implementar/testar somente recorrência semanal sobre main publicado.

@@ -1,3 +1,11 @@
+## 16/10/2026 — mini atualização Missão 2 autorizada
+
+Ampliar SOMENTE Draft backend18/frontend19: aula única, período finito preservado,
+fixo contínuo com horizonte84d/recibos/cursor duráveis e executor horário externo.
+Ler o topo de docs/RECURRING_LESSONS.md. Automação default off, gate por heartbeat;
+sem configuração comprovada não oferecer confirmação contínua. QA só demo-forja,
+mocks e Chromium; nenhum merge, deploy, dado real, Cloud/OAuth/DNS ou Missão3.
+
 ## 16/10/2026 — Missão 2: aulas semanais finitas (somente Draft)
 
 Autorizado implementar/testar somente recorrência semanal sobre main publicado.

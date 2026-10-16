@@ -1,3 +1,10 @@
+## Mini atualização Missão2 — 16/10/2026, somente Draft
+
+Aula única e série finita preservadas; contínuo preparado com horizonte84dias,
+job horário GitHub→API, cursor/recibos Firestore e encerramento não destrutivo.
+Contínuo bloqueado sem configuração/heartbeat recente; não foi ativado nem
+publicado. Contrato/limites/testes e configuração futura em docs/RECURRING_LESSONS.md.
+
 ## 16/10/2026 — Missão 2: aulas semanais finitas (somente Draft)
 
 Autorizado implementar/testar somente recorrência semanal sobre main publicado.

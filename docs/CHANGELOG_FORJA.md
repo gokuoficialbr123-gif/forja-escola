@@ -1,3 +1,12 @@
+## 16/10/2026 — Missão 2: fixo contínuo (preparado, não publicado)
+
+- Três modos no mesmo drawer; contrato finito/hash/aceite v1 preservados.
+- Contínuo com aceite v2, reservas84dias, extensão horária durável/idempotente,
+  locks nativos, cursor/recibos atômicos e primeira ocorrência bloqueada visível.
+- Encerramento só de extensões, sem cancelar aulas/histórico/eventos.
+- Automação desligada por padrão; configuração e heartbeat recente obrigatórios.
+- QA somente emuladores/mocks/Chromium; PR18/19 continuam Draft, sem deploy.
+
 ## 16/10/2026 — Missão 2: aulas semanais finitas (somente Draft)
 
 Autorizado implementar/testar somente recorrência semanal sobre main publicado.

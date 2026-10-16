@@ -1,3 +1,123 @@
+## 16/10/2026 — ampliação da Missão 2, somente Draft PR18/PR19
+
+**Não publicado. Não ativado.** Agora há Aula única, Semanal por período e Fixo
+contínuo. Os contratos finitos e seus fingerprints/aceite v1 permanecem compatíveis.
+A descrição anterior de “sem tarefa de expansão futura” abaixo refere-se somente
+à primeira entrega finita; a ampliação contínua está descrita nesta seção.
+
+### Contrato contínuo e progresso durável
+
+`recurrenceMode: continuous`, `startDate`, `endDate: null`, demais campos iguais à
+série finita. Policy `rolling-weekly-lessons-v1`; confirmação **v2** explícita
+inclui autorização das extensões futuras até encerramento. Não é novo consentimento
+OAuth nem comprovação Limited Use. Nenhuma alteração de scopes/conexões.
+
+Primeiro horizonte: 84 dias de calendário contados da data inicial, no máximo 12
+aulas semanais. Validação e gravação inicial continuam todas-ou-nenhuma. Depois,
+o horizonte acompanha a data atual em America/Sao_Paulo, sem passar 83 dias além
+do maior entre hoje e início. Cada execução confirma somente datas dentro desse
+limite, usando os mesmos validadores nativos, publicação válida, exceções/férias,
+semanas específicas inclusive vazias/rascunhos, feriados, aluno, professor ativo,
+Google pessoal LIVE e locks de professor/aluno/data. Não integra freeBusy central
+nem muda os critérios Google já publicados (Etapa4 continua fora desta missão).
+Google desconhecido é indisponível, nunca livre. Push Google/Meet fica pendente
+no registro durável para o mecanismo de manutenção existente; não prometer Meet
+pronto na confirmação. Eventos Google continuam com os IDs determinísticos existentes.
+
+`aula_series/{id}` guarda config, confirmation, count, continuousStatus,
+reservedThrough (última data materializada), nextOccurrenceDate, revision e
+continuousNextCheckAt. `occurrences/{data-original}` guarda lessonId/date. A raiz
+não acumula array ilimitado: somente primeira ocorrência para autorização existente.
+Cada extensão cria aula nativa/histórico/recibo/auditoria e avança cursor **na mesma
+transação**. IDs determinísticos por série e data original, sem recriar aula
+cancelada/remarcada. Metadados de recorrência preservam originalDate e vínculo
+para a futura Missão3. Não há projeções fictícias em GET /aulas.
+
+A UI mostra até onde foram criadas reservas, status ativo/bloqueado/encerrado e a
+primeira data não reservada com motivo. Alterações/cancelamentos individuais
+continuam na Agenda nativa; reservedThrough é o limite materializado, não promessa
+de que nenhuma aula individual foi posteriormente remarcada/cancelada.
+
+Conflito/erro para na **mesma** nextOccurrenceDate, sem pular. Preserva todas as
+aulas existentes, registra lastBlock, avisa admins ativos por notificações internas
+com ID determinístico e tenta novamente após 6h. Interrupção longa que deixou a
+próxima data no passado gera pendência BOOKING_START_PASSED, sem reservar no passado
+ou avançar sozinha. Secretaria deve revisar/encerrar o contrato e criar outro se
+necessário; não existe reparação destrutiva automática.
+
+### Executor independente e limites
+
+Workflow novo `Estender horários fixos FORJA`: horário, minuto17, somente main,
+gate explícito; não depende de portal aberto nem de timers do Render. POST
+`/internal/aulas-recorrentes/extend` aceita apenas bearer de automação servidor,
+sem dados de aula/configuração fornecidos pelo chamador. URL oficial fixa,
+redirects recusados, timeout55s e até duas tentativas, sem imprimir headers,
+credenciais ou payload bruto. Não reutiliza D-2/WhatsApp nem suas credenciais.
+
+Firestore `_agenda_recurring_automation/lease` tem owner/TTL60s, fencing no commit
+e liberação pelo dono. Cada trigger examina no máximo6 séries vencidas e cria no
+máximo uma aula por série; orçamento20s entre séries, chamadas Google podem levar
+até seus timeouts existentes. Cada commit exige lease ainda válida. Até6 extensões
+por hora; séries já dentro do horizonte voltam à fila após24h. Single-field index
+padrão de continuousNextCheckAt e documentId, sem composite index novo.
+
+Cursor, recibos, pendências e leases sobrevivem a reinícios. Jobs repetidos são
+seguros; lease expirado é recuperável. Desligar automação **não apaga aulas**.
+GitHub schedule/Render/rede não são SLA: atrasos, Actions suspenso (inclusive regra
+de inatividade de repositório público) ou falhas persistentes precisam de atenção
+operacional. Monitorar workflow/heartbeat e notificações. Não é mecanismo para
+reservar horizonte infinito nem garantia de execução sem infraestrutura operante.
+
+### Configuração futura, NÃO realizada nesta rodada
+
+Nomes necessários:
+- Render servidor: `RECURRING_LESSONS_AUTOMATION_ENABLED`.
+- Render segredo + GitHub Actions repository secret, mesmo segredo exclusivo:
+  `RECURRING_LESSONS_JOB_SECRET` (64 caracteres hex aleatórios; gerar/configurar
+  fora do chat, não copiar tokens Google nem credenciais Firebase para o job).
+- GitHub Actions repository variable: `RECURRING_LESSONS_AUTOMATION_ENABLED`.
+
+Flags explícitas true; padrão desativado. Preview/namespace não-produção jamais
+executa o job, mesmo com segredo configurado. Não configurar nem disparar serviço
+real nesta rodada. Após futura autorização: backend primeiro, configurar segredo
+exclusivo/flags, executar workflow_dispatch em main e conferir sucesso; só depois
+frontend/aceitação institucional. O primeiro heartbeat habilita novos contínuos.
+
+Status usa `_agenda_recurring_automation/health.lastSuccessAt`. Sem configuração ou
+sem execução bem-sucedida nas últimas3h, prévia/criação contínua retornam503
+RECURRING_AUTOMATION_UNAVAILABLE, antes de gravar. Aula única/finita permanecem
+operacionais. Recuperar recibo existente continua possível. UI exibe bloqueio real;
+**não há simulação de recorrência permanente enquanto o job não estiver ativo**.
+
+### Administração e encerramento
+
+GET `/aulas-recorrentes?cursor=...`: admin ativo, páginas20, status operacional,
+configuração e datas efetivamente materializadas; sem tokens/eventos privados.
+POST `/aulas-recorrentes/{id}/encerrar` com accepted=true: admin ativo, transação
+versionada, idempotente, interrompe extensões. Não cancela/exclui aulas, histórico
+ou Google, nem muda o status confirmado. Corrida encerra/estende serializada pela
+transação da série: uma aula já confirmada antes de encerrar continua preservada.
+GET individual mantém os vínculos e projeções por perfil. Todas as rotas no-store.
+
+### Recuperação e aceitação futura
+
+QA só demo-forja, dois emuladores, provedor Google sintético e Chromium. Nenhum
+OAuth real, mudança de banco real, Hosting/Render deploy, merge ou Cloud/DNS.
+
+Em publicação futura autorizada: conferir heartbeat recente; testar aula única,
+finita e contínua com dados autorizados; confirmar limite/12 ocorrências; bloquear
+uma data e conferir pendência/ausência de salto; resolver e observar recuperação;
+encerrar e confirmar histórico/aulas preservados. Verificar execução horária sem
+portal aberto. Sem estes testes reais não afirmar automação real validada.
+
+Rollback exige autorização. Desativar flag do job e do servidor impede novas
+extensões/contratos; manter registros. Frontend antigo continua vendo aulas nativas.
+Backend anterior lê aulas mas não estende contínuos: anunciar suspensão, não apagar
+metadados nem recriar séries para “recuperar”. Não alterar Rules/credenciais por QA.
+
+
+---
+
 # Missão 2 — aulas semanais finitas (somente rascunho)
 
 Preparado em 16/10/2026, **não publicado**. Bases verificadas:

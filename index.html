@@ -8018,7 +8018,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
 </style>
 <script id="forja-recurring-lessons-script">
 (function(){
- const POLICY='bounded-weekly-lessons-v1';
+ const POLICY='bounded-weekly-lessons-v1',CONTINUOUS='rolling-weekly-lessons-v1';
  const current=s=>typeof forjaSessionCurrent!=='function'||forjaSessionCurrent(s);
  function mount(){
   const root=document.getElementById('v630BookingRoot');if(!root||root.querySelector('#recurringLessonForm')||state.role!=='admin')return;
@@ -8029,13 +8029,18 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   function freeze(){root.querySelectorAll('input,select').forEach(e=>{if(!frozen.has(e))frozen.set(e,e.disabled);e.disabled=true;});}
   function unfreeze(){for(const [e,disabled] of frozen)e.disabled=disabled;frozen.clear();}
   const card=document.createElement('section');card.id='recurringLessonForm';card.className='v630-card';
-  card.innerHTML='<div class="v630-field"><label for="recurringMode">Repetição da aula</label><select id="recurringMode"><option value="none">Não repetir</option><option value="weekly">Repetir semanalmente</option></select></div><div id="recurringFields" hidden><p class="v630-help">Todas as datas serão verificadas. Se houver conflito ou fonte indisponível, nenhuma aula será criada. Até 53 aulas em 366 dias.</p><div class="recurring-fields"><div class="v630-field"><label for="recurringWeekday">Dia da semana</label><select id="recurringWeekday">'+['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'].map((d,i)=>'<option value="'+i+'">'+d+'</option>').join('')+'</select></div><div class="v630-field"><label for="recurringTime">Início da aula</label><input id="recurringTime" type="time" min="07:00" max="21:45"></div><div class="v630-field"><label for="recurringEnd">Fim do período contratado</label><input id="recurringEnd" type="date"></div></div><p class="v630-help">A Data acima é o início do período. A duração e a modalidade são as selecionadas no formulário. Os horários de cada semana serão revalidados no servidor.</p><div id="recurringReview" class="recurring-review" aria-live="polite"></div><label class="recurring-accept"><input id="recurringAccept" type="checkbox">Revisei o período e autorizo registrar todas as ocorrências apresentadas.</label><div class="recurring-actions"><button type="button" id="recurringValidate">Verificar período</button><button type="button" id="recurringSave" disabled>Confirmar série</button></div><div id="recurringFeedback" class="recurring-feedback" role="status"></div></div>';
+  card.innerHTML='<div class="v630-field"><label for="recurringMode">Repetição da aula</label><select id="recurringMode"><option value="none">Aula única — sem repetição</option><option value="weekly">Semanal por período</option><option value="continuous">Fixo contínuo</option></select></div><div id="recurringFields" hidden><p id="recurringExplanation" class="v630-help">Todas as datas serão verificadas. Se houver conflito ou fonte indisponível, nenhuma aula será criada. Até 53 aulas em 366 dias.</p><div class="recurring-fields"><div class="v630-field"><label for="recurringWeekday">Dia da semana</label><select id="recurringWeekday">'+['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'].map((d,i)=>'<option value="'+i+'">'+d+'</option>').join('')+'</select></div><div class="v630-field"><label for="recurringTime">Início da aula</label><input id="recurringTime" type="time" min="07:00" max="21:45"></div><div class="v630-field"><label for="recurringEnd">Fim do período contratado</label><input id="recurringEnd" type="date"></div></div><p class="v630-help">A Data acima é o início do período. A duração e a modalidade são as selecionadas no formulário. Os horários de cada semana serão revalidados no servidor.</p><div id="recurringReview" class="recurring-review" aria-live="polite"></div><label class="recurring-accept"><input id="recurringAccept" type="checkbox"><span id="recurringAcceptance">Revisei o período e autorizo registrar todas as ocorrências apresentadas.</span></label><div class="recurring-actions"><button type="button" id="recurringValidate">Verificar período</button><button type="button" id="recurringSave" disabled>Confirmar série</button></div><div id="recurringFeedback" class="recurring-feedback" role="status"></div></div><div class="recurring-actions"><button type="button" id="recurringListRefresh">Fixos contínuos / reservas e pendências</button></div><div id="recurringSeriesList" class="recurring-review" aria-live="polite"></div>';
   root.querySelector('#v631Summary').parentElement.append(card);
   const field=id=>card.querySelector('#'+id),feedback=text=>{field('recurringFeedback').textContent=text;};
   const sameSession=()=>!session||current(session),active=()=>root.isConnected&&sameSession();
-  const config=()=>{if(x.pending&&x.body)return structuredClone(x.body);const b=state.v630Booking||{},teacher=(state.users||[]).find(u=>u.uid===b.teacherId);return {professorId:b.teacherId,alunoId:b.studentId,disciplinaId:b.subjectId,startDate:b.date,endDate:field('recurringEnd').value,weekday:Number(field('recurringWeekday').value),horaAula:field('recurringTime').value,duration:Number(b.duration),modalidade:b.mode,localAula:b.mode==='presencial'?String(b.place||'').trim():'',meetLink:b.mode==='online'?String(b.meetLink||'').trim():'',criarMeet:b.mode==='online'&&!b.meetLink&&!teacher?.meetLinkFixo};};
+  const continuous=()=>field('recurringMode').value==='continuous';
+  const config=()=>{if(x.pending&&x.body)return structuredClone(x.body);const b=state.v630Booking||{},teacher=(state.users||[]).find(u=>u.uid===b.teacherId);return {professorId:b.teacherId,alunoId:b.studentId,disciplinaId:b.subjectId,startDate:b.date,endDate:continuous()?null:field('recurringEnd').value,...(continuous()?{recurrenceMode:'continuous'}:{}),weekday:Number(field('recurringWeekday').value),horaAula:field('recurringTime').value,duration:Number(b.duration),modalidade:b.mode,localAula:b.mode==='presencial'?String(b.place||'').trim():'',meetLink:b.mode==='online'?String(b.meetLink||'').trim():'',criarMeet:b.mode==='online'&&!b.meetLink&&!teacher?.meetLinkFixo};};
   function update(){
    root.classList.toggle('weekly-booking',x.weekly);field('recurringFields').hidden=!x.weekly;
+   field('recurringEnd').parentElement.hidden=continuous();
+   field('recurringExplanation').textContent=continuous()?'Sem data final. A confirmação inicial reserva até 84 dias; a automação estende o horizonte. Conflitos interrompem a extensão e geram pendência. Datas ainda não reservadas não são aulas agendadas.':'Todas as datas serão verificadas. Se houver conflito ou fonte indisponível, nenhuma aula será criada. Até 53 aulas em 366 dias.';
+   field('recurringAcceptance').textContent=continuous()?'Revisei as primeiras ocorrências e autorizo suas reservas e extensões semanais automáticas no horizonte de 84 dias, até encerrar este fixo. Aulas existentes não serão canceladas pelo encerramento.':'Revisei o período e autorizo registrar todas as ocorrências apresentadas.';
+   field('recurringListRefresh').disabled=x.working||x.pending;
    field('recurringValidate').disabled=x.working||x.pending;
    field('recurringSave').disabled=x.working||(!x.pending&&!(x.review?.canConfirm&&field('recurringAccept').checked));
    field('recurringSave').textContent=x.pending?'Recuperar mesma solicitação':x.working?'Processando...':x.review?.canConfirm?'Confirmar '+x.review.count+' aulas':'Confirmar série';
@@ -8046,12 +8051,12 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
    x.review=result;field('recurringAccept').checked=false;
    const b=state.v630Booking,c=config(),name=(items,id)=>items?.find(u=>(u.uid||u.id)===id)?.fullName||id;
    const endMinutes=Number(c.horaAula.slice(0,2))*60+Number(c.horaAula.slice(3))+c.duration,endTime=String(Math.floor(endMinutes/60)).padStart(2,'0')+':'+String(endMinutes%60).padStart(2,'0');
-   const title=document.createElement('p');title.textContent='Aluno: '+name(state.students,c.alunoId)+' · Professor: '+name(state.users,c.professorId)+' · '+((state.subjects||[]).find(s=>(s.id||s.uid)===b.subjectId)?.nome||b.subjectId)+' · '+['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'][c.weekday]+' · '+c.horaAula+'–'+endTime+' ('+c.duration+' min) · '+c.modalidade+' · '+c.startDate+' a '+c.endDate+' · '+result.count+' aulas';
+   const title=document.createElement('p');title.textContent='Aluno: '+name(state.students,c.alunoId)+' · Professor: '+name(state.users,c.professorId)+' · '+((state.subjects||[]).find(s=>(s.id||s.uid)===b.subjectId)?.nome||b.subjectId)+' · '+['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'][c.weekday]+' · '+c.horaAula+'–'+endTime+' ('+c.duration+' min) · '+c.modalidade+' · '+c.startDate+(c.recurrenceMode==='continuous'?' · sem data final; primeira reserva proposta até '+result.reservationWindowEnd:' a '+c.endDate)+' · '+result.count+' aulas';
    const list=field('recurringReview');list.replaceChildren(title);
    for(const item of result.occurrences||[]){const row=document.createElement('div');row.className='recurring-row';row.dataset.recurringStatus=item.status;row.textContent=item.date+' — '+(item.status==='available'?'Disponível':item.message||'Não verificado');list.append(row);}
    feedback(result.canConfirm?'Todas as ocorrências verificadas. Revise e confirme.':'Nenhuma aula será criada enquanto houver ocorrência bloqueada ou não verificada.');update();
   }
-  field('recurringMode').onchange=()=>{x.weekly=field('recurringMode').value==='weekly';const b=state.v630Booking||{};if(x.weekly&&b.date)field('recurringWeekday').value=String(new Date(b.date+'T12:00:00-03:00').getUTCDay());if(!field('recurringTime').value)field('recurringTime').value=b.slotStart||'';invalidate();};
+  field('recurringMode').onchange=()=>{x.weekly=field('recurringMode').value!=='none';const b=state.v630Booking||{};if(x.weekly&&b.date)field('recurringWeekday').value=String(new Date(b.date+'T12:00:00-03:00').getUTCDay());if(!field('recurringTime').value)field('recurringTime').value=b.slotStart||'';invalidate();};
   root.addEventListener('input',e=>{if(!card.contains(e.target)||!['recurringAccept','recurringMode'].includes(e.target.id))invalidate();});
   root.addEventListener('change',e=>{if(!['recurringAccept','recurringMode'].includes(e.target.id))invalidate();});
   field('recurringAccept').onchange=update;
@@ -8059,13 +8064,13 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   root.addEventListener('change',e=>{if(e.target.id==='v630Date'){field('recurringEnd').min=state.v630Booking.date||'';}});
   field('recurringValidate').onclick=async()=>{
    if(x.working||x.pending)return;invalidate();const sequence=x.sequence,body=config();x.working=true;feedback('Verificando todas as datas e fontes de conflito...');update();
-   try{const result=await api('/aulas-recorrentes/validar',{method:'POST',body});if(!active()||sequence!==x.sequence)return;if(result.policy!==POLICY)throw Error('A API não suporta a série semanal desta versão.');review(result);}
+   try{const result=await api('/aulas-recorrentes/validar',{method:'POST',body});if(!active()||sequence!==x.sequence)return;if(result.policy!==(body.recurrenceMode==='continuous'?CONTINUOUS:POLICY))throw Error('A API não suporta a série semanal desta versão.');review(result);}
    catch(e){if(active()&&sequence===x.sequence)feedback(e.status===404?'Esta API ainda não oferece séries semanais. A aula única continua disponível.':e.message||'Não foi possível verificar o período. Nenhuma aula foi criada.');}
    finally{if(sameSession())x.working=false;if(active()){unfreeze();update();}}
   };
   field('recurringSave').onclick=async()=>{
    if(x.working||(!x.pending&&!(x.review?.canConfirm&&field('recurringAccept').checked)))return;
-   if(!x.body)x.body={...config(),bookingRequestId:crypto.randomUUID(),confirmation:{accepted:true,version:1,fingerprint:x.review.configurationFingerprint}};
+   if(!x.body)x.body={...config(),bookingRequestId:crypto.randomUUID(),confirmation:{accepted:true,version:continuous()?2:1,fingerprint:x.review.configurationFingerprint}};
    x.working=true;x.pending=true;feedback('Confirmando a série. Não envie uma nova solicitação.');update();
    try{
     let result;
@@ -8074,7 +8079,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     if(!active())return;if(result.bookingState!=='created'||!result.seriesId&&!result.id)throw Error('Resultado ainda não confirmado.');
     const items=result.items||[];state.lessons=[...(state.lessons||[]).filter(l=>!items.some(i=>i.id===l.id)),...items];
     state.adminLessonAgendaDateG=items[0]?.dataAula||x.body.startDate;state.v629SecretarySelectedTeacherIds=[...new Set([...(state.v629SecretarySelectedTeacherIds||[]),x.body.professorId])];state.v629SecretarySelectionTouched=true;state.v629SecretaryFilters={...(state.v629SecretaryFilters||{}),lesson:true};
-    x.pending=false;x.body=null;x.review=null;Object.assign(state.v630Booking,{slotStart:'',slotEnd:'',slots:[]});feedback('Série registrada no FORJA.');toast('Série semanal registrada no FORJA.','ok');for(const warning of result.warnings||[])toast(warning,'warn');
+    x.pending=false;x.body=null;x.review=null;Object.assign(state.v630Booking,{slotStart:'',slotEnd:'',slots:[]});feedback('Série registrada no FORJA.');toast(result.reservedThrough?'Fixo contínuo registrado. Aulas efetivamente reservadas até '+result.reservedThrough+'.':'Série semanal registrada no FORJA.','ok');for(const warning of result.warnings||[])toast(warning,'warn');
     root.querySelector('[data-v630-close]').click();
     try{await reloadAndRender();}catch{if(active()){state.lessons=[...(state.lessons||[]).filter(l=>!items.some(i=>i.id===l.id)),...items];toast('A série foi registrada. Recarregue a Agenda sem criar outra série.','warn');}}
    }catch(e){if(!active())return;
@@ -8088,11 +8093,39 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   root.addEventListener('change',e=>{if(x.pending||x.working){e.preventDefault();e.stopImmediatePropagation();}},true);
   new MutationObserver(()=>{if((x.pending||x.working)&&active())freeze();}).observe(root.querySelector('#v631Slots'),{childList:true,subtree:true});
   card.addEventListener('recurring-update',()=>{if(active()&&state.recurringBookingDraft===x)update();});
-  if(x.pending&&x.body){field('recurringMode').value='weekly';field('recurringTime').value=x.body.horaAula;field('recurringEnd').value=x.body.endDate;field('recurringWeekday').value=String(x.body.weekday);if(x.review)review(x.review);feedback('Solicitação anterior preservada. Aguarde e recupere a mesma solicitação; não crie outra série.');}
+  if(x.pending&&x.body){field('recurringMode').value=x.body.recurrenceMode==='continuous'?'continuous':'weekly';field('recurringTime').value=x.body.horaAula;field('recurringEnd').value=x.body.endDate||'';field('recurringWeekday').value=String(x.body.weekday);if(x.review)review(x.review);feedback('Solicitação anterior preservada. Aguarde e recupere a mesma solicitação; não crie outra série.');}
+  let listWorking=false;
+  async function loadSeries(cursor,append=false){
+   if(listWorking||!active())return;listWorking=true;
+   const area=field('recurringSeriesList');field('recurringListRefresh').disabled=true;
+   try{
+    const result=await api('/aulas-recorrentes'+(cursor?'?cursor='+encodeURIComponent(cursor):''));if(!active())return;
+    if(!append)area.replaceChildren();else area.querySelector('[data-more]')?.remove();
+    const note=document.createElement('p');note.textContent=result.automation?.ready?'Automação operacional. Apenas as datas reservadas constam na Agenda.':'Automação não confirmada ou sem execução recente. Novos fixos contínuos ficam bloqueados; aulas existentes permanecem.';area.append(note);
+    for(const item of result.items||[]){
+     const row=document.createElement('div');row.className='recurring-row';row.dataset.seriesId=item.id;
+     const teacher=(state.users||[]).find(u=>u.uid===item.config.professorId)?.fullName||'Professor';
+     const student=(state.students||[]).find(u=>(u.uid||u.id)===item.config.alunoId)?.fullName||'Aluno';
+     const text=document.createElement('p');text.textContent=teacher+' · '+student+' · '+item.config.horaAula+' · '+({active:'Ativo',blocked:'Extensão bloqueada',ended:'Encerrado'}[item.continuousStatus]||'Status não confirmado')+' · Reservado até '+item.reservedThrough+(item.lastBlock?' · '+item.lastBlock.date+': '+item.lastBlock.message:'');row.append(text);
+     if(item.continuousStatus!=='ended'){
+      const button=document.createElement('button');button.type='button';button.textContent='Encerrar próximas extensões';button.onclick=async()=>{
+       if(x.pending||x.working||!active()||!confirm('Encerrar as próximas extensões deste fixo? Todas as aulas já registradas e o histórico serão preservados.'))return;
+       button.disabled=true;
+       try{await api('/aulas-recorrentes/'+item.id+'/encerrar',{method:'POST',body:{accepted:true}});if(active())await loadSeries();}
+       catch(e){if(active()){text.textContent+=' · Encerramento não confirmado. Atualize a lista e tente novamente.';button.disabled=false;}}
+      };row.append(button);
+     }area.append(row);
+    }
+    if(!(result.items||[]).length&&!result.nextCursor){const p=document.createElement('p');p.textContent='Nenhum fixo contínuo nesta página.';area.append(p);}
+    if(result.nextCursor){const more=document.createElement('button');more.type='button';more.dataset.more='';more.textContent='Carregar mais';more.onclick=()=>loadSeries(result.nextCursor,true);area.append(more);}
+   }catch{if(active()){const p=document.createElement('p');p.textContent='Não foi possível atualizar os fixos. A configuração anterior foi preservada.';area.append(p);}}
+   finally{listWorking=false;if(active())field('recurringListRefresh').disabled=x.working||x.pending;}
+  }
+  field('recurringListRefresh').onclick=()=>loadSeries();
   update();
  }
  const previousBind=bindPage;bindPage=function(...args){const result=previousBind.apply(this,args);mount();return result;};
- const previousSub=lessonSub;lessonSub=function(l){const text=previousSub(l);return l?.recurringSeriesId?text+' · Série semanal ('+l.recurrence?.startDate+' a '+l.recurrence?.endDate+')':text;};
+ const previousSub=lessonSub;lessonSub=function(l){const text=previousSub(l);return l?.recurringSeriesId?text+(l.recurrence?.type==='continuous'?' · Fixo contínuo':' · Série semanal ('+l.recurrence?.startDate+' a '+l.recurrence?.endDate+')'):text;};
  document.documentElement.dataset.forjaRecurringLessonsPolicy=POLICY;
 })();
 </script>
