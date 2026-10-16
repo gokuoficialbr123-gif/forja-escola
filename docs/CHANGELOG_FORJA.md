@@ -1,3 +1,9 @@
+## 16/10/2026 — Arquivo público Google Search Console
+
+Arquivo permanente `googleaaf1dd5c13d03a74.html`, com bytes exatos e sem newline,
+incluído explicitamente no artefato Hosting. Build e pós-deploy verificam o conteúdo,
+recusando fallback da SPA. Portal, páginas legais, Firebase config e API intactos.
+
 ## 15/10/2026 — Publicação das páginas legais temporárias aprovadas
 
 PR8 atualizado sobre a produção #16/#17, sem importar código funcional antigo.

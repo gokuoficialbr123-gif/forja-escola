@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { rootDir, referenceVersion, sha256 } from './validate.mjs';
+import { rootDir, referenceVersion, sha256, googleVerificationFile, googleVerificationContent } from './validate.mjs';
 import { buildHostingArtifact, hostingOptionsFromArgs } from './prepare-hosting.mjs';
 
 export async function verifyHosting(url, {
@@ -35,6 +35,25 @@ export async function verifyHosting(url, {
   throw new Error(`Verificação do Hosting falhou após ${attempts} tentativa(s): ${failure.message}`, { cause: failure });
 }
 
+export async function verifyGoogleVerification(url, {request=fetch, attempts=12, delayMs=5000, timeoutMs=15000}={}) {
+  const target = new URL('/'+googleVerificationFile, url);
+  assert.ok(['https:', 'http:'].includes(target.protocol), 'URL HTTP(S) obrigatória.');
+  let failure;
+  for(let attempt=1; attempt<=attempts; attempt++) {
+    try {
+      const response = await request(target, {headers:{'Cache-Control':'no-cache'}, redirect:'error', signal:AbortSignal.timeout(timeoutMs)});
+      assert.equal(response.status, 200, `Verificação Google: HTTP ${response.status}.`);
+      const bytes = Buffer.from(await response.arrayBuffer());
+      assert.ok(bytes.equals(Buffer.from(googleVerificationContent)), 'Verificação Google: conteúdo incorreto ou fallback da SPA.');
+      return {file:googleVerificationFile, status:response.status, bytes:bytes.length, sha256:sha256(bytes)};
+    } catch(error) {
+      failure=error;
+      if(attempt<attempts) await new Promise(resolve=>setTimeout(resolve,delayMs));
+    }
+  }
+  throw failure;
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const url = process.env.FORJA_VERIFY_URL;
   assert.ok(url, 'Defina FORJA_VERIFY_URL.');
@@ -42,4 +61,5 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   // substitution. Do not trust a supplied hash or an arbitrary generated file.
   const { bytes } = buildHostingArtifact(rootDir, hostingOptionsFromArgs());
   console.log(JSON.stringify(await verifyHosting(url, { expected: bytes }), null, 2));
+  console.log(JSON.stringify(await verifyGoogleVerification(url), null, 2));
 }
