@@ -8,12 +8,12 @@ import assert from 'node:assert/strict';
 import {withoutRegistrationChanges} from './registration-scope.mjs';
 import { test } from 'node:test';
 import { createServer } from 'node:http';
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { rootDir, referenceVersion, referenceSha256, sha256, validate, validateInlineScripts } from './validate.mjs';
+import { rootDir, referenceVersion, referenceSha256, sha256, validate, validateInlineScripts, googleVerificationFile, googleVerificationContent, validateGoogleVerification } from './validate.mjs';
 import { buildHostingArtifact, hostingOptionsFromArgs, prepareHosting, productionApiUrl } from './prepare-hosting.mjs';
-import { verifyHosting } from './verify-hosting.mjs';
+import { verifyHosting, verifyGoogleVerification } from './verify-hosting.mjs';
 import { previewApiFromEvent, previewConfigFromEvent, validatePreviewApiUrl } from './preview-config.mjs';
 import { assertVaryOrigin, verifyPreviewHealth, previewVersion, productionVersion, assertPreviewIsolation } from './verify-preview-backend.mjs';
 
@@ -21,7 +21,7 @@ const html = readFileSync(join(rootDir, 'index.html'));
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'forja-pipeline-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  for (const file of ['index.html', 'firebase.json', '.firebaserc',...legalFiles]) { mkdirSync(dirname(join(root,file)),{recursive:true});copyFileSync(join(rootDir,file),join(root,file)); }
+  for (const file of ['index.html', 'firebase.json', '.firebaserc',googleVerificationFile,...legalFiles]) { mkdirSync(dirname(join(root,file)),{recursive:true});copyFileSync(join(rootDir,file),join(root,file)); }
   return root;
 }
 
@@ -60,8 +60,52 @@ test('artefato contém somente o HTML e sua preparação é repetível', t => {
   prepareHosting(root);
   writeFileSync(join(root, '.firebase-public', 'nao-publicar.txt'), 'documentação');
   prepareHosting(root);
-  assert.deepEqual(readdirSync(join(root, '.firebase-public')), ['assets', 'index.html', 'privacidade', 'termos']);
+  assert.deepEqual(readdirSync(join(root, '.firebase-public')), ['assets', googleVerificationFile, 'index.html', 'privacidade', 'termos']);
   assert.ok(readFileSync(join(root, '.firebase-public', 'index.html')).equals(html));
+});
+test('Search Console: nome exato, bytes sem newline e arquivo preservado ao recriar o artefato', t => {
+  const root=fixture(t);
+  assert.equal(googleVerificationFile,'googleaaf1dd5c13d03a74.html');
+  const expected=Buffer.from('google-site-verification: googleaaf1dd5c13d03a74.html');
+  assert.deepEqual(readFileSync(join(root,googleVerificationFile)),expected);
+  for(let i=0;i<2;i++) {
+    prepareHosting(root);
+    assert.deepEqual(readFileSync(join(root,'.firebase-public',googleVerificationFile)),expected);
+    assert.equal(validate(root).googleVerification.bytes,expected.length);
+  }
+});
+test('Search Console: build recusa conteúdo alterado, newline, nome ausente e symlink', t => {
+  const root=fixture(t),file=join(root,googleVerificationFile);
+  for(const content of [googleVerificationContent+'\n',googleVerificationContent+'\r\n',html.toString(),'outro arquivo']) {
+    writeFileSync(file,content);
+    assert.throws(()=>prepareHosting(root),/Conteúdo da verificação Google deve ser exato/);
+  }
+  rmSync(file);
+  assert.throws(()=>validateGoogleVerification(root),/ENOENT/);
+  symlinkSync(join(root,'index.html'),file);
+  assert.throws(()=>validateGoogleVerification(root),/arquivo regular/);
+});
+test('Search Console: HTTP real verifica a URL exata e recusa SPA200, newline, erros e redirects', async t => {
+  let body=googleVerificationContent,status=200,seen;
+  const server=createServer((req,res)=>{seen=req.url;res.statusCode=status;if(status===302)res.setHeader('Location','/');res.end(body);});
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  t.after(()=>new Promise(resolve=>server.close(resolve)));
+  const url=`http://127.0.0.1:${server.address().port}/?ignored=1`;
+  assert.equal((await verifyGoogleVerification(url,{attempts:1})).status,200);
+  assert.equal(seen,'/googleaaf1dd5c13d03a74.html');
+  for(const value of [html,googleVerificationContent+'\n']) {
+    body=value;
+    await assert.rejects(verifyGoogleVerification(url,{attempts:1}),/conteúdo incorreto ou fallback da SPA/);
+  }
+  status=403;
+  await assert.rejects(verifyGoogleVerification(url,{attempts:1}),/HTTP 403/);
+  status=302;
+  await assert.rejects(verifyGoogleVerification(url,{attempts:1}));
+});
+test('Search Console: verificação aguarda uma falha transitória sem aceitar resposta incorreta', async()=>{
+  let calls=0;
+  const result=await verifyGoogleVerification('https://forja-fixture.invalid/',{attempts:2,delayMs:1,request:async()=>new Response(++calls===1?'aguardando publicação':googleVerificationContent,{status:calls===1?503:200})});
+  assert.equal(calls,2);assert.equal(result.file,googleVerificationFile);
 });
 test('verificação pública aguarda propagação e recusa bytes errados com mesmo marker', async t => {
   let body = Buffer.from('versão antiga');
@@ -109,7 +153,7 @@ test('artefato Preview muda somente a declaração da API e preserva a fonte ofi
   assert.notEqual(result.sha256, referenceSha256);
   assert.equal(artifact.toString().includes(productionApiUrl), false);
   assert.equal(artifact.toString().includes(previewApiUrl), true);
-  assert.deepEqual(readdirSync(join(root, '.firebase-public')), ['assets', 'index.html', 'privacidade', 'termos']);
+  assert.deepEqual(readdirSync(join(root, '.firebase-public')), ['assets', googleVerificationFile, 'index.html', 'privacidade', 'termos']);
 });
 
 test('preparar produção depois de Preview restaura integralmente o artefato oficial', t => {

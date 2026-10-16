@@ -4,7 +4,7 @@ import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync,
 import {dirname, join, resolve} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
-import {rootDir, sha256} from './validate.mjs';
+import {rootDir, sha256, googleVerificationFile} from './validate.mjs';
 import {legalFiles, legalReviewStatus, legalNavigation, portalBeforeLegalSha256, withoutLegalNavigation, validateLegalPages} from './legal-pages.mjs';
 import {prepareHosting} from './prepare-hosting.mjs';
 import {verifyLegalPages} from './verify-legal-pages.mjs';
@@ -22,13 +22,13 @@ test('portal completo, scripts, CSS, API e formulários iguais ao main; somente 
 });
 test('artefato permite somente os arquivos públicos explícitos, sem documentos ou credenciais',t=>{
   const root=mkdtempSync(join(tmpdir(),'forja-legal-'));t.after(()=>rmSync(root,{recursive:true,force:true}));
-  for(const file of ['index.html','firebase.json','.firebaserc',...legalFiles]) {
+  for(const file of ['index.html','firebase.json','.firebaserc',googleVerificationFile,...legalFiles]) {
     mkdirSync(dirname(join(root,file)),{recursive:true});copyFileSync(join(rootDir,file),join(root,file));
   }
   writeFileSync(join(root,'nao-publicar.json'),'documento privado de fixture');
   prepareHosting(root);
   const files=readdirSync(join(root,'.firebase-public'),{recursive:true}).filter(x=>x.includes('.')&&x!=='assets').sort();
-  assert.deepEqual(files,['index.html',...legalFiles].sort());
+  assert.deepEqual(files,['index.html',googleVerificationFile,...legalFiles].sort());
   for(const file of legalFiles) assert.equal(sha256(readFileSync(join(root,'.firebase-public',file))),sha256(readFileSync(join(root,file))));
   writeFileSync(join(root,'privacidade/index.html'),readFileSync(join(root,'privacidade/index.html'),'utf8').replace('</body>','<script>console.log("injetado")</script></body>'));
   assert.throws(()=>validateLegalPages(root),/não executam scripts/);

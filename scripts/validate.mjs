@@ -6,7 +6,7 @@ import {withoutBookingHotfix} from './booking-hotfix-scope.mjs';
 import {withoutSessionIsolation} from './session-isolation-scope.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { lstatSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -16,6 +16,17 @@ export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const referenceVersion = '6.31.1-secretaria-drawer-fluido';
 export const referenceSha256 = '1e3ba1324a73027d7a6c9b8b565338d86eca2424045a8fe308e02d844f7f0e69';
 export const sha256 = data => createHash('sha256').update(data).digest('hex');
+// Public ownership proof: preserve the exact bytes, including no final newline.
+export const googleVerificationFile = 'googleaaf1dd5c13d03a74.html';
+export const googleVerificationContent = 'google-site-verification: googleaaf1dd5c13d03a74.html';
+
+export function validateGoogleVerification(root = rootDir) {
+  const file = join(root, googleVerificationFile);
+  assert.ok(lstatSync(file).isFile(), 'Verificação Google deve ser arquivo regular.');
+  const bytes = readFileSync(file);
+  assert.ok(bytes.equals(Buffer.from(googleVerificationContent)), 'Conteúdo da verificação Google deve ser exato, sem quebra de linha adicional.');
+  return {file:googleVerificationFile, bytes:bytes.length, sha256:sha256(bytes)};
+}
 
 export function validateInlineScripts(html) {
   const temp = mkdtempSync(join(tmpdir(), 'forja-syntax-'));
@@ -58,8 +69,9 @@ export function validate(root = rootDir) {
   assert.equal(config.hosting?.site, 'forja-escola', 'Site Hosting incorreto.');
   assert.equal(config.hosting?.public, '.firebase-public', 'Pasta publicada deve ser isolada.');
   assert.deepEqual(config.hosting?.rewrites, [{ source: '**', destination: '/index.html' }]);
+  const googleVerification = validateGoogleVerification(root);
   const checked = validateInlineScripts(html);
-  return { version: marker, sha256: referenceSha256, inlineScripts: checked, bytes: bytes.length, legalPages:validateLegalPages(root) };
+  return { version: marker, sha256: referenceSha256, inlineScripts: checked, bytes: bytes.length, legalPages:validateLegalPages(root), googleVerification };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
