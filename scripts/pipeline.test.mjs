@@ -1,3 +1,4 @@
+import {withoutRecurringLessons} from './recurring-lessons-scope.mjs';
 import {legalFiles,withoutLegalNavigation,portalBeforeLegalSha256,validateLegalPages} from './legal-pages.mjs';
 import {withoutFixedAvailability} from './fixed-availability-scope.mjs';
 import {withoutLessonReadPolicy} from './lesson-read-policy-scope.mjs';
@@ -261,7 +262,7 @@ test('backend sem Etapa 2 central não pode autorizar o novo Preview',async()=>{
 });
 
 test('Somente blocos centrais e Novo usuário podem mudar; Agenda e relatório preservados',()=>{
- const previous=withoutRegistrationChanges(withoutSessionIsolation(withoutBookingHotfix(withoutPersonalGoogleDiagnostics(withoutLessonReadPolicy(withoutFixedAvailability(withoutLegalNavigation(html.toString()))))))).replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
+ const previous=withoutRegistrationChanges(withoutSessionIsolation(withoutBookingHotfix(withoutPersonalGoogleDiagnostics(withoutLessonReadPolicy(withoutFixedAvailability(withoutLegalNavigation(withoutRecurringLessons(html.toString())))))))).replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
  assert.equal(sha256(Buffer.from(previous)),'cf5b8ffbc9c7827892492864d9d034d318e707bebaefc9ee4967f8ba115f741c');
 });
 
