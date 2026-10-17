@@ -191,6 +191,11 @@ por suposição. O ensaio completo registra tempos e quantidade de chamadas.
 As regressões de recorrência desktop/mobile passaram em cerca de6,2/9,5s localmente.
 O timeout intermitente histórico em CI não foi reproduzido com causa conclusiva;
 não atribuir à aplicação, nem declarar eliminado. Nenhum timeout foi aumentado.
+A primeira CI desta branch falhou na etapa Chromium, após hash/sintaxe/pipeline
+aprovados. A execução concorrente foi alinhada à execução serial local, com
+TAP e anotações sanitizadas, sem aumentar timeouts. A evidência disponível não
+permite atribuir a causa original exclusivamente à concorrência; a CI no novo
+HEAD continua sendo obrigatória.
 Uma conferência local de hash falhou quando o HTML foi atualizado durante a suíte;
 essa causa é conhecida e exige rerun com snapshot congelado, não remover o assert.
 

@@ -30,8 +30,14 @@ jobs:
           npm install --prefix /tmp/forja-browser-tests --no-save --package-lock=false playwright@1.56.1
           /tmp/forja-browser-tests/node_modules/.bin/playwright install --with-deps chromium
       - name: Testar drawer e Agenda Secretaria em navegador real
+        id: browser_tests
         env:
           FORJA_PLAYWRIGHT_MODULE: /tmp/forja-browser-tests/node_modules/playwright/index.mjs
-        run: node --test scripts/secretaria-drawer.test.mjs scripts/availability-publication.test.mjs scripts/secretaria-agenda.test.mjs scripts/secretaria-agenda-visual.test.mjs scripts/google-secretaria.test.mjs scripts/google-secretaria-navigation.test.mjs scripts/new-user-modal.test.mjs scripts/invitation-demo.test.mjs scripts/availability-session.test.mjs scripts/personal-google-diagnostics.test.mjs scripts/lesson-read-policy.test.mjs scripts/fixed-availability.test.mjs scripts/legal-pages.test.mjs scripts/recurring-lessons.test.mjs scripts/lesson-confirmation.test.mjs
+        run: |
+          set -o pipefail
+          node --test --test-concurrency=1 --test-reporter=tap scripts/secretaria-drawer.test.mjs scripts/availability-publication.test.mjs scripts/secretaria-agenda.test.mjs scripts/secretaria-agenda-visual.test.mjs scripts/google-secretaria.test.mjs scripts/google-secretaria-navigation.test.mjs scripts/new-user-modal.test.mjs scripts/invitation-demo.test.mjs scripts/availability-session.test.mjs scripts/personal-google-diagnostics.test.mjs scripts/lesson-read-policy.test.mjs scripts/fixed-availability.test.mjs scripts/legal-pages.test.mjs scripts/recurring-lessons.test.mjs scripts/lesson-confirmation.test.mjs 2>&1 | tee /tmp/forja-frontend-tests.log
+      - name: Anotar falhas de navegador sem payloads ou credenciais
+        if: failure() && steps.browser_tests.outcome == 'failure'
+        run: node scripts/report-browser-failures.mjs /tmp/forja-frontend-tests.log
       - name: Preparar artefato isolado
         run: node scripts/prepare-hosting.mjs
