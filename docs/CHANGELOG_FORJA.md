@@ -1,3 +1,22 @@
+## 16/10/2026 — Missão 2: fixo contínuo (preparado, não publicado)
+
+- Três modos no mesmo drawer; contrato finito/hash/aceite v1 preservados.
+- Contínuo com aceite v2, reservas84dias, extensão horária durável/idempotente,
+  locks nativos, cursor/recibos atômicos e primeira ocorrência bloqueada visível.
+- Encerramento só de extensões, sem cancelar aulas/histórico/eventos.
+- Automação desligada por padrão; configuração e heartbeat recente obrigatórios.
+- QA somente emuladores/mocks/Chromium; PR18/19 continuam Draft, sem deploy.
+
+## 16/10/2026 — Missão 2: aulas semanais finitas (somente Draft)
+
+Autorizado implementar/testar somente recorrência semanal sobre main publicado.
+Ler `docs/RECURRING_LESSONS.md`. Até53 ocorrências/366dias, tudo-ou-nada,
+IDs idempotentes por UID e locks nativos em todas as datas. Preservar Missão1,
+#17, #13–15, Google pessoal/central, privacidade/termos e prova Search Console.
+QA mutável somente demo-forja/Auth+Firestore emuladores/Google simulado/Chromium.
+Sem merge, qualquer deploy, OAuth real, dados reais, Cloud/DNS ou Missão3.
+Autorizações históricas de publicação abaixo não abrangem esta missão.
+
 ## 16/10/2026 — Arquivo público Google Search Console
 
 Arquivo permanente `googleaaf1dd5c13d03a74.html`, com bytes exatos e sem newline,

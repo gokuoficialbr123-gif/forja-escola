@@ -1,3 +1,21 @@
+## 16/10/2026 — mini atualização Missão 2 autorizada
+
+Ampliar SOMENTE Draft backend18/frontend19: aula única, período finito preservado,
+fixo contínuo com horizonte84d/recibos/cursor duráveis e executor horário externo.
+Ler o topo de docs/RECURRING_LESSONS.md. Automação default off, gate por heartbeat;
+sem configuração comprovada não oferecer confirmação contínua. QA só demo-forja,
+mocks e Chromium; nenhum merge, deploy, dado real, Cloud/OAuth/DNS ou Missão3.
+
+## 16/10/2026 — Missão 2: aulas semanais finitas (somente Draft)
+
+Autorizado implementar/testar somente recorrência semanal sobre main publicado.
+Ler `docs/RECURRING_LESSONS.md`. Até53 ocorrências/366dias, tudo-ou-nada,
+IDs idempotentes por UID e locks nativos em todas as datas. Preservar Missão1,
+#17, #13–15, Google pessoal/central, privacidade/termos e prova Search Console.
+QA mutável somente demo-forja/Auth+Firestore emuladores/Google simulado/Chromium.
+Sem merge, qualquer deploy, OAuth real, dados reais, Cloud/DNS ou Missão3.
+Autorizações históricas de publicação abaixo não abrangem esta missão.
+
 ## 15/10/2026 — Publicação das páginas legais temporárias aprovadas
 
 PR8 atualizado sobre a produção #16/#17, sem importar código funcional antigo.
