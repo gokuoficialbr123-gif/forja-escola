@@ -243,11 +243,43 @@
     ]
   },
   {
+    "before": "secretaryDPanel(\"Confirmações e ausências\"",
+    "after": "secretaryDPanel(\"Revisão das aulas\"",
+    "count": 1,
+    "positions": [
+      1372059
+    ]
+  },
+  {
+    "before": "\"Aguardando resposta\",`<button",
+    "after": "\"Realização a conferir\",`<button",
+    "count": 1,
+    "positions": [
+      1372465
+    ]
+  },
+  {
+    "before": "empty(\"Nenhuma confirmação pendente\")",
+    "after": "empty(\"Nenhuma revisão pendente\")",
+    "count": 1,
+    "positions": [
+      1372572
+    ]
+  },
+  {
+    "before": "\"Não participará\",`<button",
+    "after": "\"Resposta antiga: conferir\",`<button",
+    "count": 1,
+    "positions": [
+      1372239
+    ]
+  },
+  {
     "before": "Ela informa à Secretaria por que você não respondeu/participou dentro do prazo.",
     "after": "Ela acrescenta sua informação ao registro antigo para análise da Secretaria.",
     "count": 1,
     "positions": [
-      1505444
+      1505445
     ]
   }
 ]

@@ -2,41 +2,41 @@
   "measurements": [
     {
       "width": 320,
-      "openModalMs": 384
+      "openModalMs": 370
     },
     {
       "width": 375,
-      "openModalMs": 366
+      "openModalMs": 381
     },
     {
       "width": 390,
-      "openModalMs": 392
+      "openModalMs": 379
     },
     {
       "width": 768,
-      "openModalMs": 408
+      "openModalMs": 448
     },
     {
       "width": 1366,
-      "openModalMs": 525
+      "openModalMs": 530
     },
     {
       "width": 1920,
-      "openModalMs": 594
+      "openModalMs": 600
     }
   ],
   "renderBench": [
     {
       "lessons": 10,
-      "renderMs": 24
+      "renderMs": 35
     },
     {
       "lessons": 200,
-      "renderMs": 18.8
+      "renderMs": 18.5
     },
     {
       "lessons": 500,
-      "renderMs": 14.6
+      "renderMs": 17.1
     }
   ],
   "apiRequests": 298,

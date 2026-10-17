@@ -184,7 +184,7 @@ retenção nem garantem expurgo de backups. Backups/exclusão reais não foram a
 
 Medições locais, sem comparação A/B de produção: validação53 ocorrências362ms,
 criação atômica1.324ms. Render sintético da Agenda com10/200/500 registros medido
-em24/18,8/14,6ms numa execução; a ordem/aquecimento do navegador explica por que
+em35/18,5/17,1ms numa execução; a ordem/aquecimento do navegador explica por que
 esses números não demonstram escalabilidade nem melhoria. Não alterar consultas
 por suposição. O ensaio completo registra tempos e quantidade de chamadas.
 
@@ -224,6 +224,32 @@ Capturas/medidas sintéticas: `docs/evidence/`; contagem final e checks são reg
 no fechamento dos PRs. Contar testes-folha e grupos separadamente; não somar reruns.
 Não confundir preview sintético de convite com entrega real. Nesta rodada nenhum
 Firebase/Render Preview foi publicado; os PRs devem continuar em rascunho.
+
+## Contagem e fechamento dos testes
+
+| Conjunto | Testes-folha independentes | Grupos-pai (não somar como casos) | Total exibido pelo Node |
+|---|---:|---:|---:|
+| Backend unitário |243|1|244|
+| Backend HTTP/Auth/Firestore/Chromium pareado |210|18|228|
+| Frontend/pipeline/Chromium |266|0|266|
+| Total único |719|19|738|
+
+A base tinha680 testes-folha; foram acrescentados39 (6 unitários backend,
+26 de integração e7 frontend). Não somar repetições nem os19 grupos aos719 casos.
+Não há teste intencionalmente ignorado. Os casos afetados por falhas locais de hash,
+contrato e rótulo foram corrigidos/reexecutados; a decisão final exige também os
+checks completos no HEAD dos PRs, não apenas um rerun ou um SHA anterior.
+
+No fechamento local: unitários aprovados; suíte frontend+rerun dos49 casos afetados
+aprovados; integração completa complementada pelo rerun dos contratos e do portal.
+O assert antigo da resposta de desconexão foi atualizado para verificar todos os
+campos novos, mantendo verificações de revogação, usuário, aula e cache.
+A regressão com aula histórica identificou e corrigiu o rótulo na versão ATIVA da
+página de Pendências, além da definição antiga. CI pareada é obrigatória antes de merge.
+
+Links permanentes dos checks desta branch:
+- [Backend](https://github.com/gokuoficialbr123-gif/forja-backend/actions?query=branch%3Afix%2Faulas-confirmadas-auditoria-2026-10).
+- [Frontend](https://github.com/gokuoficialbr123-gif/forja-escola/actions?query=branch%3Afix%2Faulas-confirmadas-auditoria-2026-10).
 
 ## Checklist para uma publicação futura, não executada
 
