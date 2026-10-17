@@ -1,3 +1,15 @@
+## 17/10/2026 — confirmação administrativa e auditoria geral (rascunho)
+
+Missão atual em `fix/aulas-confirmadas-auditoria-2026-10`, a partir dos mains
+publicados pós-recorrência. Ler `docs/AUDITORIA_GERAL_FORJA_2026-10.md`.
+Reserva escolar confirmada pelo agendamento, sem resposta fictícia do aluno;
+cancelamento próprio com motivo e histórico atômico, recuperação Google segura.
+Preservar terapia, locks, UID/geração, publicação de disponibilidade e recorrências.
+QA somente demo-forja/Auth+Firestore emulados/Google simulado/Chromium.
+Nenhum merge ou deploy (inclusive Preview), dado real, OAuth real, Cloud, DNS,
+scopes, segredo ou Missão3/Etapa4. Autorizações históricas abaixo não publicam
+esta missão. Os PRs novos devem permanecer em rascunho.
+
 ## 16/10/2026 — Missão 2: fixo contínuo (preparado, não publicado)
 
 - Três modos no mesmo drawer; contrato finito/hash/aceite v1 preservados.

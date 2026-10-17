@@ -1,0 +1,253 @@
+[
+  {
+    "before": "  return stored;\n}\nconst nextItemsBeforeBlockA",
+    "after": "  return stored===\"agendada\"?\"confirmada\":stored;\n}\nconst nextItemsBeforeBlockA",
+    "count": 1,
+    "positions": [
+      1262510
+    ]
+  },
+  {
+    "before": "gStatusMeta=function(l){\n  const op=String(lessonOperationalStatus(l)||l.status||'agendada').toLowerCase(),conf=String(l.confirmacaoAluno||'').toLowerCase(),today=todayKey(),date=String(l.dataAula||'').slice(0,10);\n  if(op==='cancelada_automaticamente')return {label:'Cancelada automaticamente',cls:'cancelled'};\n  if(/cancel/.test(op))return {label:statusLabel(op),cls:'cancelled'};\n  if(/remarcacao_solicitada/.test(op)||String(l.remarcacaoStatus||'').toLowerCase()==='solicitada')return {label:'Remarcação solicitada',cls:'reschedule'};\n  if(l.finalizadoEm||/conclu|realiz/.test(op))return {label:'Concluída',cls:'completed'};\n  if(l.iniciadoEm||op==='em_andamento')return {label:'Em andamento',cls:'completed'};\n  if(['confirmada','confirmado','sim','vou_participar'].includes(conf)||op==='confirmada')return {label:'Confirmada',cls:'confirmed'};\n  if(['nao_participa','nao_participara','não_participa','nao','não'].includes(conf))return {label:'Não participará',cls:'reschedule'};\n  if(date&&date>=today)return {label:'Aguardando confirmação',cls:'waiting'};\n  return {label:'Aguardando fechamento',cls:'waiting'};\n};",
+    "after": "gStatusMeta=function(l){\n  const op=String(lessonOperationalStatus(l)||'confirmada').toLowerCase();\n  if(/cancel/.test(op))return {label:statusLabel(op),cls:'cancelled'};\n  if(op==='remarcacao_solicitada'||l.remarcacaoStatus==='solicitada')return {label:'Remarcação solicitada',cls:'reschedule'};\n  if(l.finalizadoEm||/conclu|realiz/.test(op))return {label:'Concluída',cls:'completed'};\n  if(l.iniciadoEm||op==='em_andamento')return {label:'Em andamento',cls:'completed'};\n  if(l.confirmacaoAluno==='nao_participa'&&(!l.bookingConfirmation||l.bookingConfirmation.source==='legacy_reservation'))return {label:'Resposta antiga: conferir com a Secretaria',cls:'reschedule'};\n  return {label:'Confirmada',cls:'confirmed'};\n};",
+    "count": 1,
+    "positions": [
+      1540568
+    ]
+  },
+  {
+    "before": "function studentLessonStateB(l){\n  const op=lessonOperationalStatus(l),low=String(op||\"\").toLowerCase();\n  if(low===\"cancelada_automaticamente\")return {key:\"cancelled\",label:\"Cancelada automaticamente\",cls:\"bad\"};\n  if(/cancel/.test(low))return {key:\"cancelled\",label:statusLabel(low),cls:\"bad\"};\n  if(String(l?.remarcacaoStatus||\"\").toLowerCase()===\"solicitada\"||low===\"remarcacao_solicitada\")return {key:\"reschedule\",label:\"Remarcação solicitada\",cls:\"warn\"};\n  if(l?.finalizadoEm||/conclu/.test(low))return {key:\"completed\",label:\"Concluída\",cls:\"good\"};\n  if(l?.iniciadoEm||low===\"em_andamento\")return {key:\"running\",label:\"Em andamento\",cls:\"info\"};\n  if(l?.confirmacaoAluno===\"confirmada\"||low===\"confirmada\")return {key:\"confirmed\",label:\"Participação confirmada\",cls:\"good\"};\n  if(!l?.confirmacaoAluno||l.confirmacaoAluno===\"pendente\")return {key:\"response\",label:\"Aguardando sua resposta\",cls:\"warn\"};\n  return {key:\"scheduled\",label:statusLabel(op||\"agendada\"),cls:\"info\"};\n}",
+    "after": "function studentLessonStateB(l){\n const meta=gStatusMeta(l),key=meta.cls==='cancelled'?'cancelled':meta.cls==='reschedule'?'reschedule':l.iniciadoEm&&!l.finalizadoEm?'running':meta.cls==='completed'?'completed':'confirmed';\n return {key,label:meta.label,cls:key==='cancelled'?'bad':key==='reschedule'?'warn':key==='running'?'info':'good'};\n}",
+    "count": 1,
+    "positions": [
+      1273522
+    ]
+  },
+  {
+    "before": "function studentCanRespondLessonB(l){const st=studentLessonStateB(l);if(st.key!==\"response\")return false;const start=studentLessonStartMsB(l);return start==null?String(l?.dataAula||\"\")>=todayKey():Date.now()<start}",
+    "after": "function studentCanRespondLessonB(){return false}\nfunction studentCanCancelLesson(l){return state.role==='student'&&l?.alunoId===state.user?.uid&&l.studentCancellationAllowed===true&&!l.iniciadoEm&&!l.finalizadoEm&&!/cancel|conclu|realiz|em_andamento/i.test(String(l.status||''))}",
+    "count": 1,
+    "positions": [
+      1273864
+    ]
+  },
+  {
+    "before": "${canRespond?`<button class=\"small-btn teacher-primary-btn\" data-student-confirm=\"${esc(l.id)}\" data-response=\"sim\">Vou participar</button><button class=\"small-btn\" data-student-confirm=\"${esc(l.id)}\" data-response=\"nao\">Não vou participar</button>`:\"\"}",
+    "after": "${studentCanCancelLesson(l)?`<button class=\"small-btn\" data-cancel-lesson=\"${esc(l.id)}\">Cancelar aula</button>`:\"\"}",
+    "count": 2,
+    "positions": [
+      1275603,
+      1505671
+    ]
+  },
+  {
+    "before": "if(state.role===\"student\"&&!confirmation&&!lessonStarted&&!lessonLocked&&!lessonPendingReschedule){\n      actions+=`<button class=\"btn gold\" data-confirm-lesson=\"${id}\" data-response=\"sim\">Vou participar</button><button class=\"btn ghost\" data-confirm-lesson=\"${id}\" data-response=\"nao\">Não vou participar</button>`;\n    }",
+    "after": "if(studentCanCancelLesson(l)){actions+=`<button class=\"btn soft\" data-cancel-lesson=\"${id}\">Cancelar aula</button>`;}",
+    "count": 1,
+    "positions": [
+      948703
+    ]
+  },
+  {
+    "before": "if([\"student\",\"parent\"].includes(state.role)&&!lessonStarted&&!lessonLocked&&!lessonPendingReschedule)actions+=",
+    "after": "if(state.role===\"parent\"&&!lessonStarted&&!lessonLocked&&!lessonPendingReschedule)actions+=",
+    "count": 1,
+    "positions": [
+      950093
+    ]
+  },
+  {
+    "before": "function confirmLessonModal(id,response){\n  if(response===\"sim\"){\n    modal(\"Confirmar participação\",\"<p>Confirma que você participará desta aula?</p>\",\"Confirmar\",async btn=>{setBusy(btn,true);try{await api(`/aulas/${id}/responder`,{method:\"PATCH\",body:{resposta:\"confirmada\"}});toast(\"Participação confirmada.\",\"ok\");closeModal();await reloadAndRender()}catch(e){toast(e.message,\"bad\")}finally{setBusy(btn,false)}});return;\n  }\n  modal(\"Não vou participar\",`<div class=\"form-grid\">${formField(\"Motivo\",`<textarea id=\"absenceReason\" maxlength=\"600\" required placeholder=\"Informe o motivo\"></textarea>`,true)}${formField(\"Remarcação\",`<select id=\"absenceReschedule\"><option value=\"sim\">Quero solicitar remarcação</option><option value=\"nao\">Não quero remarcar</option></select>`,true)}</div>`,\"Enviar resposta\",async btn=>{const reason=$(\"#absenceReason\").value.trim();if(reason.length<3){toast(\"Informe o motivo.\",\"warn\");return}setBusy(btn,true);try{await api(`/aulas/${id}/responder`,{method:\"PATCH\",body:{resposta:\"nao_participa\",motivo:reason,solicitarRemarcacao:$(\"#absenceReschedule\").value===\"sim\"}});toast($(\"#absenceReschedule\")?.value===\"sim\"?\"Resposta registrada e remarcação solicitada.\":\"Resposta registrada.\",\"ok\");closeModal();await reloadAndRender()}catch(e){toast(e.message,\"bad\")}finally{setBusy(btn,false)}})\n}\n",
+    "after": "function confirmLessonModal(id,response){if(response==='nao')return cancelLessonModal(id);toast('A aula já é confirmada pelo agendamento. Você não precisa responder.','info')}\n",
+    "count": 1,
+    "positions": [
+      963023
+    ]
+  },
+  {
+    "before": "$$('[data-student-confirm]').forEach(b=>b.onclick=()=>confirmLessonModal(b.dataset.studentConfirm,b.dataset.response));",
+    "after": "$$('[data-cancel-lesson]').forEach(b=>b.onclick=()=>cancelLessonModal(b.dataset.cancelLesson));",
+    "count": 1,
+    "positions": [
+      1295667
+    ]
+  },
+  {
+    "before": "async function lessonAction(id,action,btn){setBusy(btn,true);try{await api(`/aulas/${id}/${action}`,{method:\"PATCH\",body:{}});toast(action===\"iniciar\"?\"Aula iniciada.\":\"Aula atualizada.\",\"ok\");closeModal();await reloadAndRender()}catch(e){toast(e.message,\"bad\")}finally{setBusy(btn,false)}}\nfunction finishLessonModal(id){modal(\"Finalizar aula\",`<div class=\"form-grid\">${formField(\"Avaliação do professor (opcional)\",`<select id=\"teacherScore\"><option value=\"\">Sem nota</option>${[1,2,3,4,5].map(n=>`<option value=\"${n}\">${n}</option>`).join(\"\")}</select>`)}${formField(\"Comentário operacional/pedagógico permitido\",`<textarea id=\"teacherComment\" maxlength=\"1000\" placeholder=\"Sem dados sensíveis\"></textarea>`,true)}</div>`,\"Finalizar\",async btn=>{setBusy(btn,true);try{await api(`/aulas/${id}/finalizar`,{method:\"PATCH\",body:{avaliacaoProfessorNota:$(\"#teacherScore\").value?Number($(\"#teacherScore\").value):null,avaliacaoProfessorComentario:$(\"#teacherComment\").value.trim()}});toast(\"Aula finalizada e duração calculada.\",\"ok\");closeModal();await reloadAndRender()}catch(e){toast(e.message,\"bad\")}finally{setBusy(btn,false)}})}\n",
+    "after": "async function applyConfirmedLessonChange(id,result,message,scope){\n if(!forjaSessionCurrent(scope))return;\n if(result.item)state.lessons=state.lessons.map(x=>x.id===id?{...x,...result.item}:x);\n toast(message,'ok');for(const warning of result.warnings||[])toast(warning,'warn');closeModal();\n try{await reloadAndRender()}catch{if(forjaSessionCurrent(scope))toast('A alteração foi registrada. Recarregue a Agenda para atualizar a tela, sem repetir como nova operação.','warn')}\n}\nasync function lessonAction(id,action,btn){\n if(btn.disabled)return;const scope=forjaCaptureSession();setBusy(btn,true);\n try{const result=await api(`/aulas/${id}/${action}`,{method:'PATCH',body:{},session:scope});await applyConfirmedLessonChange(id,result,action==='iniciar'?'Aula iniciada.':'Aula atualizada.',scope)}\n catch(e){if(forjaSessionCurrent(scope))toast(e.status?e.message:'Não foi possível confirmar o resultado. Confira a Agenda antes de repetir.','warn')}\n finally{if(forjaSessionCurrent(scope))setBusy(btn,false)}\n}\nfunction finishLessonModal(id){\n const scope=forjaCaptureSession();modal('Finalizar aula',`<div class=\"form-grid\">${formField('Avaliação do professor (opcional)',`<select id=\"teacherScore\"><option value=\"\">Sem nota</option>${[1,2,3,4,5].map(n=>`<option value=\"${n}\">${n}</option>`).join('')}</select>`)}${formField('Comentário operacional/pedagógico permitido',`<textarea id=\"teacherComment\" maxlength=\"1000\" placeholder=\"Sem dados sensíveis\"></textarea>`,true)}</div>`,'Finalizar',async btn=>{\n  if(btn.disabled||!forjaSessionCurrent(scope))return;setBusy(btn,true);\n  try{const result=await api(`/aulas/${id}/finalizar`,{method:'PATCH',session:scope,body:{avaliacaoProfessorNota:$('#teacherScore').value?Number($('#teacherScore').value):null,avaliacaoProfessorComentario:$('#teacherComment').value.trim()}});await applyConfirmedLessonChange(id,result,'Aula finalizada e duração calculada.',scope)}\n  catch(e){if(forjaSessionCurrent(scope))toast(e.status?e.message:'Não foi possível confirmar a finalização. Os dados foram preservados; confira a Agenda antes de repetir.','warn')}\n  finally{if(forjaSessionCurrent(scope))setBusy(btn,false)}\n });\n}\n",
+    "count": 1,
+    "positions": [
+      955119
+    ]
+  },
+  {
+    "before": "function cancelLessonModal(id){modal(\"Cancelar aula\",`<div class=\"system-note\"><div><b>A aula não será apagada.</b><br>O cancelamento ficará no histórico e a Secretaria será avisada.</div></div><div class=\"form-grid\">${formField(\"Motivo do cancelamento\",`<textarea id=\"cancelReason\" placeholder=\"Explique o motivo\"></textarea>`,true)}</div>`,\"Confirmar cancelamento\",async btn=>{const motivo=$(\"#cancelReason\").value.trim();if(motivo.length<3){toast(\"Informe o motivo do cancelamento.\",\"warn\");return}setBusy(btn,true);try{await api(`/aulas/${id}/cancelar`,{method:\"PATCH\",body:{motivo}});toast(\"Aula cancelada e registrada no histórico.\",\"ok\");closeModal();await reloadAndRender()}catch(e){toast(e.message,\"bad\")}finally{setBusy(btn,false)}})}",
+    "after": "const lessonCancellationDrafts=new Map();\nfunction cancelLessonModal(id){\n const l=state.lessons.find(x=>x.id===id);if(!l)return;\n if(state.role==='student'&&!studentCanCancelLesson(l)){toast('Esta aula não pode ser cancelada por aqui. Confira os detalhes ou procure a Secretaria.','warn');return}\n const scope=forjaCaptureSession(),key=scope.uid+':'+scope.generation+':'+id;\n const draft=lessonCancellationDrafts.get(key)||{reason:'',ambiguous:false,working:false};lessonCancellationDrafts.set(key,draft);\n const same=()=>forjaSessionCurrent(scope),page=state.page;\n const details=esc(lessonTitle(l)+' · '+fmtDate(l.dataAula)+' · '+l.horaAula+'–'+l.horaFim+' · '+(l.nomeProfessor||'Professor'));\n modal('Cancelar aula',`<div class=\"system-note\"><div><b>${details}</b><br>Somente esta aula será cancelada. Outras aulas da série e o histórico serão preservados.</div></div><div class=\"form-grid\">${formField('Motivo do cancelamento',`<textarea id=\"cancelReason\" aria-label=\"Motivo do cancelamento\" required minlength=\"3\" maxlength=\"600\" aria-describedby=\"cancelFeedback\" placeholder=\"Explique o motivo\">${esc(draft.reason)}</textarea>`,true)}</div><p id=\"cancelFeedback\" role=\"status\" aria-live=\"polite\"></p>`,draft.ambiguous?'Verificar cancelamento':'Confirmar cancelamento',async btn=>{\n  if(draft.working||!same())return;\n  const reason=document.getElementById('cancelReason'),feedback=document.getElementById('cancelFeedback');\n  if(!draft.ambiguous){draft.reason=reason.value.trim();if(draft.reason.length<3||draft.reason.length>600){feedback.textContent='Informe um motivo entre 3 e 600 caracteres.';reason.focus();return}}\n  draft.working=true;reason.disabled=true;setBusy(btn,true,'Verificando...');\n  const active=()=>same()&&reason.isConnected;\n  try{\n   let result;\n   if(draft.ambiguous){const existing=await api('/aulas/'+id,{session:scope});if(/cancel/.test(String(existing.item?.status||'')))result={cancellationState:'cancelled',alreadyCancelled:true,item:existing.item,warnings:existing.item.googleCancellationState==='pending'?['Aula cancelada no FORJA; sincronização Google pendente.']:[]};}\n   if(!result)result=await api('/aulas/'+id+'/cancelar',{method:'PATCH',session:scope,body:{motivo:draft.reason}});\n   if(!same())return;\n   if(result.cancellationState!=='cancelled'||!result.item||!/cancel/.test(String(result.item.status||'')))throw Error('Resultado ainda não confirmado.');\n   state.lessons=state.lessons.map(x=>x.id===id?{...x,...result.item}:x);lessonCancellationDrafts.delete(key);\n   if(!active())return;\n   toast(result.alreadyCancelled?'A aula já estava cancelada. Nenhuma nova operação foi criada.':'Aula cancelada e registrada no histórico.','ok');\n   for(const warning of result.warnings||[])toast(warning,'warn');closeModal();\n   if(state.page===page)try{await reloadAndRender()}catch{if(same())toast('O cancelamento foi registrado. Recarregue a Agenda para atualizar a tela; não é necessário cancelar novamente.','warn')}\n  }catch(e){\n   if(!active())return;\n   const definitive=[400,401,403,404,409,410].includes(e.status);\n   draft.ambiguous=!definitive;\n   feedback.textContent=definitive?(e.message||'Não foi possível cancelar. Confira os dados e sua permissão.'):'Não foi possível confirmar o resultado. Seus dados foram preservados. Use Verificar cancelamento antes de tentar novamente.';\n  }finally{draft.working=false;if(active()){reason.disabled=draft.ambiguous;setBusy(btn,false);btn.textContent=draft.ambiguous?'Verificar cancelamento':'Confirmar cancelamento'}}\n });\n document.getElementById('cancelReason')?.focus();\n}\n",
+    "count": 1,
+    "positions": [
+      957281
+    ]
+  },
+  {
+    "before": "function participationState(l){if(String(l.remarcacaoStatus||\"\")===\"solicitada\"||String(l.status||\"\")===\"remarcacao_solicitada\")return {label:\"Remarcação solicitada\",cls:\"reschedule\"};if(l.confirmacaoAluno===\"confirmada\")return {label:\"Participação confirmada\",cls:\"yes\"};if(l.confirmacaoAluno===\"nao_participa\")return {label:\"Não vai participar\",cls:\"no\"};return {label:\"Aguardando resposta\",cls:\"pending\"}}",
+    "after": "function participationState(l){const s=gStatusMeta(l);return {label:s.label,cls:s.cls==='confirmed'?'yes':s.cls}}",
+    "count": 1,
+    "positions": [
+      1143567
+    ]
+  },
+  {
+    "before": "function studentLessonsPageB(){\n  const all=studentOwnLessonsB(),response=all.filter(studentCanRespondLessonB),reschedule=all.filter(x=>studentLessonStateB(x).key===\"reschedule\"),upcoming=studentUpcomingLessonsB().filter(x=>!response.some(r=>r.id===x.id)&&!reschedule.some(r=>r.id===x.id)),history=studentHistoryLessonsB();\n  return pageHead(\"ALUNO\",\"Minhas aulas\",\"Confirme sua participação, acompanhe remarcações e consulte seu histórico.\")+`<div class=\"student-b-kpis\"><article class=\"student-b-kpi\"><strong>${response.length}</strong><span>Precisam de resposta</span><small>Confirme antes do horário da aula</small></article><article class=\"student-b-kpi\"><strong>${upcoming.length}</strong><span>Próximas</span><small>Aulas futuras ou em andamento</small></article><article class=\"student-b-kpi\"><strong>${reschedule.length}</strong><span>Remarcações</span><small>Aguardando a Secretaria</small></article><article class=\"student-b-kpi\"><strong>${history.length}</strong><span>Histórico</span><small>Concluídas e canceladas</small></article></div>${studentSectionB(\"Precisa da sua resposta\",\"Você pode confirmar ou informar que não participará diretamente aqui.\",studentLessonListB(response),response.length)}${studentSectionB(\"Próximas aulas\",\"Aulas confirmadas ou já programadas.\",studentLessonListB(upcoming),upcoming.length)}${studentSectionB(\"Remarcações\",\"Solicitações aguardando definição de novo horário pela Secretaria.\",studentLessonListB(reschedule),reschedule.length)}${studentSectionB(\"Histórico\",\"Aulas concluídas e canceladas. Aula vencida sem início não permanece como agendada.\",studentLessonListB(history.slice(0,40)),history.length)}`;\n}",
+    "after": "function studentLessonsPageB(){\n const all=studentOwnLessonsB(),reschedule=all.filter(x=>studentLessonStateB(x).key==='reschedule'),upcoming=studentUpcomingLessonsB().filter(x=>!reschedule.some(r=>r.id===x.id)),history=studentHistoryLessonsB();\n return pageHead('ALUNO','Minhas aulas','Suas aulas já são confirmadas pelo agendamento. Consulte os detalhes ou cancele uma aula com motivo quando permitido.')+`<div class=\"student-b-kpis\"><article class=\"student-b-kpi\"><strong>${upcoming.length}</strong><span>Próximas aulas</span><small>Reservas confirmadas</small></article><article class=\"student-b-kpi\"><strong>${reschedule.length}</strong><span>Em revisão</span><small>Aguardando a Secretaria</small></article><article class=\"student-b-kpi\"><strong>${history.length}</strong><span>Histórico</span><small>Registros preservados</small></article></div>${studentSectionB('Próximas aulas','Não é necessário confirmar participação.',studentLessonListB(upcoming),upcoming.length)}${reschedule.length?studentSectionB('Revisão pela Secretaria','Consulte a equipe para acompanhar os ajustes.',studentLessonListB(reschedule),reschedule.length):''}${studentSectionB('Histórico','A passagem do horário não cancela uma aula nem registra presença automaticamente.',studentLessonListB(history.slice(0,40)),history.length)}`;\n}\n",
+    "count": 1,
+    "positions": [
+      1288115
+    ]
+  },
+  {
+    "before": "${esc(l.confirmacaoAluno?statusLabel(l.confirmacaoAluno):\"Aguardando\")}",
+    "after": "${esc(gStatusMeta(l).label)}",
+    "count": 1,
+    "positions": [
+      951965
+    ]
+  },
+  {
+    "before": "v616SetSummaryValue(box,\"Confirmação\",l.confirmacaoAluno===\"confirmada\"?\"Confirmada\":l.confirmacaoAluno===\"nao_participa\"?\"Não participará\":\"Aguardando confirmação\");",
+    "after": "v616SetSummaryValue(box,\"Confirmação\",gStatusMeta(l).label);",
+    "count": 1,
+    "positions": [
+      1512613
+    ]
+  },
+  {
+    "before": "${esc(l.confirmacaoAluno===\"confirmada\"?'Confirmada':l.confirmacaoAluno===\"nao_participa\"?'Aluno informou que não participaria':s.cls==='cancelled'?'Não confirmada':'Aguardando confirmação')}",
+    "after": "${esc(gStatusMeta(l).label)}",
+    "count": 1,
+    "positions": [
+      1513608
+    ]
+  },
+  {
+    "before": "participationPending:state.lessons.filter(x=>String(x.dataAula||\"\")>=today&&!/cancel|conclu/i.test(String(x.status||\"\"))&&(!x.confirmacaoAluno||x.confirmacaoAluno===\"pendente\"))",
+    "after": "participationPending:state.lessons.filter(x=>x.operationalReview?.required===true)",
+    "count": 1,
+    "positions": [
+      1206910
+    ]
+  },
+  {
+    "before": "pendingConfirm=lessons.filter(x=>String(x.dataAula||\"\")>=todayKey()&&(!x.confirmacaoAluno||x.confirmacaoAluno===\"pendente\")).length",
+    "after": "pendingConfirm=lessons.filter(x=>x.operationalReview?.required===true).length",
+    "count": 1,
+    "positions": [
+      1214510
+    ]
+  },
+  {
+    "before": "pendingConfirm=future.filter(x=>!x.confirmacaoAluno||x.confirmacaoAluno===\"pendente\").length",
+    "after": "pendingConfirm=lessons.filter(x=>x.operationalReview?.required===true).length",
+    "count": 1,
+    "positions": [
+      1342955
+    ]
+  },
+  {
+    "before": "if(mode===\"pending\")visible=lessons.some(x=>String(x.dataAula||\"\")>=todayKey()&&(!x.confirmacaoAluno||x.confirmacaoAluno===\"pendente\"));",
+    "after": "if(mode===\"pending\")visible=lessons.some(x=>x.operationalReview?.required===true);",
+    "count": 1,
+    "positions": [
+      1226149
+    ]
+  },
+  {
+    "before": "((!l.confirmacaoAluno||l.confirmacaoAluno===\"pendente\")||/solicit|pendente/.test(String(l.remarcacaoStatus||\"\")))",
+    "after": "(l.operationalReview?.required===true||/solicit|pendente/.test(String(l.remarcacaoStatus||\"\")))",
+    "count": 1,
+    "positions": [
+      873020
+    ]
+  },
+  {
+    "before": "Confirmações pendentes",
+    "after": "Realização a conferir",
+    "count": 2,
+    "positions": [
+      1212982,
+      1354485
+    ]
+  },
+  {
+    "before": "<span>Confirmações</span><small>Aguardando aluno</small>",
+    "after": "<span>Realização a conferir</span><small>Conferência pela Secretaria</small>",
+    "count": 1,
+    "positions": [
+      1349154
+    ]
+  },
+  {
+    "before": "<small>Confirmações</small>",
+    "after": "<small>Realização a conferir</small>",
+    "count": 1,
+    "positions": [
+      1215364
+    ]
+  },
+  {
+    "before": "Com confirmação pendente",
+    "after": "Com realização a conferir",
+    "count": 1,
+    "positions": [
+      1216032
+    ]
+  },
+  {
+    "before": "confirmação(ões) pendente(s)",
+    "after": "registro(s) a conferir",
+    "count": 1,
+    "positions": [
+      1516950
+    ]
+  },
+  {
+    "before": "confirmação(ões)",
+    "after": "registro(s) a conferir",
+    "count": 1,
+    "positions": [
+      1460878
+    ]
+  },
+  {
+    "before": "await api(\"/google/calendar/connection\",{method:\"DELETE\"});toast(\"Google Agenda desconectado.\",\"ok\")",
+    "after": "const outcome=await api(\"/google/calendar/connection\",{method:\"DELETE\"});toast(outcome.disconnectState===\"partial\"?\"Conexão removida do FORJA; há uma pendência no Google.\":\"Google Agenda desconectado.\",outcome.disconnectState===\"partial\"?\"warn\":\"ok\");for(const warning of outcome.warnings||[])toast(warning,\"warn\")",
+    "count": 2,
+    "positions": [
+      1093874,
+      1593277
+    ]
+  },
+  {
+    "before": "  forjaSessionGeneration++;forjaAvailabilityRequestSequence++;forjaSessionUID=uid;",
+    "after": "  lessonCancellationDrafts.clear();\n  forjaSessionGeneration++;forjaAvailabilityRequestSequence++;forjaSessionUID=uid;",
+    "count": 1,
+    "positions": [
+      844171
+    ]
+  },
+  {
+    "before": "function secretaryPendenciesPage(){const p=secretaryPendingSnapshot(),total=p.lessonReschedules.length+p.sessionReschedules.length+p.negativeResponses.length+p.participationPending.length+p.pendingEnrollments.length+p.pendingLinks.length+p.pendingRecords.length+p.therapyRequests.length+p.professionalsNoSchedule.length+p.unresolvedCancels.length;return pageHead(\"SECRETARIA\",\"Pendências\",\"Tudo que exige resposta, revisão ou acompanhamento da Secretaria em um único lugar.\")+`<div class=\"secretary-status-strip\"><span class=\"${total?'warn':'ok'}\">${total} pendência(s)</span><span>${p.lessonReschedules.length+p.sessionReschedules.length} remarcação(ões)</span><span>${p.pendingRecords.length} registro(s) pedagógico(s)</span><span>${p.therapyRequests.length} solicitação(ões) psicológica(s)</span></div><div class=\"secretary-ops-grid\">${secretaryPanel(\"Remarcações\",[...p.lessonReschedules.map(x=>row(x.nomeAluno||\"Aluno\",`${fmtDate(x.dataAula)} · ${lessonTitle(x)} · ${x.nomeProfessor||\"Professor\"}`,\"Solicitada\",`<button class=\"small-btn\" data-lesson=\"${esc(x.id)}\">Resolver</button>`)),...p.sessionReschedules.map(x=>row(x.nomeAluno||\"Aluno\",`${fmtDate(x.dataSessao)} · ${x.horaSessao||\"—\"} · ${x.nomePsicologo||\"Psicólogo\"}`,\"Solicitada\",`<button class=\"small-btn\" data-session=\"${esc(x.id)}\">Resolver</button>`))].join(\"\")||empty(\"Nenhuma remarcação pendente\"))}${secretaryPanel(\"Respostas dos alunos\",[...p.negativeResponses.map(x=>row(x.nomeAluno||\"Aluno\",`${lessonTitle(x)} · ${fmtDate(x.dataAula)} · ${x.motivoAusencia||\"Sem justificativa\"}`,\"Não participará\",`<button class=\"small-btn\" data-lesson=\"${esc(x.id)}\">Abrir</button>`)),...p.participationPending.slice(0,20).map(x=>row(x.nomeAluno||\"Aluno\",`${lessonTitle(x)} · ${fmtDate(x.dataAula)} · ${x.horaAula||\"—\"}`,\"Aguardando resposta\",`<button class=\"small-btn\" data-lesson=\"${esc(x.id)}\">Abrir</button>`))].join(\"\")||empty(\"Nenhuma confirmação pendente\"))}${secretaryPanel(\"Registros pedagógicos\",p.pendingRecords.length?p.pendingRecords.slice(0,30).map(x=>row(x.nomeAluno||\"Aluno\",`${fmtDate(x.dataAula)} · ${subjectLabel(x.disciplinaId)} · ${x.nomeProfessor||\"Professor\"}`,\"Pendente\",`<button class=\"small-btn\" data-lesson=\"${esc(x.id)}\">Ver aula</button>`)).join(\"\"):empty(\"Nenhum registro pendente\"))}${secretaryPanel(\"Solicitações psicológicas\",p.therapyRequests.length?p.therapyRequests.slice(0,20).map(x=>row(x.nomeAluno||\"Aluno\",`${therapyRequestStatusLabel(x.status)} · ${x.contatoNome||\"Contato\"} · ${x.contatoTelefone||\"—\"}`,\"Operacional\",`<button class=\"small-btn\" data-therapy-request=\"${esc(x.id)}\">Gerenciar</button>`)).join(\"\"):empty(\"Nenhuma solicitação psicológica pendente\"))}${secretaryPanel(\"Cadastros e vínculos\",[...p.pendingEnrollments.map(x=>row(x.fullName||\"Aluno\",`${seriesName(x.serieId)||\"Série não informada\"}`,\"Matrícula\",`<button class=\"small-btn\" data-enrollment=\"${esc(x.id)}\">Analisar</button>`)),...p.pendingLinks.map(x=>row(x.studentForjaId||\"Aluno\",`Responsável ${x.parentForjaId||x.parentId}`,\"Vínculo\",`<button class=\"small-btn\" data-link-request=\"${esc(x.id)}\">Analisar</button>`))].join(\"\")||empty(\"Nenhuma pendência de cadastro\"))}${secretaryPanel(\"Profissionais sem disponibilidade\",p.professionalsNoSchedule.length?p.professionalsNoSchedule.map(x=>row(x.fullName||\"Profissional\",`${roleLabel(x.role)} · ${x.forjaId||\"Registro pendente\"}`,\"Aguardando disponibilidade\",`<button class=\"small-btn\" data-user=\"${esc(x.uid)}\">Ver perfil</button>`)).join(\"\"):empty(\"Todos os profissionais informaram disponibilidade\"))}</div>`}",
+    "after": "function secretaryPendenciesPage(){const p=secretaryPendingSnapshot(),total=p.lessonReschedules.length+p.sessionReschedules.length+p.negativeResponses.length+p.participationPending.length+p.pendingEnrollments.length+p.pendingLinks.length+p.pendingRecords.length+p.therapyRequests.length+p.professionalsNoSchedule.length+p.unresolvedCancels.length;return pageHead(\"SECRETARIA\",\"Pendências\",\"Tudo que exige resposta, revisão ou acompanhamento da Secretaria em um único lugar.\")+`<div class=\"secretary-status-strip\"><span class=\"${total?'warn':'ok'}\">${total} pendência(s)</span><span>${p.lessonReschedules.length+p.sessionReschedules.length} remarcação(ões)</span><span>${p.pendingRecords.length} registro(s) pedagógico(s)</span><span>${p.therapyRequests.length} solicitação(ões) psicológica(s)</span></div><div class=\"secretary-ops-grid\">${secretaryPanel(\"Remarcações\",[...p.lessonReschedules.map(x=>row(x.nomeAluno||\"Aluno\",`${fmtDate(x.dataAula)} · ${lessonTitle(x)} · ${x.nomeProfessor||\"Professor\"}`,\"Solicitada\",`<button class=\"small-btn\" data-lesson=\"${esc(x.id)}\">Resolver</button>`)),...p.sessionReschedules.map(x=>row(x.nomeAluno||\"Aluno\",`${fmtDate(x.dataSessao)} · ${x.horaSessao||\"—\"} · ${x.nomePsicologo||\"Psicólogo\"}`,\"Solicitada\",`<button class=\"small-btn\" data-session=\"${esc(x.id)}\">Resolver</button>`))].join(\"\")||empty(\"Nenhuma remarcação pendente\"))}${secretaryPanel(\"Revisão das aulas\",[...p.negativeResponses.map(x=>row(x.nomeAluno||\"Aluno\",`${lessonTitle(x)} · ${fmtDate(x.dataAula)} · ${x.motivoAusencia||\"Sem justificativa\"}`,\"Resposta antiga: conferir\",`<button class=\"small-btn\" data-lesson=\"${esc(x.id)}\">Abrir</button>`)),...p.participationPending.slice(0,20).map(x=>row(x.nomeAluno||\"Aluno\",`${lessonTitle(x)} · ${fmtDate(x.dataAula)} · ${x.horaAula||\"—\"}`,\"Realização a conferir\",`<button class=\"small-btn\" data-lesson=\"${esc(x.id)}\">Abrir</button>`))].join(\"\")||empty(\"Nenhuma revisão pendente\"))}${secretaryPanel(\"Registros pedagógicos\",p.pendingRecords.length?p.pendingRecords.slice(0,30).map(x=>row(x.nomeAluno||\"Aluno\",`${fmtDate(x.dataAula)} · ${subjectLabel(x.disciplinaId)} · ${x.nomeProfessor||\"Professor\"}`,\"Pendente\",`<button class=\"small-btn\" data-lesson=\"${esc(x.id)}\">Ver aula</button>`)).join(\"\"):empty(\"Nenhum registro pendente\"))}${secretaryPanel(\"Solicitações psicológicas\",p.therapyRequests.length?p.therapyRequests.slice(0,20).map(x=>row(x.nomeAluno||\"Aluno\",`${therapyRequestStatusLabel(x.status)} · ${x.contatoNome||\"Contato\"} · ${x.contatoTelefone||\"—\"}`,\"Operacional\",`<button class=\"small-btn\" data-therapy-request=\"${esc(x.id)}\">Gerenciar</button>`)).join(\"\"):empty(\"Nenhuma solicitação psicológica pendente\"))}${secretaryPanel(\"Cadastros e vínculos\",[...p.pendingEnrollments.map(x=>row(x.fullName||\"Aluno\",`${seriesName(x.serieId)||\"Série não informada\"}`,\"Matrícula\",`<button class=\"small-btn\" data-enrollment=\"${esc(x.id)}\">Analisar</button>`)),...p.pendingLinks.map(x=>row(x.studentForjaId||\"Aluno\",`Responsável ${x.parentForjaId||x.parentId}`,\"Vínculo\",`<button class=\"small-btn\" data-link-request=\"${esc(x.id)}\">Analisar</button>`))].join(\"\")||empty(\"Nenhuma pendência de cadastro\"))}${secretaryPanel(\"Profissionais sem disponibilidade\",p.professionalsNoSchedule.length?p.professionalsNoSchedule.map(x=>row(x.fullName||\"Profissional\",`${roleLabel(x.role)} · ${x.forjaId||\"Registro pendente\"}`,\"Aguardando disponibilidade\",`<button class=\"small-btn\" data-user=\"${esc(x.uid)}\">Ver perfil</button>`)).join(\"\"):empty(\"Todos os profissionais informaram disponibilidade\"))}</div>`}",
+    "count": 1,
+    "positions": [
+      1216492
+    ]
+  },
+  {
+    "before": "Ela informa à Secretaria por que você não respondeu/participou dentro do prazo.",
+    "after": "Ela acrescenta sua informação ao registro antigo para análise da Secretaria.",
+    "count": 1,
+    "positions": [
+      1505444
+    ]
+  }
+]
