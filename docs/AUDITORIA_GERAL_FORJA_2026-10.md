@@ -191,11 +191,13 @@ por suposição. O ensaio completo registra tempos e quantidade de chamadas.
 As regressões de recorrência desktop/mobile passaram em cerca de6,2/9,5s localmente.
 O timeout intermitente histórico em CI não foi reproduzido com causa conclusiva;
 não atribuir à aplicação, nem declarar eliminado. Nenhum timeout foi aumentado.
-A primeira CI desta branch falhou na etapa Chromium, após hash/sintaxe/pipeline
-aprovados. A execução concorrente foi alinhada à execução serial local, com
-TAP e anotações sanitizadas, sem aumentar timeouts. A evidência disponível não
-permite atribuir a causa original exclusivamente à concorrência; a CI no novo
-HEAD continua sendo obrigatória.
+A CI identificou um acoplamento novo entre a limpeza de rascunhos e o núcleo de
+isolamento carregado sozinho em alguns fixtures. Corrigido por gancho opcional:
+o portal completo continua limpando dados e os módulos separados não dependem
+do cancelamento. A execução foi alinhada à ordem serial local, com TAP e anotações
+sanitizadas, sem aumentar timeouts; concorrência não foi comprovada como causa
+daquela falha. A CI no novo HEAD continua obrigatória. O fixture de login integrado
+registra somente enums, status e contagens para investigar eventual timeout.
 Uma conferência local de hash falhou quando o HTML foi atualizado durante a suíte;
 essa causa é conhecida e exige rerun com snapshot congelado, não remover o assert.
 
