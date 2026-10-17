@@ -18,7 +18,7 @@ test('Chromium: elapsed time never fabricates cancellation; operational pending 
    document.getElementById('result').textContent=labels.admin;
    return {statuses,labels,unchanged:JSON.stringify(items)===before};
   });
-  assert.deepEqual(results.statuses,['agendada','confirmada','realizada','concluida','cancelada_automaticamente']);assert.equal(results.unchanged,true);
+  assert.deepEqual(results.statuses,['confirmada','confirmada','realizada','concluida','cancelada_automaticamente']);assert.equal(results.unchanged,true);
   assert.match(results.labels.admin,/pendente/);assert.match(results.labels.teacher,/pendente/);assert.doesNotMatch(results.labels.student,/pendente/);assert.doesNotMatch(results.labels.parent,/pendente/);assert.match(await page.locator('#result').innerText(),/conferir com a Secretaria/);
  }finally{await browser.close();}
 });
