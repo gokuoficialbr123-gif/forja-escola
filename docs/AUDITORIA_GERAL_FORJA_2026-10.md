@@ -198,6 +198,19 @@ do cancelamento. A execução foi alinhada à ordem serial local, com TAP e anot
 sanitizadas, sem aumentar timeouts; concorrência não foi comprovada como causa
 daquela falha. A CI no novo HEAD continua obrigatória. O fixture de login integrado
 registra somente enums, status e contagens para investigar eventual timeout.
+
+Na continuação da CI, uma falha foi reproduzida antes de qualquer chamada de
+login ao Auth Emulator ou de `/me`: o formulário recusou os campos. O ensaio de
+ordenação controlada executou o callback real de foco de `showLogin` entre o foco
+do campo senha e a digitação automática; a senha ficou vazia e a digitação foi
+redirecionada. O helper agora aguarda o frame já programado pela tela antes de
+preencher, sem espera fixa ou aumento de timeout. O teste legado da release mínima
+reutiliza esse helper e fecha o navegador antes de limpar o servidor emulado.
+Isso corrige a corrida reproduzida do teste, sem alteração no login do produto;
+não prova que explica todo timeout histórico de recorrência. Os diagnósticos
+mantêm apenas categorias permitidas, códigos HTTP e indicadores booleanos.
+Um ensaio separado de vinte trocas rápidas atingiu o limite normal de300 chamadas
+por5min da API; essa proteção foi preservada, sem classificá-la como defeito.
 Uma conferência local de hash falhou quando o HTML foi atualizado durante a suíte;
 essa causa é conhecida e exige rerun com snapshot congelado, não remover o assert.
 
