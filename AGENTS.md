@@ -1,3 +1,16 @@
+## 18/10/2026 — integração Google sobre a produção atual (somente rascunho)
+
+Missão autorizada: reconciliar os PRs9/10/11/12 dos dois repositórios sobre os
+mains publicados fc262128 (backend) e8861f3a (frontend). Locks e isolamento já
+incorporados: não importar suas bases antigas nem os scripts de demonstração.
+Preservar confirmação administrativa, cancelamento próprio, histórico e os três
+modos de reserva. Portar consentimento/epoch/desconexão e ocupado central, com
+QA somente demo-forja/Auth+Firestore emulados/Chromium/Google simulado.
+Ler docs/INTEGRACAO_GOOGLE_ETAPA4_2026-10.md. Nenhum merge, deploy (inclusive
+Preview), OAuth/Google reais, dados reais, Cloud, DNS, scopes ou segredos nesta
+rodada. Validar Preview existente somente se seguro; nunca escrever em Firebase
+compartilhado. As autorizações históricas abaixo não publicam esta integração.
+
 ## 17/10/2026 — confirmação administrativa e auditoria geral (rascunho)
 
 Missão atual em `fix/aulas-confirmadas-auditoria-2026-10`, a partir dos mains

@@ -78,7 +78,7 @@ async function fixture(t, { mobile = false, linksFail = false, portalSource = ht
 async function choose(page,id,value) { await page.locator('#'+id).focus();await page.locator('#'+id).selectOption(value); }
 async function eligible(page) { await choose(page,'v630Subject','math');await choose(page,'v630Student','s1'); }
 async function respond(page,index=0,slots=[{inicio:'10:00',fim:'11:00',status:'disponivel'},{inicio:'11:00',fim:'12:00',status:'ocupado'}]) {
-  await page.evaluate(({index,slots})=>pending[index].resolve({availabilityPolicy:'confirmed-week-v2',bookingSafetyPolicy:'future-live-google-v1',serverNow:'2026-10-03T06:00:00-03:00',items:[{uid:'t1',googleVerification:{status:'verified'},slots:slots.map(x=>({...x,startAt:'2026-10-03T'+x.inicio+':00-03:00'}))}]}),{index,slots});
+  await page.evaluate(({index,slots})=>pending[index].resolve({availabilityPolicy:'confirmed-week-v2',bookingSafetyPolicy:'future-live-google-v1',centralBookingPolicy:'central-booking-fail-closed-v1',serverNow:'2026-10-03T06:00:00-03:00',items:[{uid:'t1',googleVerification:{status:'verified'},slots:slots.map(x=>({...x,startAt:'2026-10-03T'+x.inicio+':00-03:00'}))}]}),{index,slots});
   await page.waitForTimeout(20);
 }
 async function identity(page) {
@@ -275,7 +275,7 @@ test('Google failure before confirmation preserves selections, local and drawer/
 });
 test('past starts never appear even if response mistakenly labels them free; server clock ignores browser zone',async t=>{
  const page=await fixture(t);await eligible(page);
- await page.evaluate(()=>pending[0].resolve({availabilityPolicy:'confirmed-week-v2',bookingSafetyPolicy:'future-live-google-v1',serverNow:'2026-10-13T20:30:00Z',items:[{uid:'t1',googleVerification:{status:'verified'},slots:[{inicio:'09:00',fim:'10:00',status:'disponivel',startAt:'2026-10-13T12:00:00Z'},{inicio:'17:30',fim:'18:30',status:'disponivel',startAt:'2026-10-13T20:30:00Z'},{inicio:'18:00',fim:'19:00',status:'disponivel',startAt:'2026-10-13T21:00:00Z'}]}]}));
+ await page.evaluate(()=>pending[0].resolve({availabilityPolicy:'confirmed-week-v2',bookingSafetyPolicy:'future-live-google-v1',centralBookingPolicy:'central-booking-fail-closed-v1',serverNow:'2026-10-13T20:30:00Z',items:[{uid:'t1',googleVerification:{status:'verified'},slots:[{inicio:'09:00',fim:'10:00',status:'disponivel',startAt:'2026-10-13T12:00:00Z'},{inicio:'17:30',fim:'18:30',status:'disponivel',startAt:'2026-10-13T20:30:00Z'},{inicio:'18:00',fim:'19:00',status:'disponivel',startAt:'2026-10-13T21:00:00Z'}]}]}));
  await page.waitForFunction(()=>!state.v630Booking.loading);assert.deepEqual(await page.locator('[data-v630-slot]').evaluateAll(xs=>xs.map(x=>x.dataset.v630Slot)),['18:00']);
 });
 test('selected slot that starts while drawer is open cannot be submitted',async t=>{
@@ -343,4 +343,10 @@ test('changed receipt whose read fails retains key and does not silently create 
  const page=await readyToConfirm(t);await page.locator('[data-v630-save]').click();const key=await page.evaluate(()=>state.v630Booking.pendingBody.bookingRequestId);
  await page.evaluate(()=>pending[1].reject(Object.assign(new Error('Cannot read receipt'),{status:409,code:'BOOKING_REQUEST_CHANGED',bookingState:'existing_request'})));await page.waitForFunction(()=>!state.v630Booking.saving);
  assert.equal(await page.evaluate(()=>state.v630Booking.pendingBody.bookingRequestId),key);assert.match(await page.locator('#v631Slots').innerText(),/Confira a Agenda/);assert.equal(await page.evaluate(()=>calls.filter(x=>x.url==='/aulas').length),1);
+});
+
+test('missing central verification rejects otherwise valid slots and preserves the selection',async t=>{
+ const page=await fixture(t);await eligible(page);
+ await page.evaluate(()=>pending[0].resolve({availabilityPolicy:'confirmed-week-v2',bookingSafetyPolicy:'future-live-google-v1',serverNow:'2026-10-03T06:00:00-03:00',items:[{uid:'t1',googleVerification:{status:'verified'},slots:[{inicio:'10:00',fim:'11:00',status:'disponivel',startAt:'2026-10-03T10:00:00-03:00'}]}]}));
+ await page.waitForFunction(()=>!state.v630Booking.loading&&!!state.v630Booking.error);assert.equal(await page.locator('[data-v630-slot]').count(),0);assert.equal(await page.locator('[data-v630-save]').isDisabled(),true);assert.equal(await page.locator('#v630Student').inputValue(),'s1');await identity(page);
 });

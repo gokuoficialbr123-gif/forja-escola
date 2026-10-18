@@ -1,0 +1,154 @@
+[
+  {
+    "before": "    work.push(safeLoad(()=>api(\"/google/calendar/busy\"),{items:[]},\"Ocupações Google\").then(r=>state.googleBusy=r.items||[]));\n",
+    "after": "    work.push(safeLoad(()=>api(\"/google/calendar/busy\"),{items:[],complete:false,unavailable:[{reason:\"query_failed\"}]},\"Ocupações Google\").then(r=>{state.googleBusy=r.items||[];state.googleBusyUnavailable=r.complete===false||r.status==='unavailable';}));\n",
+    "count": 1,
+    "positions": [
+      1086242
+    ]
+  },
+  {
+    "before": "    work.push(safeLoad(()=>api(\"/google/calendar/busy\"),{items:[]},\"Ocupações Google\").then(r=>state.googleBusy=r.items||[]));\n",
+    "after": "    work.push(safeLoad(()=>api(\"/google/calendar/busy\"),{items:[],complete:false,unavailable:[{reason:\"query_failed\"}]},\"Ocupações Google\").then(r=>{state.googleBusy=r.items||[];state.googleBusyUnavailable=r.complete===false||r.status==='unavailable';}));\n",
+    "count": 1,
+    "positions": [
+      1086787
+    ]
+  },
+  {
+    "before": "      api('/google/calendar/busy').catch(()=>({items:state.googleBusy||[]}))\n",
+    "after": "      api('/google/calendar/busy').catch(()=>({items:state.googleBusy||[],complete:false}))\n",
+    "count": 1,
+    "positions": [
+      1628250
+    ]
+  },
+  {
+    "before": "        api('/google/calendar/busy').catch(()=>({items:state.googleBusy||[]})),\n",
+    "after": "        api('/google/calendar/busy').catch(()=>({items:state.googleBusy||[],complete:false})),\n",
+    "count": 1,
+    "positions": [
+      1660166
+    ]
+  },
+  {
+    "before": "state.googleConnections=connections.items||[];state.googleBusy=busy.items||[];state.lessons=lessons.items||[];",
+    "after": "state.googleConnections=connections.items||[];state.googleBusy=busy.items||[];state.googleBusyUnavailable=busy.complete===false||busy.status==='unavailable';state.lessons=lessons.items||[];",
+    "count": 1,
+    "positions": [
+      1660575
+    ]
+  },
+  {
+    "before": "</body>",
+    "after": "\n<script id=\"forja-google-personal-consent-script\">\n(function(){\n  'use strict';\n  const VERSION='personal-busy-secretaria-v1';\n  const PREVIEW_TEXT=\"Autorizo que a Secretaria consulte meus intervalos ocupados do Google Calendar para organizar agendamentos no FORJA. Pela interface FORJA, a Secretaria não recebe títulos, descrições ou participantes dos meus eventos pessoais. Aulas e atendimentos gerenciados pelo FORJA continuam sincronizados nos dois sentidos. Eu continuo controlando minha disponibilidade; Google ocupado nunca cria disponibilidade.\";\n  const readonlyPreview=()=>/^forja-escola--[a-z0-9-]+-[a-z0-9]{8}\\.web\\.app$/.test(location.hostname);\n  const previousAction=googleAction,previousPanel=googleCalendarPanel;\n  googleCalendarPanel=function(){\n    const original=previousPanel();if(!['teacher','psychologist'].includes(state.role))return original;\n    if(readonlyPreview())return original+`<section class=\"p2-card\"><h3>Revisão do consentimento pessoal</h3><p>Este Preview é somente leitura. Nenhuma autorização Google será gravada.</p><button class=\"small-btn\" data-google-action=\"consent\">Revisar consentimento (Preview)</button></section>`;\n    const item=state.googleCalendar?.item||{};\n    if(!item.connected||item.personalConsent?.accepted)return original;\n    return original+`<section class=\"p2-card\"><h3>Consulta de ocupados pela Secretaria</h3><p>Sua conexão pessoal continua funcionando. A consulta de horários pela Secretaria depende do seu aceite explícito. Até regularizar, a consulta fica indisponível; isso não significa horário livre.</p><button class=\"small-btn\" data-google-action=\"consent\">Revisar e autorizar</button></section>`;\n  };\n  googleAction=async function(action,button){\n    if(readonlyPreview()){\n      if(['connect','consent'].includes(action))modal('Prévia do consentimento Google',`<p>${esc(PREVIEW_TEXT)}</p><label style=\"display:flex;gap:10px\"><input type=\"checkbox\"><span>Li e autorizo a consulta de intervalos ocupados pela Secretaria.</span></label><p role=\"status\">Prévia somente para revisão. Nenhum aceite é gravado e nenhuma operação Google pessoal é executada, pois o Firebase é compartilhado com a produção.</p>`);\n      else toast('Operações Google pessoais bloqueadas neste Preview compartilhado.','bad');\n      return;\n    }\n    if(!['connect','consent'].includes(action))return previousAction(action,button);\n    if(!['teacher','psychologist'].includes(state.role)||state.profile?.active===false)return;\n    const session=forjaCaptureSession();setBusy(button,true,'Verificando...');\n    try{\n      const status=await api('/google/calendar/status',{session}),policy=status.consent;forjaAssertSession(session);\n      if(policy?.version!==VERSION||!policy.text)throw new Error('O backend ainda não suporta o consentimento versionado. Aguarde a atualização segura.');\n      const reconnect=action==='connect'||status.item?.personalConsent?.requiresReconnect===true||!policy.connectionChallenge;\n      let submitted=false;\n      modal('Autorizar consulta à Secretaria',`<p>${esc(policy.text)}</p><p>Versão: ${esc(policy.version)}. O aceite será vinculado ao seu usuário e à identidade Google verificada. ${reconnect?'O Google solicitará sua autorização; cancelar não substitui sua conexão anterior.':'Esta confirmação mantém sua conexão atual.'}</p><label style=\"display:flex;align-items:flex-start;gap:10px\"><input id=\"googlePersonalConsentAccept\" type=\"checkbox\"><span>Li e autorizo a consulta de intervalos ocupados pela Secretaria, conforme o texto acima.</span></label><p id=\"googlePersonalConsentFeedback\" role=\"status\"></p>`,reconnect?'Aceitar e continuar no Google':'Confirmar autorização',async save=>{\n        if(!forjaSessionCurrent(session)||submitted||!document.getElementById('googlePersonalConsentAccept')?.checked)return;\n        submitted=true;setBusy(save,true,'Registrando...');\n        try{\n          const consent={accepted:true,version:VERSION};\n          if(reconnect){const result=await api('/google/calendar/connect',{method:'POST',body:{consent},session});forjaAssertSession(session);const target=new URL(result.authUrl);if(target.origin!=='https://accounts.google.com'||target.pathname!=='/o/oauth2/v2/auth')throw new Error('URL Google inválida');location.assign(target.href);return;}\n          await api('/google/calendar/consent',{method:'POST',body:{...consent,connectionChallenge:policy.connectionChallenge},session});forjaAssertSession(session);\n          closeModal();toast('Autorização registrada para sua conexão Google atual.','ok');await reloadAndRender();\n        }catch(_){if(!forjaSessionCurrent(session))return;submitted=false;const feedback=document.getElementById('googlePersonalConsentFeedback');if(feedback)feedback.textContent='Não foi possível confirmar. Nenhuma nova autorização foi concedida. Reabra esta janela para conferir a conexão atual.';setBusy(save,false);}\n      });\n      const check=document.getElementById('googlePersonalConsentAccept'),save=document.getElementById('modalSave');\n      save.disabled=true;check.onchange=()=>{save.disabled=!check.checked||submitted;};\n    }catch(_){if(!forjaSessionCurrent(session))return;toast('Não foi possível preparar o consentimento. Nenhuma autorização foi concedida.','bad');}finally{if(forjaSessionCurrent(session))setBusy(button,false);}\n  };\n  const previousAgenda=forjaAgendaPage;\n  forjaAgendaPage=function(){const page=previousAgenda();return state.role==='admin'&&state.googleBusyUnavailable?`<div class=\"system-note\" role=\"status\">Consulta Google de um ou mais profissionais indisponível. Verifique o consentimento e a sincronização. Ausência de blocos não comprova horário livre.</div>`+page:page;};\n})();\n</script>\n</body>",
+    "count": 1,
+    "positions": [
+      1764234
+    ]
+  },
+  {
+    "before": "e.googleDiagnosis=data.googleDiagnosis;",
+    "after": "e.googleDiagnosis=data.googleDiagnosis;if(path===\"/google/calendar/connection\"&&method===\"DELETE\")e.disconnectResult=googlePersonalDisconnectResult(data);",
+    "count": 1,
+    "positions": [
+      846346
+    ]
+  },
+  {
+    "before": "</body>",
+    "after": "\n<script id=\"forja-google-personal-disconnect-script\">\nfunction googlePersonalDisconnectResult(value){\n  if(!['completed','partial','failed'].includes(value?.outcome))return null;\n  const choose=(v,allowed)=>allowed.includes(v)?v:'unknown';\n  const result={outcome:value.outcome,ok:value.ok===true,retryable:value.retryable===true,\n    local:{connection:choose(value.local?.connection,['deleted','failed','retained','not_attempted','changed']),busy:choose(value.local?.busy,['deleted','failed','not_attempted'])},\n    google:{revocation:choose(value.google?.revocation,['revoked','not_needed','failed','unavailable','deferred_shared_project']),webhook:choose(value.google?.webhook,['stopped','not_needed','failed'])}};\n  if(result.local.connection==='deleted'&&result.local.busy!=='deleted')return null;\n  if(result.outcome==='completed'&&(!result.ok||result.local.connection!=='deleted'||!['revoked','not_needed'].includes(result.google.revocation)||!['stopped','not_needed'].includes(result.google.webhook)))return null;\n  return result;\n}\n(function(){\n  'use strict';\n  const previousAction=googleAction,previousPanel=googleCalendarPanel;let pendingSession=null;\n  googleCalendarPanel=function(){\n    const original=previousPanel();if(!['teacher','psychologist'].includes(state.role)||!state.googleCalendar?.item?.disconnectPending)return original;\n    return original.replace('data-google-action=\"connect\"','data-google-action=\"connect\" disabled')+`<section class=\"p2-card\"><h3>Desconexão ainda pendente</h3><p>A conexão está suspensa. A exclusão local ainda precisa ser confirmada. Aulas, atendimentos e histórico permanecem preservados.</p><button class=\"small-btn danger-btn\" data-google-action=\"disconnect\">Tentar concluir desconexão</button></section>`;\n  };\n  googleAction=async function(action,button){\n    if(action!=='disconnect')return previousAction(action,button);\n    if(/^forja-escola--[a-z0-9-]+-[a-z0-9]{8}\\.web\\.app$/.test(location.hostname)){toast('Desconexão real bloqueada no Preview compartilhado. Nenhuma conta foi alterada.','warn');return;}\n    if(pendingSession&&forjaSessionCurrent(pendingSession)||!['teacher','psychologist'].includes(state.role))return;const session=forjaCaptureSession();\n    if(!confirm('Desconectar somente sua integração pessoal no FORJA? Aulas e histórico serão preservados. A revogação global Google será tratada separadamente para preservar outras integrações.'))return;\n    pendingSession=session;setBusy(button,true,'Desconectando...');let result=null;\n    try{result=googlePersonalDisconnectResult(await api('/google/calendar/connection',{method:'DELETE',session}));}\n    catch(error){result=googlePersonalDisconnectResult(error?.disconnectResult);}\n    try{\n      if(!forjaSessionCurrent(session))return;\n      if(!result){toast('Não foi possível confirmar a desconexão. Confira sua conexão e tente novamente.','bad');return;}\n      if(result.local.connection==='changed')toast('A conexão mudou durante a operação. Confira o estado atual antes de desconectar novamente.','bad');\n      else if(result.outcome==='completed')toast('Desconexão local confirmada. Permissões Google são tratadas separadamente.','ok');\n      else if(result.local.connection==='deleted'){\n        toast('Desconexão local concluída; encerramento no Google pendente.','warn');\n        modal('Resultado da desconexão',`<p>A credencial local e os intervalos em cache foram removidos. Aulas, atendimentos e histórico foram preservados.</p><p>A revogação global Google não foi confirmada. Revogar um grant pode afetar todos os clientes OAuth do mesmo projeto para sua conta, incluindo outras integrações. Confirme o impacto com a escola antes de revogar permissões no Google.</p>`);\n      }else toast(result.outcome==='failed'?'Falha ao iniciar ou confirmar a desconexão. Tente novamente.':'Desconexão parcial: exclusão local pendente. A conexão está suspensa; use Tentar concluir desconexão.','bad');\n      try{await reloadAndRender();}catch(_){toast('Resultado registrado, mas o status visual não pôde ser atualizado. Recarregue para conferir a conexão.','warn');}\n    }finally{if(pendingSession===session)pendingSession=null;if(forjaSessionCurrent(session))setBusy(button,false);}\n  };\n})();\n</script>\n</body>",
+    "count": 1,
+    "positions": [
+      1770040
+    ]
+  },
+  {
+    "before": "  async function v621EnsureVisibleWeeks(role){",
+    "after": "  // BEGIN FORJA central booking presentation: on demand, session scoped, no polling.\n  state.v631CentralRanges={};state.v631CentralRevision=0;\n  window.forjaInvalidateCentralAvailability=()=>{state.v631CentralRevision=(state.v631CentralRevision||0)+1;state.v631CentralRanges={};};\n  const v631CentralFlights=new Map();\n  function v631CentralKnown(uid,day){\n    return Object.values(state.v631CentralRanges||{}).some(r=>r.from<=day&&r.to>=day&&Date.now()-r.checkedAt>=0&&Date.now()-r.checkedAt<60000&&r.valid&&!r.unavailable.some(x=>x.professionalId===uid));\n  }\n  function v631CentralBusy(){\n    if(state.role!=='admin')return [];\n    const out=new Map();for(const r of Object.values(state.v631CentralRanges||{}))if(r.valid&&Date.now()-r.checkedAt<60000)for(const x of r.items||[])out.set(`${x.professionalId}|${x.startAt}|${x.endAt}`,x);return [...out.values()];\n  }\n  async function v631LoadCentralRange({force=false}={}){\n    if(state.role!=='admin')return;\n    const session=forjaCaptureSession(),centralRevision=state.v631CentralRevision||0,days=v621RangeDays('admin'),chunks=[];\n    for(let i=0;i<days.length;i+=31)chunks.push({from:days[i],to:days[Math.min(i+30,days.length-1)]});\n    await Promise.all(chunks.map(async ({from,to})=>{\n      const key=from+'|'+to,flightKey=session.uid+'|'+session.generation+'|'+centralRevision+'|'+key,prior=state.v631CentralRanges?.[key];\n      if(!force&&prior&&Date.now()-prior.checkedAt<60000)return;\n      if(v631CentralFlights.has(flightKey))return v631CentralFlights.get(flightKey);\n      const request=(async()=>{\n        let result;\n        try{result=await api(`/admin/agenda/google-central-busy?from=${from}&to=${to}`,{session});if(result.policy!=='central-booking-fail-closed-v1'||result.from!==from||result.to!==to||!Array.isArray(result.items)||!Array.isArray(result.unavailable)||result.complete!==(result.unavailable.length===0))throw Error('CENTRAL_RESULT_INVALID');}\n        catch(e){if(!forjaSessionCurrent(session))return;result={items:prior?.items||[],unavailable:[],valid:false};}\n        if(centralRevision!==(state.v631CentralRevision||0))return;forjaAssertSession(session);state.v631CentralRanges=state.v631CentralRanges||{};\n        state.v631CentralRanges[key]={from,to,checkedAt:Date.now(),valid:result.valid!==false,items:result.items||[],unavailable:result.unavailable||[]};\n        const keys=Object.keys(state.v631CentralRanges);if(keys.length>8)delete state.v631CentralRanges[keys[0]];\n      })();\n      v631CentralFlights.set(flightKey,request);try{await request}finally{if(v631CentralFlights.get(flightKey)===request)v631CentralFlights.delete(flightKey)}\n    }));\n  }\n  // END FORJA central booking presentation.\n\n  async function v621EnsureVisibleWeeks(role){",
+    "count": 1,
+    "positions": [
+      1604129
+    ]
+  },
+  {
+    "before": "const weeks=v621VisibleWeeks(role);if(role==='teacher')await Promise.all(weeks.map(v621FetchTeacherWeek));else await Promise.all(weeks.map(v621FetchAdminWeek));",
+    "after": "const weeks=v621VisibleWeeks(role);if(role==='teacher')await Promise.all(weeks.map(v621FetchTeacherWeek));else await Promise.all([Promise.all(weeks.map(v621FetchAdminWeek)),v631LoadCentralRange()]);",
+    "count": 1,
+    "positions": [
+      1606871
+    ]
+  },
+  {
+    "before": "const out=[];for(const x of state.googleBusy||[]){if(x.managedForja||x.professionalId!==uid)continue;",
+    "after": "const out=[];for(const x of [...(state.googleBusy||[]),...v631CentralBusy()]){if(x.managedForja||x.professionalId!==uid)continue;",
+    "count": 1,
+    "positions": [
+      1607115
+    ]
+  },
+  {
+    "before": "const raw=v621AvailabilityForDay('admin',uid,day),google=v621GoogleBusy(uid,day)",
+    "after": "const raw=v631CentralKnown(uid,day)?v621AvailabilityForDay('admin',uid,day):[],google=v621GoogleBusy(uid,day)",
+    "count": 1,
+    "positions": [
+      1650234
+    ]
+  },
+  {
+    "before": "      forjaAssertSession(session);state.v629SecretaryLastRefreshAt=Date.now();",
+    "after": "      await v631LoadCentralRange({force:true});forjaAssertSession(session);state.v629SecretaryLastRefreshAt=Date.now();",
+    "count": 1,
+    "positions": [
+      1664219
+    ]
+  },
+  {
+    "before": "if(state.role==='admin'&&state.page==='agenda')v629Bind()",
+    "after": "if(state.role==='admin'&&state.page==='agenda'){v629Bind();const session=forjaCaptureSession(),date=v621Date('admin'),view=v621View('admin');const ready=v629SelectedTeachers().every(x=>v631CentralKnown(x.uid,date));if(!ready){v621EnsureVisibleWeeks('admin').then(()=>{if(forjaSessionCurrent(session)&&state.role==='admin'&&state.page==='agenda'&&v621Date('admin')===date&&v621View('admin')===view&&v629SelectedTeachers().some(x=>v631CentralKnown(x.uid,date)))renderPage()}).catch(()=>{});}}",
+    "count": 1,
+    "positions": [
+      1667943
+    ]
+  },
+  {
+    "before": "return `<div class=\"v629-secretary-agenda\">${head}${summary}",
+    "after": "return `<div class=\"v629-secretary-agenda\">${v629SelectedTeachers().some(t=>!v631CentralKnown(t.uid,v621Date('admin')))?'<div class=\"system-note\" role=\"status\">Consulta Google central ainda não confirmada para um ou mais professores. Horários desconhecidos não são apresentados como disponíveis; tente atualizar a Agenda.</div>':''}${head}${summary}",
+    "count": 1,
+    "positions": [
+      1662077
+    ]
+  },
+  {
+    "before": "r.bookingSafetyPolicy!=='future-live-google-v1'",
+    "after": "r.bookingSafetyPolicy!=='future-live-google-v1'||r.centralBookingPolicy!=='central-booking-fail-closed-v1'",
+    "count": 1,
+    "positions": [
+      1690290
+    ]
+  },
+  {
+    "before": "out.push({id:x.id,start:day===sd?`${sp.hour}:${sp.minute}`:'00:00',end:day===ed?`${ep.hour}:${ep.minute}`:'23:59',allDay:false});",
+    "after": "out.push({id:x.id,start:day===sd?`${sp.hour}:${sp.minute}`:'00:00',end:day===ed?`${ep.hour}:${ep.minute}`:'23:59',allDay:false,...(x.source==='google-central'?{source:'google-central'}:{})});",
+    "count": 1,
+    "positions": [
+      1607634
+    ]
+  },
+  {
+    "before": "v629EventContent(name,\"Ocupado · Google\",b.start,b.end)",
+    "after": "v629EventContent(name,b.source==='google-central'?\"Ocupado · Google central\":\"Ocupado · Google pessoal\",b.start,b.end)",
+    "count": 1,
+    "positions": [
+      1652343
+    ]
+  },
+  {
+    "before": "    const response=await fetch(`${FORJA_API_URL}${path}`,",
+    "after": "    if([\"POST\",\"PATCH\",\"DELETE\"].includes(method)&&path.startsWith(\"/admin/google-calendar/central\")&&path!==\"/admin/google-calendar/central/freebusy\")window.forjaInvalidateCentralAvailability?.();\n    const response=await fetch(`${FORJA_API_URL}${path}`,",
+    "count": 1,
+    "positions": [
+      845906
+    ]
+  }
+]
