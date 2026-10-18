@@ -1,3 +1,4 @@
+import {expandStaticResources} from './static-resources.mjs';
 import assert from 'node:assert/strict';
 import {test,before,after} from 'node:test';
 import {readFileSync,mkdirSync} from 'node:fs';
@@ -11,7 +12,7 @@ before(async()=>browser=await chromium.launch({headless:true,...(process.env.FOR
 test('demo is explicit, Preview-only and cannot enter the production artifact',()=>{
  const event={repository:{full_name:'owner/repo'},pull_request:{head:{repo:{full_name:'owner/repo'}},body:'<!-- FORJA_PREVIEW_BACKEND=invitation-demo -->'}};
  assert.deepEqual(previewConfigFromEvent(event),{mode:'invitation-demo',apiUrl:''});
- assert.deepEqual(hostingOptionsFromArgs([]),{});assert.ok(buildHostingArtifact().bytes.equals(html));assert.ok(!buildHostingArtifact().bytes.includes('forja-invitation-demo'));
+ assert.deepEqual(hostingOptionsFromArgs([]),{});const built=buildHostingArtifact();assert.ok(expandStaticResources(built.bytes,built.resources).equals(html));assert.ok(!buildHostingArtifact().bytes.includes('forja-invitation-demo'));
  assert.throws(()=>buildHostingArtifact(undefined,{invitationDemo:true,previewApiUrl:'https://forja-api-pr-7.onrender.com'}));
  const demo=buildHostingArtifact(undefined,{invitationDemo:true});assert.equal(demo.result.apiUrl,null);assert.ok(demo.bytes.includes('forja-invitation-demo'));assert.ok(!demo.bytes.includes('src="https://www.gstatic.com/firebasejs'));
 });

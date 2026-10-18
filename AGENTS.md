@@ -1,3 +1,19 @@
+## 18/10/2026 — FORJA mais rápida (somente Draft, sem deploy)
+
+Bases confirmadas: frontend71dca65c19f41e8582561227e3ed4dd820f4839f e
+backend9bb86ec0b834136279f346338ec7ab2667ba22e1. Etapa4 já está publicada;
+não tratar integrações anteriores como pendentes. Ler docs/PERFORMANCE_2026-10.md.
+Missão atual: medir antes/depois e otimizar espera administrativa, navegação,
+consultas repetidas e carregamento, sem mudar visual ou regras operacionais.
+Frontend mantém ordem dos perfis não administrativos e fences UID/geração;
+leitura semanal compartilhada somente enquanto pendente. Booking final continua
+consultando conflitos atuais dentro dos locks. Backend adiciona apenas duração
+numérica Server-Timing e QA; sem logs de requisição/identidade/payload.
+QA mutável só demo-forja, Auth/Firestore emulados e Google simulado. Nenhum merge,
+deploy (inclusive Preview), dado real, OAuth, Cloud, DNS, Rules, segredo ou custo
+novo autorizado. PRs Draft; não disparar Render/Firebase. Instruções históricas
+abaixo não autorizam publicação desta missão.
+
 ## 18/10/2026 — integração Google sobre a produção atual (somente rascunho)
 
 Missão autorizada: reconciliar os PRs9/10/11/12 dos dois repositórios sobre os

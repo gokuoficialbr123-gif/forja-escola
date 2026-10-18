@@ -27,9 +27,9 @@ test('artefato permite somente os arquivos públicos explícitos, sem documentos
     mkdirSync(dirname(join(root,file)),{recursive:true});copyFileSync(join(rootDir,file),join(root,file));
   }
   writeFileSync(join(root,'nao-publicar.json'),'documento privado de fixture');
-  prepareHosting(root);
+  const artifact=prepareHosting(root);
   const files=readdirSync(join(root,'.firebase-public'),{recursive:true}).filter(x=>x.includes('.')&&x!=='assets').sort();
-  assert.deepEqual(files,['index.html',googleVerificationFile,...legalFiles].sort());
+  assert.deepEqual(files,['index.html',googleVerificationFile,...legalFiles,...artifact.staticResources.map(r=>r.file)].sort());
   for(const file of legalFiles) assert.equal(sha256(readFileSync(join(root,'.firebase-public',file))),sha256(readFileSync(join(root,file))));
   writeFileSync(join(root,'privacidade/index.html'),readFileSync(join(root,'privacidade/index.html'),'utf8').replace('</body>','<script>console.log("injetado")</script></body>'));
   assert.throws(()=>validateLegalPages(root),/não executam scripts/);

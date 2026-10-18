@@ -3949,11 +3949,19 @@ async function activateUser(user){
     state.user=user; updateProcess("Perfil encontrado","Carregando Registro FORJA, função e preferências.","Perfil");
     state.profile=profile;state.role=profile.role;state.page="inicio";
     updateProcess("Preparando seu portal...","Carregando agenda, notificações e informações do seu perfil.","Portal");
-    await loadRoleData();forjaAssertSession(session); renderShell();renderPage();api("/me/acesso",{method:"POST",body:{}}).catch(()=>{});
+    renderShell();$("#workspaceContent").innerHTML=loading("Carregando os dados do portal...");hideProcess();
+    await loadRoleData();forjaAssertSession(session);state.loading=false; renderShell();renderPage();api("/me/acesso",{method:"POST",body:{}}).catch(()=>{});
   }catch(e){if(!forjaSessionCurrent(session)||e?.code==='FORJA_STALE_SESSION')return;console.error(e);await auth.signOut().catch(()=>{});resetLoginForm({keepEmail:true,keepPassword:false,clearError:true});showLogin();showLoginError(e.message||"Não foi possível abrir o portal.");}
   finally{if(forjaSessionCurrent(session)){state.loading=false;hideProcess();setBusy(document.querySelector('[data-action="enterPortal"]'),false)}}
 }
 
+// Independent admin datasets may overlap; other profiles keep their dependency order.
+async function forjaParallelRoleLoad(previous,secondary){
+ const session=forjaCaptureSession();
+ if(state.role==='admin')await Promise.all([previous(),secondary()]);
+ else{await previous();forjaAssertSession(session);await secondary();}
+ forjaAssertSession(session);
+}
 async function loadCatalogs(){
   const session=forjaCaptureSession();
   const admin=state.role==="admin";
@@ -4077,7 +4085,7 @@ function renderEmailBanner(){
   return `<div class="verification-banner"><div><b>Confirme seu e-mail</b><span>Enviamos um link de verificação. Se ele não estiver na caixa de entrada, confira Spam ou Lixo eletrônico.</span></div><button class="small-btn" data-action="resendVerification">Reenviar e-mail</button></div>`;
 }
 function renderPage(){
-  const c=$("#workspaceContent");if(!c)return;let html="";
+  const c=$("#workspaceContent");if(!c)return;if(state.loading){c.innerHTML=loading("Carregando os dados desta área...");return}let html="";
   try{if(state.role==="admin")html=adminPage(state.page);else if(state.role==="teacher")html=teacherPage(state.page);else if(state.role==="psychologist")html=psychPage(state.page);else if(state.role==="student")html=studentPage(state.page);else if(state.role==="parent")html=parentPage(state.page);else html=empty("Perfil sem portal");c.innerHTML=renderEmailBanner()+loadIssueBanner()+html;bindPage();animateWorkspace();}catch(e){console.error(e);c.innerHTML=empty("Não foi possível montar esta tela",e.message||"Erro inesperado")}
 }
 
@@ -4809,7 +4817,7 @@ async function loadPart2ARoleData(){
 }
 
 const loadRoleDataP1=loadRoleData;
-loadRoleData=async function(){await loadRoleDataP1();await loadPart2ARoleData()};
+loadRoleData=async function(){await forjaParallelRoleLoad(loadRoleDataP1,loadPart2ARoleData)};
 
 function googleBusyAgendaEvents(keys){
   const out=[],range=new Set(keys||agendaRangeKeys());
@@ -4938,7 +4946,7 @@ async function loadPart2BRoleData(){
   await Promise.all(work);
 }
 const loadRoleDataP2A=loadRoleData;
-loadRoleData=async function(){await loadRoleDataP2A();await loadPart2BRoleData()};
+loadRoleData=async function(){await forjaParallelRoleLoad(loadRoleDataP2A,loadPart2BRoleData)};
 
 function frequencyKpis(f={}){
   return `<div class="kpis p2-kpis-six">${kpi("Aulas",f.total??0,"não canceladas")}${kpi("Presentes",f.presentes??0,"presença")}${kpi("Ausências",f.ausencias??0,"não justificadas")}${kpi("Atrasos",f.atrasos??0,"registrados")}${kpi("Justificadas",f.justificadas??0,"faltas justificadas")}${kpi("Frequência",f.frequenciaPercentual==null?"—":`${f.frequenciaPercentual}%`,`${f.registradas??0} chamadas`)}</div>`
@@ -5040,13 +5048,14 @@ runGlobalSearch=function(query){
 
 Object.assign(state,{therapyRequests:[],competencies:[]});
 const loadRoleDataUpdateBase=loadRoleData;
-loadRoleData=async function(){
-  await loadRoleDataUpdateBase();state.therapyRequests=[];state.competencies=[];
+async function forjaLoadOperationalRoleData(){
+  state.therapyRequests=[];state.competencies=[];
   const work=[];
   if(["admin","student","parent"].includes(state.role))work.push(safeLoad(()=>api("/terapia/solicitacoes"),{items:[]},"Solicitações psicológicas").then(r=>state.therapyRequests=r.items||[]));
   if(["admin","teacher","student","parent"].includes(state.role))work.push(safeLoad(()=>api("/competencias"),{items:[]},"Competências").then(r=>state.competencies=r.items||[]));
   await Promise.all(work);
-};
+}
+loadRoleData=async function(){await forjaParallelRoleLoad(loadRoleDataUpdateBase,forjaLoadOperationalRoleData)};
 
 function minutesBetween(a,b){const [ah,am]=String(a||"").split(":").map(Number),[bh,bm]=String(b||"").split(":").map(Number);if(!Number.isFinite(ah)||!Number.isFinite(bh))return 0;return Math.max(0,(bh*60+bm)-(ah*60+am))}
 function weeklyAvailabilitySummary(){let days=0,minutes=0;for(const periods of Object.values(state.weeklyAvailability||{})){if(periods?.length)days++;for(const p of periods||[])minutes+=minutesBetween(p.inicio,p.fim)}const futureBlocks=state.unavailability.filter(x=>String(x.status||"ativo")!=="inativo"&&String(x.data||"")>=todayKey()).length;return {days,hours:Math.round(minutes/6)/10,futureBlocks}}
@@ -5745,10 +5754,11 @@ Object.assign(state,{secretarySubjectLinksD:[],secretarySubjectLinksLoadedD:fals
 
 async function loadSecretaryPackagesD(){
   if(state.role!=="admin"){state.secretarySubjectLinksD=[];state.secretarySubjectLinksLoadedD=false;return}
-  try{const r=await api("/admin/aluno-materias");state.secretarySubjectLinksD=r.items||[];state.secretarySubjectLinksLoadedD=true}catch(e){state.secretarySubjectLinksD=[];state.secretarySubjectLinksLoadedD=false;console.warn("FORJA_SECRETARY_PACKAGES",e?.message||e)}
+  const session=forjaCaptureSession();
+  try{const r=await api("/admin/aluno-materias");forjaAssertSession(session);state.secretarySubjectLinksD=r.items||[];state.secretarySubjectLinksLoadedD=true}catch(e){if(!forjaSessionCurrent(session))throw forjaStaleSession();state.secretarySubjectLinksD=[];state.secretarySubjectLinksLoadedD=false;console.warn("FORJA_SECRETARY_PACKAGES",e?.message||e)}
 }
 const loadRoleDataBeforeBlockD=loadRoleData;
-loadRoleData=async function(){await loadRoleDataBeforeBlockD();await loadSecretaryPackagesD()};
+loadRoleData=async function(){await forjaParallelRoleLoad(loadRoleDataBeforeBlockD,loadSecretaryPackagesD)};
 
 function secretaryStudentLinksD(studentId){return (state.secretarySubjectLinksD||[]).filter(x=>x.alunoId===studentId&&x.status!=="inativo")}
 function secretaryTeacherD(uid){return state.users.find(x=>x.uid===uid&&x.role==="teacher")||null}
@@ -5958,9 +5968,9 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeF();document.documentEleme
 /* ===== FORJA 6.15 — CORREÇÃO ESTRUTURAL / FUNCIONAL ===== */
 Object.assign(state,{familyDataG:state.familyDataG||{links:[],pending:[],unlinkedStudents:[]},adminAgendaTabG:state.adminAgendaTabG||"aulas",teacherLessonAgendaDateG:state.teacherLessonAgendaDateG||todayKey(),teacherLessonAgendaViewG:state.teacherLessonAgendaViewG||"month",studentLessonAgendaDateG:state.studentLessonAgendaDateG||todayKey(),studentLessonAgendaViewG:state.studentLessonAgendaViewG||"month",adminLessonAgendaDateG:state.adminLessonAgendaDateG||todayKey(),adminLessonAgendaViewG:state.adminLessonAgendaViewG||"week",adminUserTabG:state.adminUserTabG||"dados"});
 
-async function loadAdminFamiliesG(){if(state.role!=="admin"){state.familyDataG={links:[],pending:[],unlinkedStudents:[]};return}try{const r=await api("/admin/familias");state.familyDataG={links:r.links||[],pending:r.pending||[],unlinkedStudents:r.unlinkedStudents||[]}}catch(e){console.warn("FORJA_FAMILIES_G",e?.message||e);state.familyDataG={links:[],pending:state.linkRequests||[],unlinkedStudents:[]}}}
+async function loadAdminFamiliesG(){if(state.role!=="admin"){state.familyDataG={links:[],pending:[],unlinkedStudents:[]};return}const session=forjaCaptureSession();try{const r=await api("/admin/familias");forjaAssertSession(session);state.familyDataG={links:r.links||[],pending:r.pending||[],unlinkedStudents:r.unlinkedStudents||[]}}catch(e){if(!forjaSessionCurrent(session))throw forjaStaleSession();console.warn("FORJA_FAMILIES_G",e?.message||e);state.familyDataG={links:[],pending:state.linkRequests||[],unlinkedStudents:[]}}}
 const loadRoleDataBeforeG=loadRoleData;
-loadRoleData=async function(){await loadRoleDataBeforeG();await loadAdminFamiliesG()};
+loadRoleData=async function(){await forjaParallelRoleLoad(loadRoleDataBeforeG,loadAdminFamiliesG)};
 
 function gDateObj(key){const m=String(key||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?new Date(Date.UTC(+m[1],+m[2]-1,+m[3])):new Date()}
 function gDateKey(d){return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-${String(d.getUTCDate()).padStart(2,"0")}`}
@@ -6120,9 +6130,8 @@ async function loadWeekAvailabilityV616(weekStart,{render=true}={}){
 }
 
 const loadRoleDataBeforeV616=loadRoleData;
-loadRoleData=async function(){
+async function forjaLoadCurrentWeekRoleData(){
   const session=forjaCaptureSession();
-  await loadRoleDataBeforeV616();forjaAssertSession(session);
   const current=v616CurrentWeek();
   if(["teacher","psychologist"].includes(state.role)){
     try{
@@ -6141,7 +6150,8 @@ loadRoleData=async function(){
       state.adminAvailabilityWeekStartV616=r.weekStart||current;
     }catch(e){if(!forjaSessionCurrent(session))throw forjaStaleSession();console.warn("FORJA_ADMIN_WEEK_616",e?.message||e);state.adminAvailabilityWeekV616={}}
   }
-};
+}
+loadRoleData=async function(){await forjaParallelRoleLoad(loadRoleDataBeforeV616,forjaLoadCurrentWeekRoleData)};
 
 // A disponibilidade operacional agora é da semana atual, e não uma regra infinita.
 teacherAvailabilityConfiguredC=function(){return Object.keys(state.currentWeekAvailabilityV616||{}).length>0};
@@ -6882,15 +6892,26 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     return (entry.disponibilidade?.[code]||[]).map(x=>({...x}));
   }
 
+  const v621WeekFlights=new Map();
+  async function v621ShareWeek(role,ws,load){
+    const session=forjaCaptureSession(),key=session.uid+'|'+session.generation+'|'+role+'|'+ws;
+    if(v621WeekFlights.has(key))return v621WeekFlights.get(key);
+    const work=load();if(v621WeekFlights.size<32)v621WeekFlights.set(key,work);
+    try{return await work}finally{if(v621WeekFlights.get(key)===work)v621WeekFlights.delete(key)}
+  }
   async function v621FetchTeacherWeek(ws){
+    return v621ShareWeek('Teacher',ws,async()=>{
     const session=forjaCaptureSession();
     if(state.availabilityWeekStartV616===ws||state.v621TeacherWeekCache?.[ws])return;
     try{const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(ws)}`);forjaAssertSession(session);state.v621TeacherWeekCache[ws]=r.items||{};if(ws===v616CurrentWeek()){state.currentWeekAvailabilityV616=r.items||{};state.weeklyAvailability=r.items||{}}}catch(e){if(!forjaSessionCurrent(session))return;console.warn('FORJA_621_TEACHER_WEEK',e?.message||e)}
+    });
   }
   async function v621FetchAdminWeek(ws){
+    return v621ShareWeek('Admin',ws,async()=>{
     const session=forjaCaptureSession();
     if(state.adminProfessionalWeekLoadedV619===ws||state.adminAvailabilityWeekStartV616===ws||state.v621AdminWeekCache?.[ws])return;
     try{const r=await api(`/admin/disponibilidades-semana?weekStart=${encodeURIComponent(ws)}`),map={};forjaAssertSession(session);for(const x of r.items||[])map[x.uid]=x;state.v621AdminWeekCache[ws]=map}catch(e){if(!forjaSessionCurrent(session))return;console.warn('FORJA_621_ADMIN_WEEK',e?.message||e)}
+    });
   }
   // BEGIN FORJA central booking presentation: on demand, session scoped, no polling.
   state.v631CentralRanges={};state.v631CentralRevision=0;

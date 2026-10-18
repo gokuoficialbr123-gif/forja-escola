@@ -1,0 +1,300 @@
+{
+  "baseline": {
+    "htmlBytes": 1785001,
+    "htmlBr": 285117,
+    "model": {
+      "meDelay": 120,
+      "requestMs": 120,
+      "secondaryMs": 900,
+      "mobileCpuSlowdown": 4,
+      "mobileDownMbps": 1.6,
+      "desktopDownMbps": 10,
+      "sdk": "mock",
+      "google": "mock",
+      "api": "mock",
+      "browserCache": "disabled by request interception"
+    },
+    "samples": [
+      {
+        "mobile": false,
+        "run": 0,
+        "shellMs": 3546,
+        "loginMs": 3573,
+        "usersMs": 50,
+        "agendaMs": 225,
+        "weekMs": 216,
+        "loginGetRequests": 33,
+        "centralBeforeAgenda": 0,
+        "weekRequests": [
+          "/admin/disponibilidades-semana?weekStart=2026-10-19",
+          "/admin/agenda/google-central-busy?from=2026-10-19&to=2026-10-25",
+          "/admin/disponibilidades-semana?weekStart=2026-10-19"
+        ],
+        "fcpMs": 336,
+        "initialTransferBytes": 285417,
+        "domContentLoadedMs": 406.30000000074506,
+        "initialLongTaskMs": 0,
+        "errors": []
+      },
+      {
+        "mobile": false,
+        "run": 1,
+        "shellMs": 3548,
+        "loginMs": 3576,
+        "usersMs": 71,
+        "agendaMs": 244,
+        "weekMs": 241,
+        "loginGetRequests": 33,
+        "centralBeforeAgenda": 0,
+        "weekRequests": [
+          "/admin/disponibilidades-semana?weekStart=2026-10-19",
+          "/admin/agenda/google-central-busy?from=2026-10-19&to=2026-10-25",
+          "/admin/disponibilidades-semana?weekStart=2026-10-19"
+        ],
+        "fcpMs": 620,
+        "initialTransferBytes": 285417,
+        "domContentLoadedMs": 737.3999999985099,
+        "initialLongTaskMs": 0,
+        "errors": []
+      },
+      {
+        "mobile": false,
+        "run": 2,
+        "shellMs": 3553,
+        "loginMs": 3598,
+        "usersMs": 77,
+        "agendaMs": 254,
+        "weekMs": 231,
+        "loginGetRequests": 33,
+        "centralBeforeAgenda": 0,
+        "weekRequests": [
+          "/admin/disponibilidades-semana?weekStart=2026-10-19",
+          "/admin/agenda/google-central-busy?from=2026-10-19&to=2026-10-25",
+          "/admin/disponibilidades-semana?weekStart=2026-10-19"
+        ],
+        "fcpMs": 288,
+        "initialTransferBytes": 285417,
+        "domContentLoadedMs": 349.19999999925494,
+        "initialLongTaskMs": 0,
+        "errors": []
+      },
+      {
+        "mobile": true,
+        "run": 0,
+        "shellMs": 3628,
+        "loginMs": 3719,
+        "usersMs": 141,
+        "agendaMs": 498,
+        "weekMs": 455,
+        "loginGetRequests": 33,
+        "centralBeforeAgenda": 0,
+        "weekRequests": [
+          "/admin/disponibilidades-semana?weekStart=2026-10-19",
+          "/admin/agenda/google-central-busy?from=2026-10-19&to=2026-10-25",
+          "/admin/disponibilidades-semana?weekStart=2026-10-19"
+        ],
+        "fcpMs": 720,
+        "initialTransferBytes": 285417,
+        "domContentLoadedMs": 1661.3999999985099,
+        "initialLongTaskMs": 255,
+        "errors": []
+      },
+      {
+        "mobile": true,
+        "run": 1,
+        "shellMs": 3642,
+        "loginMs": 3733,
+        "usersMs": 151,
+        "agendaMs": 673,
+        "weekMs": 518,
+        "loginGetRequests": 33,
+        "centralBeforeAgenda": 0,
+        "weekRequests": [
+          "/admin/disponibilidades-semana?weekStart=2026-10-19",
+          "/admin/agenda/google-central-busy?from=2026-10-19&to=2026-10-25",
+          "/admin/disponibilidades-semana?weekStart=2026-10-19"
+        ],
+        "fcpMs": 716,
+        "initialTransferBytes": 285417,
+        "domContentLoadedMs": 1677.6000000014901,
+        "initialLongTaskMs": 350,
+        "errors": []
+      },
+      {
+        "mobile": true,
+        "run": 2,
+        "shellMs": 3971,
+        "loginMs": 4041,
+        "usersMs": 147,
+        "agendaMs": 493,
+        "weekMs": 472,
+        "loginGetRequests": 33,
+        "centralBeforeAgenda": 0,
+        "weekRequests": [
+          "/admin/disponibilidades-semana?weekStart=2026-10-19",
+          "/admin/agenda/google-central-busy?from=2026-10-19&to=2026-10-25",
+          "/admin/disponibilidades-semana?weekStart=2026-10-19"
+        ],
+        "fcpMs": 936,
+        "initialTransferBytes": 285417,
+        "domContentLoadedMs": 1686.300000000745,
+        "initialLongTaskMs": 280,
+        "errors": []
+      }
+    ]
+  },
+  "optimized-final": {
+    "htmlBytes": 1450558,
+    "htmlBr": 230761,
+    "model": {
+      "meDelay": 120,
+      "requestMs": 120,
+      "secondaryMs": 900,
+      "mobileCpuSlowdown": 4,
+      "mobileDownMbps": 1.6,
+      "desktopDownMbps": 10,
+      "sdk": "mock",
+      "google": "mock",
+      "api": "mock",
+      "browserCache": "disabled by request interception"
+    },
+    "samples": [
+      {
+        "mobile": false,
+        "run": 0,
+        "shellMs": 142,
+        "loginMs": 1250,
+        "usersMs": 51,
+        "agendaMs": 218,
+        "weekMs": 226,
+        "loginGetRequests": 33,
+        "centralBeforeAgenda": 0,
+        "weekRequests": [
+          "/admin/disponibilidades-semana?weekStart=2026-10-19",
+          "/admin/agenda/google-central-busy?from=2026-10-19&to=2026-10-25"
+        ],
+        "fcpMs": 300,
+        "initialTransferBytes": 264411,
+        "domContentLoadedMs": 348,
+        "initialLongTaskMs": 0,
+        "errors": []
+      },
+      {
+        "mobile": false,
+        "run": 1,
+        "shellMs": 141,
+        "loginMs": 1234,
+        "usersMs": 42,
+        "agendaMs": 220,
+        "weekMs": 228,
+        "loginGetRequests": 33,
+        "centralBeforeAgenda": 0,
+        "weekRequests": [
+          "/admin/disponibilidades-semana?weekStart=2026-10-19",
+          "/admin/agenda/google-central-busy?from=2026-10-19&to=2026-10-25"
+        ],
+        "fcpMs": 236,
+        "initialTransferBytes": 264411,
+        "domContentLoadedMs": 302.70000000298023,
+        "initialLongTaskMs": 0,
+        "errors": []
+      },
+      {
+        "mobile": false,
+        "run": 2,
+        "shellMs": 136,
+        "loginMs": 1231,
+        "usersMs": 47,
+        "agendaMs": 222,
+        "weekMs": 217,
+        "loginGetRequests": 33,
+        "centralBeforeAgenda": 0,
+        "weekRequests": [
+          "/admin/disponibilidades-semana?weekStart=2026-10-19",
+          "/admin/agenda/google-central-busy?from=2026-10-19&to=2026-10-25"
+        ],
+        "fcpMs": 212,
+        "initialTransferBytes": 264411,
+        "domContentLoadedMs": 296.5999999977648,
+        "initialLongTaskMs": 0,
+        "errors": []
+      },
+      {
+        "mobile": true,
+        "run": 0,
+        "shellMs": 164,
+        "loginMs": 1349,
+        "usersMs": 150,
+        "agendaMs": 521,
+        "weekMs": 495,
+        "loginGetRequests": 33,
+        "centralBeforeAgenda": 0,
+        "weekRequests": [
+          "/admin/disponibilidades-semana?weekStart=2026-10-19",
+          "/admin/agenda/google-central-busy?from=2026-10-19&to=2026-10-25"
+        ],
+        "fcpMs": 612,
+        "initialTransferBytes": 264411,
+        "domContentLoadedMs": 1535.699999999255,
+        "initialLongTaskMs": 230,
+        "errors": []
+      },
+      {
+        "mobile": true,
+        "run": 1,
+        "shellMs": 169,
+        "loginMs": 1395,
+        "usersMs": 119,
+        "agendaMs": 487,
+        "weekMs": 547,
+        "loginGetRequests": 33,
+        "centralBeforeAgenda": 0,
+        "weekRequests": [
+          "/admin/disponibilidades-semana?weekStart=2026-10-19",
+          "/admin/agenda/google-central-busy?from=2026-10-19&to=2026-10-25"
+        ],
+        "fcpMs": 656,
+        "initialTransferBytes": 264411,
+        "domContentLoadedMs": 1561.0999999977648,
+        "initialLongTaskMs": 247,
+        "errors": []
+      },
+      {
+        "mobile": true,
+        "run": 2,
+        "shellMs": 177,
+        "loginMs": 1371,
+        "usersMs": 129,
+        "agendaMs": 482,
+        "weekMs": 533,
+        "loginGetRequests": 33,
+        "centralBeforeAgenda": 0,
+        "weekRequests": [
+          "/admin/disponibilidades-semana?weekStart=2026-10-19",
+          "/admin/agenda/google-central-busy?from=2026-10-19&to=2026-10-25"
+        ],
+        "fcpMs": 564,
+        "initialTransferBytes": 264411,
+        "domContentLoadedMs": 1527.6000000014901,
+        "initialLongTaskMs": 285,
+        "errors": []
+      }
+    ]
+  },
+  "publicObservations": {
+    "date": "2026-10-18",
+    "frontendCommit": "71dca65c19f41e8582561227e3ed4dd820f4839f",
+    "htmlSha256": "43731860d9923001c68f097a76068e082c2c7aeaebc5cbe77161cd2732b790eb",
+    "hostingTTFBms": [
+      443.162
+    ],
+    "hostingTransferredBytes": 285119,
+    "backendCommit": "9bb86ec0b834136279f346338ec7ab2667ba22e1",
+    "healthTTFBms": [
+      277.187,
+      290.388
+    ],
+    "provenColdStart": false,
+    "authenticatedProductionBenchmark": false
+  }
+}
