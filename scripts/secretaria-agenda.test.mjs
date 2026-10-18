@@ -1,9 +1,11 @@
+import {withoutGoogleIntegration} from './google-integration-scope.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { test, before, after } from 'node:test';
-const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const html=withoutGoogleIntegration(readFileSync(new URL('../index.html',import.meta.url),'utf8'));
+// Baseline geometry/publication fixture; central behavior is tested separately on the integrated portal.
 const between=(a,b)=>{const start=html.indexOf(a),end=html.indexOf(b,start);assert.ok(start>=0&&end>start);return html.slice(start,end)};
 const code=[
  between('  function v621AdminWeekEntry(', '  async function v621FetchTeacherWeek('),

@@ -26,7 +26,7 @@ async function fixture(t,{ignoreAbort=false,mobile=false,connected=true,failure=
   if(u.pathname==='/me')body={profile:{uid,role:({A:'teacher',B:'psychologist',C:'admin',D:'teacher'})[uid],active:true,fullName:'Fictício '+uid,email:uid+'@forja.invalid'}};
   if(u.pathname==='/disponibilidade-semanal')body={items:weekly(uid,week),weekStart:week,hasSavedWeek:Object.keys(weekly(uid,week)).length>0};
   if(u.pathname==='/admin/disponibilidades-semana')body={weekStart:week,items:[{uid:'A',weekStart:week,availabilityPolicy:'confirmed-week-v2',publicationValid:true,disponibilidade:{1:[{inicio:'13:00',fim:'17:00'}]}}]};
-  if(u.pathname==='/google/calendar/status')body={configured:true,diagnosticsPolicy:'personal-google-diagnostics-v1',item:{connected,lastSyncStatus:failure?'erro':'ok',lastFailure:failure}};
+  if(u.pathname==='/google/calendar/status')body={consent:{version:'personal-busy-secretaria-v1',text:'Autorizo a consulta dos intervalos ocupados pela Secretaria, sem detalhes privados.',connectionChallenge:'SYNTHETIC_CONSENT_CHALLENGE'},configured:true,diagnosticsPolicy:'personal-google-diagnostics-v1',item:{connected,lastSyncStatus:failure?'erro':'ok',lastFailure:failure}};
   if(u.pathname==='/google/calendar/diagnostics'){status=diagnosticResult?.status==='unavailable'?409:200;body=legacy?{apiReachable:true,connection:{connected:true}}:{googleDiagnosis:diagnosticResult||{policy:'personal-google-diagnostics-v1',status:'verified',stage:'calendar_api',checkedAt:'2026-10-14T19:00:00.000Z'}};}
   if(u.pathname==='/google/calendar/connect')body={authUrl:'https://accounts.google.com/o/oauth2/v2/auth?state=TEST_ONLY_OPAQUE_STATE'};
   if(u.pathname==='/google/calendar/busy')body={items:[],complete:true,status:'success'};
@@ -51,7 +51,7 @@ for(const mobile of [false,true])test(`personal recovery ${mobile?'mobile':'desk
  assert.match(await p.locator('#modal').innerText(),/Autorização Google inválida/);assert.match(await p.locator('#modal').innerText(),/Testing/);
  assert.match(await p.locator('#modal').innerText(),/não distingue.*expiração de revogação/);
  assert.match(await p.locator('#modal').innerText(),/conexão anterior será preservada/);
- await p.locator('#modal [data-personal-google-reconnect]').click();await p.waitForURL('https://accounts.google.com/**');
+ await p.locator('#modal [data-personal-google-reconnect]').click();await p.waitForSelector('#googlePersonalConsentAccept');assert.equal(await p.isChecked('#googlePersonalConsentAccept'),false);assert.equal(f.requests.filter(r=>r.path==='/google/calendar/connect').length,0);await p.check('#googlePersonalConsentAccept');await p.click('#modalSave');await p.waitForURL('https://accounts.google.com/**');
  assert.equal(f.requests.filter(r=>r.path==='/google/calendar/connect'&&r.method==='POST').length,1);
  assert.equal(f.requests.filter(r=>r.method==='DELETE').length,0);assert.deepEqual(f.errors,[]);
 });
@@ -84,7 +84,7 @@ test('psychologist has the same recovery and an actually disconnected account re
 });
 test('late reconnect response cannot redirect a different authenticated session',async t=>{
  const f=await fixture(t,{ignoreAbort:true,failure:fail()}),p=f.page,held=f.hold({uid:'A',path:'/google/calendar/connect',body:{authUrl:'https://accounts.google.com/o/oauth2/v2/auth?state=TEST_ONLY_OLD_SESSION'}});
- await p.evaluate(()=>{navigate('agenda');const previous=googleAction;googleAction=(...args)=>window.oldReconnect=previous(...args)});await p.locator('[data-personal-google-reconnect]').click();await held.started;
- await f.login('B');held.release();await p.evaluate(()=>window.oldReconnect);
+ await p.evaluate(()=>{navigate('agenda');const previous=googleAction;googleAction=(...args)=>window.oldReconnect=previous(...args)});await p.locator('[data-personal-google-reconnect]').click();await p.waitForSelector('#googlePersonalConsentAccept');await p.check('#googlePersonalConsentAccept');await p.evaluate(()=>{const b=document.getElementById('modalSave'),fn=b.onclick;b.onclick=(...args)=>(window.oldConsentSave=fn(...args));});await p.click('#modalSave');await held.started;
+ await f.login('B');held.release();await p.evaluate(()=>window.oldConsentSave);
  assert.equal(new URL(p.url()).origin,origin);assert.equal(f.requests.filter(r=>r.method==='DELETE').length,0);assert.equal(await p.evaluate(()=>state.user.uid),'B');
 });
