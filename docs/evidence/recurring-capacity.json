@@ -1,0 +1,8 @@
+{
+  "occurrences": 53,
+  "duration": 90,
+  "preflightMs": 388,
+  "commitMs": 1199,
+  "cancelledOccurrencePreservedAfterRestart": true,
+  "environment": "local demo-forja; no real Google"
+}

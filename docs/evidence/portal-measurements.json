@@ -1,0 +1,45 @@
+{
+  "measurements": [
+    {
+      "width": 320,
+      "openModalMs": 370
+    },
+    {
+      "width": 375,
+      "openModalMs": 381
+    },
+    {
+      "width": 390,
+      "openModalMs": 379
+    },
+    {
+      "width": 768,
+      "openModalMs": 448
+    },
+    {
+      "width": 1366,
+      "openModalMs": 530
+    },
+    {
+      "width": 1920,
+      "openModalMs": 600
+    }
+  ],
+  "renderBench": [
+    {
+      "lessons": 10,
+      "renderMs": 35
+    },
+    {
+      "lessons": 200,
+      "renderMs": 18.5
+    },
+    {
+      "lessons": 500,
+      "renderMs": 17.1
+    }
+  ],
+  "apiRequests": 298,
+  "roleCount": 5,
+  "source": "local Auth/Firestore emulators + real Chromium; no Google real"
+}
