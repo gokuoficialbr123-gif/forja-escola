@@ -36,7 +36,8 @@ async function fixture(t,{mobile=false,status=200,policy=POLICY,hold=false,weekO
   await route.fulfill({status:code,headers:{'Access-Control-Allow-Origin':origin},contentType:'application/json',body:JSON.stringify(body)}).catch(()=>{});
  });
  await page.goto(origin);await page.waitForFunction(()=>state.user?.uid==='A'&&!state.loading);
- const login=async(uid)=>{await page.evaluate(()=>executeLogout());await page.evaluate(()=>showLogin());await page.fill('#loginEmail',uid+'@forja.invalid');await page.fill('#loginPassword','local-only-password');await page.click('[data-action="enterPortal"]');await page.waitForFunction(uid=>state.user?.uid===uid&&!state.loading,uid);};
+ // Complete the login screen autofocus before automated input, without a fixed delay.
+ const login=async(uid)=>{await page.evaluate(()=>executeLogout());await page.evaluate(async()=>{showLogin();await new Promise(resolve=>requestAnimationFrame(resolve));});await page.fill('#loginEmail',uid+'@forja.invalid');await page.fill('#loginPassword','local-only-password');await page.click('[data-action="enterPortal"]');await page.waitForFunction(uid=>state.user?.uid===uid&&!state.loading,uid);};
  const open=async()=>{await page.evaluate(()=>navigate(state.role==='teacher'?'agenda':'disponibilidade'));await page.click('[data-fixed-open]');await page.waitForSelector('#forjaFixedForm');};
  return {page,requests,errors,login,open,release};
 }

@@ -36,7 +36,8 @@ async function fixture(t,{ignoreAbort=false,mobile=false,connected=true,failure=
   await route.fulfill({status,contentType:'application/json',body:JSON.stringify(body),headers:{'Access-Control-Allow-Origin':origin}}).catch(()=>{});
  });
  await page.goto(origin);await page.waitForFunction(()=>state.user?.uid==='A'&&!state.loading);
- const login=async(uid)=>{await page.evaluate(()=>executeLogout());await page.evaluate(()=>showLogin());await page.fill('#loginEmail',uid+'@forja.invalid');await page.fill('#loginPassword','local-only-password');await page.click('[data-action="enterPortal"]');await page.waitForFunction(uid=>state.user?.uid===uid&&!state.loading,uid)};
+ // Complete the login screen autofocus before automated input, without a fixed delay.
+ const login=async(uid)=>{await page.evaluate(()=>executeLogout());await page.evaluate(async()=>{showLogin();await new Promise(resolve=>requestAnimationFrame(resolve));});await page.fill('#loginEmail',uid+'@forja.invalid');await page.fill('#loginPassword','local-only-password');await page.click('[data-action="enterPortal"]');await page.waitForFunction(uid=>state.user?.uid===uid&&!state.loading,uid)};
  const hold=options=>{let ready,release;const item={...options,used:false,ready:()=>ready(),promise:new Promise(r=>release=r)};const started=new Promise(r=>ready=r);holds.push(item);return {started,release}};
  return {page,login,hold,requests,errors};
 }
