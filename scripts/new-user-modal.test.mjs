@@ -107,7 +107,10 @@ test('Enter submits once; pending submit locks edits/close and rejects duplicate
  release();await f.page.waitForFunction(()=>document.getElementById('modal').classList.contains('hidden'));assert.equal(f.posts().length,1);
 });
 for(const action of ['Cancelar','Fechar janela','Escape'])test(`${action} closes without POST and returns focus to opener; focus wraps`,async t=>{
- const f=await fixture(t),p=f.page;await p.locator('#modalSave').focus();await p.keyboard.press('Tab');assert.equal(await p.evaluate(()=>document.activeElement.getAttribute('aria-label')),'Fechar janela');await p.keyboard.press('Shift+Tab');assert.equal(await p.evaluate(()=>document.activeElement.id),'modalSave');
+ const f=await fixture(t),p=f.page;
+ // Finish the modal's scheduled initial autofocus before testing explicit Tab movement.
+ await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+ await p.locator('#modalSave').focus();await p.keyboard.press('Tab');assert.equal(await p.evaluate(()=>document.activeElement.getAttribute('aria-label')),'Fechar janela');await p.keyboard.press('Shift+Tab');assert.equal(await p.evaluate(()=>document.activeElement.id),'modalSave');
  if(action==='Escape')await p.keyboard.press('Escape');else await p.getByRole('button',{name:action,exact:true}).click();await p.waitForFunction(()=>document.getElementById('modal').classList.contains('hidden'));await p.waitForFunction(()=>document.activeElement.dataset.action==='newUser');assert.equal(f.posts().length,0);
 });
 test('activation link and activation warning retain existing success flows',async t=>{
