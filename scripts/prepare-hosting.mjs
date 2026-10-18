@@ -1,3 +1,4 @@
+import {extractStaticResources,staticResourceMetadata} from './static-resources.mjs';
 import {legalFiles} from './legal-pages.mjs';
 import assert from 'node:assert/strict';
 import {invitationDemoArtifact} from './invitation-demo.mjs';
@@ -17,15 +18,20 @@ export function buildHostingArtifact(root = rootDir, { previewApiUrl, invitation
     const bytes=invitationDemoArtifact(source);
     return {bytes,result:{...result,target:'invitation-demo',apiUrl:null,sha256:sha256(bytes),bytes:bytes.length,inlineScripts:validateInlineScripts(bytes.toString('utf8'))}};
   }
-  if (previewApiUrl === undefined) return { bytes: source, result: { ...result, target: 'production', apiUrl: productionApiUrl } };
+  if (previewApiUrl === undefined) return staticArtifact(source,result,'production',productionApiUrl);
 
   validatePreviewApiUrl(previewApiUrl);
   const declaration = `const FORJA_API_URL = "${productionApiUrl}";`;
   const html = source.toString('utf8');
   assert.equal(html.split(declaration).length, 2, 'Declaração oficial da API deve existir exatamente uma vez.');
   const bytes = Buffer.from(html.replace(declaration, `const FORJA_API_URL = "${previewApiUrl}";`));
-  const inlineScripts = validateInlineScripts(bytes.toString('utf8'));
-  return { bytes, result: { ...result, target: 'preview', apiUrl: previewApiUrl, sha256: sha256(bytes), bytes: bytes.length, inlineScripts } };
+  validateInlineScripts(bytes.toString('utf8'));
+  return staticArtifact(bytes,result,'preview',previewApiUrl);
+}
+
+function staticArtifact(source,result,target,apiUrl){
+ const {bytes,resources}=extractStaticResources(source);
+ return {bytes,resources,result:{...result,sourceSha256:sha256(source),target,apiUrl,sha256:sha256(bytes),bytes:bytes.length,inlineScripts:validateInlineScripts(bytes.toString('utf8')),staticResources:staticResourceMetadata(resources)}};
 }
 
 export function hostingOptionsFromArgs(args = process.argv.slice(2)) {
@@ -36,7 +42,7 @@ export function hostingOptionsFromArgs(args = process.argv.slice(2)) {
 }
 
 export function prepareHosting(root = rootDir, options = {}) {
-  const { bytes, result } = buildHostingArtifact(root, options);
+  const { bytes, resources=[], result } = buildHostingArtifact(root, options);
   const output = join(root, '.firebase-public');
   // This is a generated, ignored directory owned exclusively by this script.
   rmSync(output, { recursive: true, force: true });
@@ -44,6 +50,9 @@ export function prepareHosting(root = rootDir, options = {}) {
   writeFileSync(join(output, 'index.html'), bytes);
   writeFileSync(join(output, googleVerificationFile), readFileSync(join(root, googleVerificationFile)));
   for(const file of legalFiles) { mkdirSync(dirname(join(output,file)),{recursive:true});writeFileSync(join(output,file),readFileSync(join(root,file))); }
+  for(const resource of resources){assert.match(resource.file,/^assets\/forja-image-[a-f0-9]{64}\.webp$/);mkdirSync(dirname(join(output,resource.file)),{recursive:true});writeFileSync(join(output,resource.file),resource.bytes);}
+  const expectedAssets=[...legalFiles.filter(f=>f.startsWith('assets/')).map(f=>f.slice(7)),...resources.map(r=>r.file.slice(7))].sort();
+  assert.deepEqual(readdirSync(join(output,'assets')).sort(),expectedAssets,'Hosting assets must match the exact derived allowlist.');
   assert.deepEqual(readdirSync(output), ['assets',googleVerificationFile,'index.html','privacidade','termos']);
   assert.ok(bytes.equals(readFileSync(join(output, 'index.html'))));
   return result;

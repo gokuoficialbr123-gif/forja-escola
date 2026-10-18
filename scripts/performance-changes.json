@@ -1,0 +1,100 @@
+[
+  {
+    "before": "async function loadCatalogs(){",
+    "after": "// Independent admin datasets may overlap; other profiles keep their dependency order.\nasync function forjaParallelRoleLoad(previous,secondary){\n const session=forjaCaptureSession();\n if(state.role==='admin')await Promise.all([previous(),secondary()]);\n else{await previous();forjaAssertSession(session);await secondary();}\n forjaAssertSession(session);\n}\nasync function loadCatalogs(){",
+    "positions": [
+      854419
+    ]
+  },
+  {
+    "before": "loadRoleData=async function(){await loadRoleDataP1();await loadPart2ARoleData()};",
+    "after": "loadRoleData=async function(){await forjaParallelRoleLoad(loadRoleDataP1,loadPart2ARoleData)};",
+    "positions": [
+      1087807
+    ]
+  },
+  {
+    "before": "loadRoleData=async function(){await loadRoleDataP2A();await loadPart2BRoleData()};",
+    "after": "loadRoleData=async function(){await forjaParallelRoleLoad(loadRoleDataP2A,loadPart2BRoleData)};",
+    "positions": [
+      1111168
+    ]
+  },
+  {
+    "before": "loadRoleData=async function(){await loadRoleDataBeforeBlockD();await loadSecretaryPackagesD()};",
+    "after": "loadRoleData=async function(){await forjaParallelRoleLoad(loadRoleDataBeforeBlockD,loadSecretaryPackagesD)};",
+    "positions": [
+      1343512
+    ]
+  },
+  {
+    "before": "loadRoleData=async function(){await loadRoleDataBeforeG();await loadAdminFamiliesG()};",
+    "after": "loadRoleData=async function(){await forjaParallelRoleLoad(loadRoleDataBeforeG,loadAdminFamiliesG)};",
+    "positions": [
+      1434576
+    ]
+  },
+  {
+    "before": "loadRoleData=async function(){\n  await loadRoleDataUpdateBase();state.therapyRequests=[];state.competencies=[];\n  const work=[];\n  if([\"admin\",\"student\",\"parent\"].includes(state.role))work.push(safeLoad(()=>api(\"/terapia/solicitacoes\"),{items:[]},\"Solicitações psicológicas\").then(r=>state.therapyRequests=r.items||[]));\n  if([\"admin\",\"teacher\",\"student\",\"parent\"].includes(state.role))work.push(safeLoad(()=>api(\"/competencias\"),{items:[]},\"Competências\").then(r=>state.competencies=r.items||[]));\n  await Promise.all(work);\n};",
+    "after": "async function forjaLoadOperationalRoleData(){\n  state.therapyRequests=[];state.competencies=[];\n  const work=[];\n  if([\"admin\",\"student\",\"parent\"].includes(state.role))work.push(safeLoad(()=>api(\"/terapia/solicitacoes\"),{items:[]},\"Solicitações psicológicas\").then(r=>state.therapyRequests=r.items||[]));\n  if([\"admin\",\"teacher\",\"student\",\"parent\"].includes(state.role))work.push(safeLoad(()=>api(\"/competencias\"),{items:[]},\"Competências\").then(r=>state.competencies=r.items||[]));\n  await Promise.all(work);\n}\nloadRoleData=async function(){await forjaParallelRoleLoad(loadRoleDataUpdateBase,forjaLoadOperationalRoleData)};",
+    "positions": [
+      1138924
+    ]
+  },
+  {
+    "before": "loadRoleData=async function(){\n  const session=forjaCaptureSession();\n  await loadRoleDataBeforeV616();forjaAssertSession(session);\n  const current=v616CurrentWeek();\n  if([\"teacher\",\"psychologist\"].includes(state.role)){\n    try{\n      const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(current)}`);\n      forjaAssertSession(session);state.currentWeekAvailabilityV616=r.items||{};\n      state.weeklyAvailability=r.items||{};\n      if(!state.availabilityWeekStartV616)state.availabilityWeekStartV616=current;\n      if(state.availabilityWeekStartV616===current){state.availabilityWeekItemsV616=r.items||{};state.availabilityWeekSavedV616=!!r.hasSavedWeek}\n    }catch(e){if(!forjaSessionCurrent(session))throw forjaStaleSession();console.warn(\"FORJA_AVAILABILITY_WEEK_616\",e?.message||e);state.currentWeekAvailabilityV616={};state.weeklyAvailability={}}\n  }\n  if(state.role===\"admin\"){\n    try{\n      const r=await api(`/admin/disponibilidades-semana?weekStart=${encodeURIComponent(current)}`),map={};\n      forjaAssertSession(session);for(const x of r.items||[])map[x.uid]=x;\n      state.adminAvailabilityWeekV616=map;\n      state.adminAvailabilityWeekStartV616=r.weekStart||current;\n    }catch(e){if(!forjaSessionCurrent(session))throw forjaStaleSession();console.warn(\"FORJA_ADMIN_WEEK_616\",e?.message||e);state.adminAvailabilityWeekV616={}}\n  }\n};",
+    "after": "async function forjaLoadCurrentWeekRoleData(){\n  const session=forjaCaptureSession();\n  const current=v616CurrentWeek();\n  if([\"teacher\",\"psychologist\"].includes(state.role)){\n    try{\n      const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(current)}`);\n      forjaAssertSession(session);state.currentWeekAvailabilityV616=r.items||{};\n      state.weeklyAvailability=r.items||{};\n      if(!state.availabilityWeekStartV616)state.availabilityWeekStartV616=current;\n      if(state.availabilityWeekStartV616===current){state.availabilityWeekItemsV616=r.items||{};state.availabilityWeekSavedV616=!!r.hasSavedWeek}\n    }catch(e){if(!forjaSessionCurrent(session))throw forjaStaleSession();console.warn(\"FORJA_AVAILABILITY_WEEK_616\",e?.message||e);state.currentWeekAvailabilityV616={};state.weeklyAvailability={}}\n  }\n  if(state.role===\"admin\"){\n    try{\n      const r=await api(`/admin/disponibilidades-semana?weekStart=${encodeURIComponent(current)}`),map={};\n      forjaAssertSession(session);for(const x of r.items||[])map[x.uid]=x;\n      state.adminAvailabilityWeekV616=map;\n      state.adminAvailabilityWeekStartV616=r.weekStart||current;\n    }catch(e){if(!forjaSessionCurrent(session))throw forjaStaleSession();console.warn(\"FORJA_ADMIN_WEEK_616\",e?.message||e);state.adminAvailabilityWeekV616={}}\n  }\n}\nloadRoleData=async function(){await forjaParallelRoleLoad(loadRoleDataBeforeV616,forjaLoadCurrentWeekRoleData)};",
+    "positions": [
+      1489360
+    ]
+  },
+  {
+    "before": "  try{const r=await api(\"/admin/aluno-materias\");state.secretarySubjectLinksD=",
+    "after": "  const session=forjaCaptureSession();\n  try{const r=await api(\"/admin/aluno-materias\");forjaAssertSession(session);state.secretarySubjectLinksD=",
+    "positions": [
+      1343294
+    ]
+  },
+  {
+    "before": "catch(e){state.secretarySubjectLinksD=[];",
+    "after": "catch(e){if(!forjaSessionCurrent(session))throw forjaStaleSession();state.secretarySubjectLinksD=[];",
+    "positions": [
+      1343491
+    ]
+  },
+  {
+    "before": "try{const r=await api(\"/admin/familias\");state.familyDataG=",
+    "after": "const session=forjaCaptureSession();try{const r=await api(\"/admin/familias\");forjaAssertSession(session);state.familyDataG=",
+    "positions": [
+      1434480
+    ]
+  },
+  {
+    "before": "catch(e){console.warn(\"FORJA_FAMILIES_G\",",
+    "after": "catch(e){if(!forjaSessionCurrent(session))throw forjaStaleSession();console.warn(\"FORJA_FAMILIES_G\",",
+    "positions": [
+      1434685
+    ]
+  },
+  {
+    "before": "    await loadRoleData();forjaAssertSession(session); renderShell();renderPage();",
+    "after": "    renderShell();$(\"#workspaceContent\").innerHTML=loading(\"Carregando os dados do portal...\");hideProcess();\n    await loadRoleData();forjaAssertSession(session);state.loading=false; renderShell();renderPage();",
+    "positions": [
+      853849
+    ]
+  },
+  {
+    "before": "  const c=$(\"#workspaceContent\");if(!c)return;let html=\"\";",
+    "after": "  const c=$(\"#workspaceContent\");if(!c)return;if(state.loading){c.innerHTML=loading(\"Carregando os dados desta área...\");return}let html=\"\";",
+    "positions": [
+      871585
+    ]
+  },
+  {
+    "before": "  async function v621FetchTeacherWeek(ws){\n    const session=forjaCaptureSession();\n    if(state.availabilityWeekStartV616===ws||state.v621TeacherWeekCache?.[ws])return;\n    try{const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(ws)}`);forjaAssertSession(session);state.v621TeacherWeekCache[ws]=r.items||{};if(ws===v616CurrentWeek()){state.currentWeekAvailabilityV616=r.items||{};state.weeklyAvailability=r.items||{}}}catch(e){if(!forjaSessionCurrent(session))return;console.warn('FORJA_621_TEACHER_WEEK',e?.message||e)}\n  }\n  async function v621FetchAdminWeek(ws){\n    const session=forjaCaptureSession();\n    if(state.adminProfessionalWeekLoadedV619===ws||state.adminAvailabilityWeekStartV616===ws||state.v621AdminWeekCache?.[ws])return;\n    try{const r=await api(`/admin/disponibilidades-semana?weekStart=${encodeURIComponent(ws)}`),map={};forjaAssertSession(session);for(const x of r.items||[])map[x.uid]=x;state.v621AdminWeekCache[ws]=map}catch(e){if(!forjaSessionCurrent(session))return;console.warn('FORJA_621_ADMIN_WEEK',e?.message||e)}\n  }\n",
+    "after": "  const v621WeekFlights=new Map();\n  async function v621ShareWeek(role,ws,load){\n    const session=forjaCaptureSession(),key=session.uid+'|'+session.generation+'|'+role+'|'+ws;\n    if(v621WeekFlights.has(key))return v621WeekFlights.get(key);\n    const work=load();if(v621WeekFlights.size<32)v621WeekFlights.set(key,work);\n    try{return await work}finally{if(v621WeekFlights.get(key)===work)v621WeekFlights.delete(key)}\n  }\n  async function v621FetchTeacherWeek(ws){\n    return v621ShareWeek('Teacher',ws,async()=>{\n    const session=forjaCaptureSession();\n    if(state.availabilityWeekStartV616===ws||state.v621TeacherWeekCache?.[ws])return;\n    try{const r=await api(`/disponibilidade-semanal?weekStart=${encodeURIComponent(ws)}`);forjaAssertSession(session);state.v621TeacherWeekCache[ws]=r.items||{};if(ws===v616CurrentWeek()){state.currentWeekAvailabilityV616=r.items||{};state.weeklyAvailability=r.items||{}}}catch(e){if(!forjaSessionCurrent(session))return;console.warn('FORJA_621_TEACHER_WEEK',e?.message||e)}\n    });\n  }\n  async function v621FetchAdminWeek(ws){\n    return v621ShareWeek('Admin',ws,async()=>{\n    const session=forjaCaptureSession();\n    if(state.adminProfessionalWeekLoadedV619===ws||state.adminAvailabilityWeekStartV616===ws||state.v621AdminWeekCache?.[ws])return;\n    try{const r=await api(`/admin/disponibilidades-semana?weekStart=${encodeURIComponent(ws)}`),map={};forjaAssertSession(session);for(const x of r.items||[])map[x.uid]=x;state.v621AdminWeekCache[ws]=map}catch(e){if(!forjaSessionCurrent(session))return;console.warn('FORJA_621_ADMIN_WEEK',e?.message||e)}\n    });\n  }\n",
+    "positions": [
+      1604286
+    ]
+  }
+]

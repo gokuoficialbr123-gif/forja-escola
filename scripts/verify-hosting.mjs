@@ -6,7 +6,7 @@ import { rootDir, referenceVersion, sha256, googleVerificationFile, googleVerifi
 import { buildHostingArtifact, hostingOptionsFromArgs } from './prepare-hosting.mjs';
 
 export async function verifyHosting(url, {
-  expected = readFileSync(join(rootDir, 'index.html')),
+  expected = buildHostingArtifact(rootDir).bytes,
   attempts = 12,
   delayMs = 5000,
   timeoutMs = 15000,
@@ -35,6 +35,21 @@ export async function verifyHosting(url, {
   throw new Error(`Verificação do Hosting falhou após ${attempts} tentativa(s): ${failure.message}`, { cause: failure });
 }
 
+
+export async function verifyHostingResources(url,{resources,request=fetch,timeoutMs=15000}={}){
+ assert.ok(Array.isArray(resources),'Derived static resource list is required.');
+ const verified=[];
+ for(const resource of resources){
+  assert.match(resource.file,/^assets\/forja-image-[a-f0-9]{64}\.webp$/);
+  const target=new URL('/'+resource.file,url);
+  const response=await request(target,{headers:{'Cache-Control':'no-cache'},redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
+  assert.equal(response.status,200,'Static resource must return HTTP200.');
+  const bytes=Buffer.from(await response.arrayBuffer());assert.equal(sha256(bytes),resource.sha256,'Static resource differs from validated source or returned SPA fallback.');
+  verified.push({file:resource.file,sha256:sha256(bytes),bytes:bytes.length});
+ }
+ return verified;
+}
+
 export async function verifyGoogleVerification(url, {request=fetch, attempts=12, delayMs=5000, timeoutMs=15000}={}) {
   const target = new URL('/'+googleVerificationFile, url);
   assert.ok(['https:', 'http:'].includes(target.protocol), 'URL HTTP(S) obrigatória.');
@@ -59,7 +74,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   assert.ok(url, 'Defina FORJA_VERIFY_URL.');
   // Derive expected bytes from the pinned source and the single allowed Preview
   // substitution. Do not trust a supplied hash or an arbitrary generated file.
-  const { bytes } = buildHostingArtifact(rootDir, hostingOptionsFromArgs());
+  const { bytes,resources=[] } = buildHostingArtifact(rootDir, hostingOptionsFromArgs());
   console.log(JSON.stringify(await verifyHosting(url, { expected: bytes }), null, 2));
+  console.log(JSON.stringify(await verifyHostingResources(url,{resources}),null,2));
   console.log(JSON.stringify(await verifyGoogleVerification(url), null, 2));
 }

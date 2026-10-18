@@ -1,3 +1,18 @@
+## 18/10/2026 — desempenho, preparado e NÃO publicado
+
+- Auditoria da produção71dca65(frontend)/9bb86ec(backend); benchmark Chromium
+  controlado antes/depois, sem dados da escola. Ver PERFORMANCE_2026-10.md.
+- Cargas administrativas independentes paralelas; navegação autenticada após
+  perfil validado, com conteúdo em loading até os dados ficarem prontos.
+- Consultas semanais iguais em andamento compartilhadas por UID/geração;
+  sem novo cache de resultado, timer ou redução da verificação de booking.
+- Artefato extrai somente duas imagens WebP existentes, com hash/natural ratio,
+  prioridade do logo e lazy da arte decorativa. CSS/JS permanecem intactos.
+- Header Server-Timing numérico, sem logging; CORS expõe somente esse metadado.
+- Guard inverso restaura a fonte publicada; allowlist e verificação pública
+  também exigem hashes dos recursos. Sem mudança de APIs, Rules ou dados.
+- Sem merge/deploy; testes reais de contas Google não foram realizados.
+
 ## 18/10/2026 — integração Google sobre a produção atual (somente rascunho)
 
 Missão autorizada: reconciliar os PRs9/10/11/12 dos dois repositórios sobre os

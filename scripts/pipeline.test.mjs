@@ -1,3 +1,4 @@
+import {expandStaticResources} from './static-resources.mjs';
 import {withoutRecurringLessons} from './recurring-lessons-scope.mjs';
 import {legalFiles,withoutLegalNavigation,portalBeforeLegalSha256,validateLegalPages} from './legal-pages.mjs';
 import {withoutFixedAvailability} from './fixed-availability-scope.mjs';
@@ -19,6 +20,7 @@ import { previewApiFromEvent, previewConfigFromEvent, validatePreviewApiUrl } fr
 import { assertVaryOrigin, verifyPreviewHealth, previewVersion, productionVersion, assertPreviewIsolation } from './verify-preview-backend.mjs';
 
 const html = readFileSync(join(rootDir, 'index.html'));
+const deployed=buildHostingArtifact().bytes;
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'forja-pipeline-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
@@ -62,7 +64,7 @@ test('artefato contém somente o HTML e sua preparação é repetível', t => {
   writeFileSync(join(root, '.firebase-public', 'nao-publicar.txt'), 'documentação');
   prepareHosting(root);
   assert.deepEqual(readdirSync(join(root, '.firebase-public')), ['assets', googleVerificationFile, 'index.html', 'privacidade', 'termos']);
-  assert.ok(readFileSync(join(root, '.firebase-public', 'index.html')).equals(html));
+  assert.ok(readFileSync(join(root, '.firebase-public', 'index.html')).equals(deployed));
 });
 test('Search Console: nome exato, bytes sem newline e arquivo preservado ao recriar o artefato', t => {
   const root=fixture(t);
@@ -111,13 +113,13 @@ test('Search Console: verificação aguarda uma falha transitória sem aceitar r
 test('verificação pública aguarda propagação e recusa bytes errados com mesmo marker', async t => {
   let body = Buffer.from('versão antiga');
   let calls = 0;
-  const server = createServer((_req, res) => { calls++; res.end(calls === 1 ? body : html); });
+  const server = createServer((_req, res) => { calls++; res.end(calls === 1 ? body : deployed); });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
   const url = `http://127.0.0.1:${server.address().port}`;
   await verifyHosting(url, { attempts: 2, delayMs: 1 });
   assert.equal(calls, 2);
-  body = Buffer.concat([html, Buffer.from('alterado')]);
+  body = Buffer.concat([deployed, Buffer.from('alterado')]);
   calls = 0;
   await assert.rejects(verifyHosting(url, { attempts: 1 }), /HTML servido diferente/);
 });
@@ -147,13 +149,15 @@ test('artefato Preview muda somente a declaração da API e preserva a fonte ofi
     `const FORJA_API_URL = "${productionApiUrl}";`,
     `const FORJA_API_URL = "${previewApiUrl}";`,
   ));
-  assert.ok(artifact.equals(expected));
+  const built=buildHostingArtifact(root,{previewApiUrl});
+  assert.ok(expandStaticResources(artifact,built.resources).equals(expected));
   assert.ok(readFileSync(join(root, 'index.html')).equals(html));
   assert.equal(result.target, 'preview');
-  assert.equal(result.sha256, sha256(expected));
+  assert.equal(result.sha256, sha256(artifact));
+  assert.equal(result.sourceSha256,sha256(expected));
   assert.notEqual(result.sha256, referenceSha256);
-  assert.equal(artifact.toString().includes(productionApiUrl), false);
-  assert.equal(artifact.toString().includes(previewApiUrl), true);
+  assert.equal(expandStaticResources(artifact,built.resources).toString().includes(productionApiUrl), false);
+  assert.equal(expandStaticResources(artifact,built.resources).toString().includes(previewApiUrl), true);
   assert.deepEqual(readdirSync(join(root, '.firebase-public')), ['assets', googleVerificationFile, 'index.html', 'privacidade', 'termos']);
 });
 
@@ -162,11 +166,14 @@ test('preparar produção depois de Preview restaura integralmente o artefato of
   prepareHosting(root, { previewApiUrl });
   const result = prepareHosting(root);
   const artifact = readFileSync(join(root, '.firebase-public', 'index.html'));
-  assert.ok(artifact.equals(html));
+  assert.ok(artifact.equals(deployed));
+  const built=buildHostingArtifact(root);
+  assert.ok(expandStaticResources(artifact,built.resources).equals(html));
   assert.equal(result.target, 'production');
-  assert.equal(result.sha256, referenceSha256);
-  assert.equal(artifact.toString().includes(previewApiUrl), false);
-  assert.equal(artifact.toString().includes(productionApiUrl), true);
+  assert.equal(result.sha256, sha256(deployed));
+  assert.equal(result.sourceSha256, referenceSha256);
+  assert.equal(expandStaticResources(artifact,built.resources).toString().includes(previewApiUrl), false);
+  assert.equal(expandStaticResources(artifact,built.resources).toString().includes(productionApiUrl), true);
 });
 
 test('variável temporária não afeta produção e --preview exige URL explícita', t => {
@@ -178,7 +185,7 @@ test('variável temporária não afeta produção e --preview exige URL explíci
   process.env.FORJA_PREVIEW_API_URL = previewApiUrl;
   assert.deepEqual(hostingOptionsFromArgs([]), {});
   assert.deepEqual(hostingOptionsFromArgs(['--preview']), { previewApiUrl });
-  assert.equal(buildHostingArtifact(rootDir, hostingOptionsFromArgs([])).result.sha256, referenceSha256);
+  assert.equal(buildHostingArtifact(rootDir, hostingOptionsFromArgs([])).result.sourceSha256, referenceSha256);
   delete process.env.FORJA_PREVIEW_API_URL;
   assert.throws(() => hostingOptionsFromArgs(['--preview']), /URL do backend Preview obrigatória/);
   assert.throws(() => hostingOptionsFromArgs(['--preview', '--production']), /Use somente/);
@@ -225,7 +232,7 @@ test('verificação exige o hash exato do Preview e continua recusando Preview c
   await assert.rejects(verifyHosting(url, { attempts: 1 }), /HTML servido diferente/);
   body = Buffer.concat([previewBytes, Buffer.from('alteração indevida')]);
   await assert.rejects(verifyHosting(url, { expected: previewBytes, attempts: 1 }), /HTML servido diferente/);
-  body = html;
+  body = deployed;
   await verifyHosting(url, { attempts: 1 });
   await assert.rejects(verifyHosting(url, { expected: previewBytes, attempts: 1 }), /HTML servido diferente/);
 });
