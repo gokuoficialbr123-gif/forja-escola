@@ -5,11 +5,11 @@ const artifact=buildHostingArtifact();
 async function setup(t,options={}){const f=await performancePortal({browser,...artifact,requestDelay:10,secondaryDelay:10,...options});t.after(()=>f.close());return f}
 test('performance edits restore exact published source, preserving every older integrity guard',()=>assert.equal(sha256(withoutPerformanceChanges(readFileSync(new URL('../index.html',import.meta.url),'utf8'))),'43731860d9923001c68f097a76068e082c2c7aeaebc5cbe77161cd2732b790eb'));
 for(const mobile of[false,true])test(`artifact ${mobile?'mobile':'desktop'}: authenticated navigation works while secondary data is pending, no fake empty data`,async t=>{
- const f=await setup(t,{mobile}),release=f.hold('/admin/familias');await f.login();
+ const f=await setup(t,{mobile}),releaseHome=f.hold('/admin/aluno-materias'),release=f.hold('/turmas');await f.login();
  await f.page.waitForFunction(()=>document.querySelector('#workspacePage')?.textContent&&state.role==='admin'&&state.loading);
  assert.equal(await f.page.locator('#processOverlay').isVisible(),false);
  await f.page.evaluate(()=>navigate('usuarios'));assert.match(await f.page.locator('#workspaceContent').textContent(),/Carregando/);assert.equal(await f.page.locator('[data-action=newUser]').count(),0);
- release();await f.page.waitForFunction(()=>!state.loading);assert.equal(await f.page.evaluate(()=>state.page),'usuarios');await f.page.locator('[data-action=newUser]').waitFor({state:'visible'});assert.deepEqual(f.errors,[]);
+ releaseHome();release();await f.page.waitForFunction(()=>!state.loading);assert.equal(await f.page.evaluate(()=>state.page),'usuarios');await f.page.locator('[data-action=newUser]').waitFor({state:'visible'});assert.deepEqual(f.errors,[]);
  const before=f.calls.length;await f.page.evaluate(()=>navigate('agenda'));await f.page.waitForFunction(()=>Object.values(state.v631CentralRanges||{}).some(r=>r.valid));
  assert.equal(f.calls.slice(0,before).filter(x=>x.path.includes('google-central-busy')).length,0);
  const releaseWeek=f.hold('/admin/disponibilidades-semana'),weekStart=f.calls.length;
@@ -43,6 +43,7 @@ for(const mobile of[false,true])test(`public, login and cadastro ${mobile?'mobil
   await f.page.waitForFunction(()=>document.querySelector('.public-header img').complete&&document.querySelector('.public-header img').naturalWidth>0);
   const publicStyle=await f.page.locator('.public-header').evaluate(el=>{const c=getComputedStyle(el);return {color:c.color,background:c.backgroundColor,padding:c.padding,height:el.getBoundingClientRect().height,logo:el.querySelector('img').naturalWidth}});
   await f.page.evaluate(()=>showLogin());await f.page.locator('#loginEmail').waitFor({state:'visible'});
+  await f.page.locator('#loginView').evaluate(async el=>{await Promise.all(el.getAnimations({subtree:true}).filter(a=>Number.isFinite(a.effect.getComputedTiming().endTime)).map(a=>a.finished.catch(()=>{})))});
   const loginStyle=await f.page.locator('#loginEmail').evaluate(el=>{const c=getComputedStyle(el);return {color:c.color,background:c.backgroundColor,padding:c.padding,radius:c.borderRadius,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height}});
   await f.login();await f.page.waitForFunction(()=>!state.loading);await f.page.evaluate(()=>{navigate('usuarios');newUserModal()});
   const formStyle=await f.page.locator('#forjaNewUserDialog').evaluate(el=>{const c=getComputedStyle(el);return {color:c.color,background:c.backgroundColor,padding:c.padding,radius:c.borderRadius,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,profiles:el.querySelectorAll('[name=newUserProfile]').length}});

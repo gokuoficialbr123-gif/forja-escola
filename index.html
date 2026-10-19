@@ -3806,6 +3806,7 @@ function forjaChangeSession(uid){
   if(typeof forjaClearLessonCancellationDrafts==='function')forjaClearLessonCancellationDrafts();
   forjaSessionGeneration++;forjaAvailabilityRequestSequence++;forjaSessionUID=uid;
   if(typeof forjaCancelProfileOperation==="function")forjaCancelProfileOperation();
+  if(typeof forjaResetAdminPageData==="function")forjaResetAdminPageData();
   if(typeof hideProcess==='function')hideProcess();
   for(const controller of forjaSessionRequests)controller.abort();forjaSessionRequests.clear();
   if(forjaSessionDefaults){
@@ -3843,6 +3844,7 @@ async function api(path,{method="GET",body=null,authRequired=true,session=null,s
     const data=await response.json().catch(()=>({}));
     if(scope)forjaAssertSession(scope);
     if(!response.ok){const e=new Error(data.error||`Erro ${response.status}`);e.status=response.status;e.code=data.code;e.bookingState=data.bookingState;e.googleVerification=data.googleVerification;e.googleDiagnosis=data.googleDiagnosis;if(path==="/google/calendar/connection"&&method==="DELETE")e.disconnectResult=googlePersonalDisconnectResult(data);if(data.code==='BOOKING_REQUEST_CHANGED')e.bookingExistingItem=data.item;if(String(data.code||'').startsWith('RECURRING_')){e.occurrences=data.occurrences;e.seriesId=data.seriesId;}throw e}
+    if(["POST","PATCH","DELETE"].includes(method)&&typeof forjaAdminMutationCommitted==="function")forjaAdminMutationCommitted(path);
     return data;
   }catch(error){if(scope&&!forjaSessionCurrent(scope))throw forjaStaleSession();throw error;}
   finally{signal?.removeEventListener("abort",abort);forjaSessionRequests.delete(controller);}
@@ -3887,7 +3889,7 @@ async function forjaProfileOnce(session,operation){
  try{
   if(operation.controller.signal.aborted)throw forjaStaleSession();
   return await Promise.race([
-   api('/me',{session,signal:controller.signal}),
+   api('/me?view=portal',{session,signal:controller.signal}),
    new Promise((_,reject)=>{rejectCanceled=reject;timer=setTimeout(()=>{reject(forjaProfileError('FORJA_PROFILE_TIMEOUT'));controller.abort();},20000);})
   ]);
  }finally{clearTimeout(timer);operation.controller.signal.removeEventListener('abort',canceled);controller.abort();}
@@ -4741,7 +4743,7 @@ function downloadBlob(content,type,name){const a=document.createElement("a"),u=U
 function exportReport(kind){const rows=reportRows();if(kind==="csv"){downloadBlob('\ufeff'+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(';')).join('\n'),"text/csv;charset=utf-8","forja-relatorio.csv");return}if(kind==="xls"){const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Relatório"><Table>${rows.map(r=>`<Row>${r.map(v=>`<Cell><Data ss:Type="String">${esc(v)}</Data></Cell>`).join('')}</Row>`).join('')}</Table></Worksheet></Workbook>`;downloadBlob(xml,"application/vnd.ms-excel","forja-relatorio.xls");return}const w=window.open("","_blank");if(!w){toast("Permita pop-ups para gerar o PDF.","warn");return}w.document.write(`<html><head><title>Relatório ${esc(schoolDisplayName())}</title><style>body{font-family:Arial;padding:40px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:10px}h1{color:#081f2e}
 </style></head><body><h1>Relatório ${esc(schoolDisplayName())}</h1><p>Gerado em ${new Date().toLocaleString('pt-BR')}</p><table>${rows.map((r,i)=>`<tr>${r.map(v=>i===0?`<th>${esc(v)}</th>`:`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</table></body></html>`);w.document.close();w.focus();setTimeout(()=>w.print(),250)}
 
-async function reloadAndRender(){const session=forjaCaptureSession(),page=state.page;$("#workspaceContent").innerHTML=loading("Atualizando dados...");try{await loadRoleData();forjaAssertSession(session);state.page=page;renderShell();renderPage()}catch(e){if(!forjaSessionCurrent(session))return;console.error(e);$("#workspaceContent").innerHTML=`${loadIssueBanner()}${empty("Não foi possível atualizar os dados",e.message||"Tente novamente.")}`;throw e}}
+async function reloadAndRender(){if(state.role==="admin"&&typeof forjaResetAdminPageData==="function")forjaResetAdminPageData();const session=forjaCaptureSession(),page=state.page;$("#workspaceContent").innerHTML=loading("Atualizando dados...");try{await loadRoleData();forjaAssertSession(session);if(state.role==="admin"&&state.page!==page)return;state.page=page;renderShell();renderPage()}catch(e){if(!forjaSessionCurrent(session)||(state.role==="admin"&&state.page!==page))return;console.error(e);$("#workspaceContent").innerHTML=`${loadIssueBanner()}${empty("Não foi possível atualizar os dados",e.message||"Tente novamente.")}`;throw e}}
 function mobileSearch(){modal("Buscar no portal",`<div class="form-grid"><div class="full"><label>O que você procura?</label><div class="mobile-search-field"><input id="mobileGlobalSearch" placeholder="Aluno, aula, tarefa, solicitação..."><button class="btn gold" id="mobileGlobalSearchBtn">Buscar</button></div></div></div>`);const input=$("#mobileGlobalSearch"),go=()=>runGlobalSearch(input?.value||"");$("#mobileGlobalSearchBtn").onclick=go;input?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();go()}})}
 function mobileMore(){const menu=[...(MENUS[state.role]||[])];if(state.role==="student"&&(state.profile?.therapyActive===true||state.sessions.length)&&!menu.some(x=>x[0]==="terapia"))menu.splice(4,0,["terapia","Terapia"]);if(state.role==="parent"&&(state.therapyProjection.length||state.students.some(x=>x.therapyActive===true))&&!menu.some(x=>x[0]==="terapia"))menu.splice(4,0,["terapia","Terapia"]);const primaryIds=MOBILE_PRIMARY[state.role]||[],extras=menu.filter(([id])=>!primaryIds.includes(id));modal("Mais opções",`<div class="mobile-more-heading"><b>Outras áreas do portal</b><small>Conta e notificações ficam nos ícones do topo.</small></div><div class="mobile-more-list">${groupedMobileMenuMarkup(extras)}</div>`);$$('[data-mobile-page]').forEach(b=>b.onclick=()=>{closeModal();navigate(b.dataset.mobilePage)})}
 function quickAction(){const actions=state.role==="admin"?[["Criar aula","newLesson"],["Agendar sessão","newSession"],["Novo usuário","newUser"]]:state.role==="teacher"?[["Marcar ocupado","newUnavailable"]]:state.role==="psychologist"?[["Marcar ocupado","newUnavailable"]]:[];if(!actions.length){toast("Nenhuma ação rápida disponível neste perfil.");return}modal("Ação rápida",actions.map(([l,a])=>`<button class="role-action" data-quick="${a}">${esc(l)} <span>→</span></button>`).join(""));$$('[data-quick]').forEach(b=>b.onclick=()=>{closeModal();action(b.dataset.quick)})}
@@ -7730,6 +7732,123 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
 #googleSecretariaCard .central-busy-row small{display:block;margin-top:4px}
 @media(max-width:600px){#googleSecretariaCard .central-busy-controls{grid-template-columns:minmax(0,1fr)}}
 </style>
+<script id="forja-admin-page-data-script">
+// Administrative reads are demand-driven. Booking writes and final checks are unchanged.
+let forjaAdminDataContext=null;
+function forjaResetAdminPageData(){
+ const old=forjaAdminDataContext;forjaAdminDataContext=null;
+ if(old)for(const record of old.records.values())record.controller.abort();
+}
+function forjaAdminData(){
+ const scope=forjaCaptureSession();forjaAssertSession(scope);
+ if(!forjaAdminDataContext||forjaAdminDataContext.scope.uid!==scope.uid||forjaAdminDataContext.scope.generation!==scope.generation){forjaResetAdminPageData();forjaAdminDataContext={scope,records:new Map(),view:null};}
+ return forjaAdminDataContext;
+}
+const FORJA_ADMIN_READS={
+ config:['/configuracoes/escola','schoolConfig','item'],notifications:['/notificacoes','notifications','items'],
+ series:['/admin/catalogos/series','series','items'],subjects:['/admin/catalogos/disciplinas','subjects','items'],
+ users:['/admin/usuarios','users','users'],lessons:['/aulas','lessons','items'],sessions:['/sessoes-terapia','sessions','items'],
+ blocks:['/indisponibilidades','unavailability','items'],calendar:['/calendario-escolar','calendar','items'],
+ enrollments:['/admin/matriculas','enrollments','items'],links:['/admin/vinculos','linkRequests','items'],
+ documents:['/documentos','documents','items'],announcements:['/comunicados','announcements','items'],
+ support:['/acompanhamentos','supportItems','items'],requests:['/solicitacoes','requests','items'],
+ periods:['/periodos-letivos','periods','items'],classes:['/turmas','classes','items'],evaluations:['/avaliacoes','evaluations','items'],
+ grades:['/notas','grades','items'],tasks:['/tarefas','tasks','items'],reports:['/relatorios/resumo','reportSummary','item'],
+ audit:['/auditoria','auditItems','items'],training:['/treinamentos','trainingRecords','items'],goals:['/metas','goals','items'],
+ records:['/admin/pendencias-registro','registrationPendencies','items'],therapy:['/terapia/solicitacoes','therapyRequests','items'],
+ skills:['/competencias','competencies','items'],packages:['/admin/aluno-materias','secretarySubjectLinksD','items'],
+ google:['/admin/google-calendar/connections','googleConnections','items'],busy:['/google/calendar/busy','googleBusy','items'],
+ families:['/admin/familias','familyDataG','families'],week:['/admin/disponibilidades-semana','adminAvailabilityWeekV616','week']
+};
+const FORJA_ADMIN_HOME=['series','subjects','users','lessons','sessions','enrollments','links','records','therapy','packages','week'];
+const FORJA_ADMIN_AGENDA=['series','subjects','users','lessons','sessions','blocks','calendar','google','busy','packages','week'];
+const FORJA_ADMIN_ACADEMIC=['series','subjects','users','periods','classes','evaluations','grades','tasks','lessons'];
+const FORJA_ADMIN_PAGE_READS={
+ inicio:FORJA_ADMIN_HOME,agenda:FORJA_ADMIN_AGENDA,disponibilidade:FORJA_ADMIN_AGENDA,indisponibilidades:FORJA_ADMIN_AGENDA,
+ pendencias:FORJA_ADMIN_HOME,atendimentos:['series','subjects','users','lessons','sessions','therapy'],
+ alunos:['series','subjects','users','lessons','sessions','packages','tasks','training','goals','skills','therapy','support','periods','classes','evaluations','grades','records','families'],
+ cadastros:['series','subjects','users','enrollments','links','periods','classes','documents','week'],
+ usuarios:['series','subjects','users','periods','classes'],catalogos:['series','subjects'],
+ matriculas:['series','subjects','users','enrollments'],vinculos:['users','links','families'],
+ configuracoes:['users','periods','google'],relatorios:['reports'],auditoria:['users','audit'],
+ aulas:['series','subjects','users','lessons'],sessoes:['users','sessions','therapy'],
+ 'terapia-solicitacoes':['users','sessions','therapy'],calendario:['calendar'],
+ academico:FORJA_ADMIN_ACADEMIC,avaliacoes:FORJA_ADMIN_ACADEMIC,tarefas:FORJA_ADMIN_ACADEMIC,
+ frequencia:['series','subjects','users','lessons','training'],treinamentos:['series','subjects','users','lessons','training','goals','skills','records'],
+ acompanhamento:['users','support','lessons','subjects'],solicitacoes:['users','requests'],comunicados:['announcements'],documentos:['documents'],
+ notificacoes:[],perfil:[],conta:[]
+};
+function forjaAdminReadKeys(page){return [...new Set(['config','notifications',...(FORJA_ADMIN_PAGE_READS[page]||Object.keys(FORJA_ADMIN_READS))])];}
+async function forjaAdminRead(context,key){
+ const identity=key==='week'?v616CurrentWeek():key,existing=context.records.get(key);if(existing&&existing.identity===identity&&(existing.promise||existing.done&&performance.now()-existing.at<30000))return existing.promise;
+ const record={identity,controller:new AbortController(),done:false,at:0,promise:null};context.records.set(key,record);
+ const same=()=>forjaAdminDataContext===context&&context.records.get(key)===record&&state.role==='admin'&&state.profile?.role==='admin'&&forjaSessionCurrent(context.scope);
+ record.promise=(async()=>{
+  const [route,field,kind]=FORJA_ADMIN_READS[key],week=kind==='week'?v616CurrentWeek():null;
+  let deadline,rejectCanceled;const canceled=()=>rejectCanceled?.(forjaStaleSession());record.controller.signal.addEventListener('abort',canceled,{once:true});
+  let data;try{data=await Promise.race([api(route+(week?'?weekStart='+encodeURIComponent(week):''),{session:context.scope,signal:record.controller.signal}),new Promise((_,reject)=>{rejectCanceled=reject;deadline=setTimeout(()=>{reject(Error('FORJA_AREA_TIMEOUT'));record.controller.abort();},20000)})]);}finally{clearTimeout(deadline);record.controller.signal.removeEventListener('abort',canceled);}
+  if(!same())throw forjaStaleSession();
+  if(kind==='families'){
+   if(!['links','pending','unlinkedStudents'].every(k=>Array.isArray(data[k])))throw Error('FORJA_AREA_DATA_INVALID');
+   state[field]={links:data.links,pending:data.pending,unlinkedStudents:data.unlinkedStudents};
+  }else if(kind==='week'){
+   if(!Array.isArray(data.items)||data.weekStart!==week)throw Error('FORJA_AREA_DATA_INVALID');
+   const map={};for(const entry of data.items)map[entry.uid]=entry;
+   state.adminAvailabilityWeekV616=map;state.adminAvailabilityWeekStartV616=week;state.v621AdminWeekCache[week]=map;
+   state.adminProfessionalWeekMapV619=map;state.adminProfessionalWeekLoadedV619=week;
+  }else{
+   const value=data[kind];if(kind==='item'?(!value||typeof value!=='object'||Array.isArray(value)):!Array.isArray(value))throw Error('FORJA_AREA_DATA_INVALID');
+   state[field]=value;
+   if(key==='users')state.students=value.filter(x=>x.role==='student'&&x.active!==false);
+   if(key==='packages')state.secretarySubjectLinksLoadedD=true;
+   if(key==='google')state.googleCalendar={configured:data.configured===true,webhookConfigured:data.webhookConfigured===true,item:{}};
+   if(key==='busy')state.googleBusyUnavailable=data.complete===false||data.status==='unavailable';
+  }
+  record.done=true;record.at=performance.now();
+ })().finally(()=>{record.promise=null;if(!record.done&&context.records.get(key)===record)context.records.delete(key)});
+ return record.promise;
+}
+function forjaAdminView(page=state.page){
+ const context=forjaAdminData(),week=v616CurrentWeek();if(context.view?.page===page&&context.view.week===week)return context.view;
+ const view={page,week,context,done:false,error:false,promise:null};context.view=view;
+ view.promise=Promise.all(forjaAdminReadKeys(page).map(key=>forjaAdminRead(context,key))).then(()=>{view.done=true;applySchoolIdentity();},e=>{if(e?.code==='FORJA_STALE_SESSION')throw e;view.error=true;}).finally(()=>{
+  if(forjaAdminDataContext===context&&context.view===view&&forjaSessionCurrent(context.scope)&&state.page===page){if(!view.awaitedByLoader){state.loading=false;renderShell();renderPage();}}
+ });
+ // Navigation may move away before a canceled view finishes.
+ void view.promise.catch(()=>{});return view;
+}
+const forjaLegacyLoadRoleData=loadRoleData;
+loadRoleData=async function(){
+ if(state.role!=='admin'){forjaResetAdminPageData();return forjaLegacyLoadRoleData();}
+ const scope=forjaCaptureSession(),view=forjaAdminView();view.awaitedByLoader=true;await view.promise;forjaAssertSession(scope);
+};
+const forjaLegacyRenderPage=renderPage;
+renderPage=function(){
+ if(state.role!=='admin'||!state.profile)return forjaLegacyRenderPage();
+ const view=forjaAdminView(),content=$("#workspaceContent");
+ if(!view.done&&!view.error){state.loading=true;if(content)content.innerHTML=loading('Carregando os dados desta área...');return;}
+ state.loading=false;
+ if(view.error){if(content)content.innerHTML=`${empty('Não foi possível carregar esta área','Os dados não foram confirmados. Tente novamente; nenhuma lista vazia foi considerada definitiva.')}<button type="button" class="btn ghost" data-admin-data-retry>Tentar novamente</button>`;content?.querySelector('[data-admin-data-retry]')?.addEventListener('click',()=>{forjaResetAdminPageData();renderPage()});return;}
+ return forjaLegacyRenderPage();
+};
+const forjaLegacyNavigate=navigate;
+navigate=function(page){if(state.role==='admin'&&forjaAdminDataContext)forjaAdminDataContext.view=null;const result=forjaLegacyNavigate(page);if(state.page!=='configuracoes')window.forjaCentralPageLifecycle?.();return result;};
+function forjaAdminMutationCommitted(path){if(state.role==='admin'&&path!=='/me/acesso'&&path!=='/admin/google-calendar/central/freebusy')forjaResetAdminPageData();}
+async function forjaAdminCommand(keys,work){
+ const context=forjaAdminData();try{await Promise.all([...new Set(keys)].map(key=>forjaAdminRead(context,key)));if(forjaAdminDataContext!==context||!forjaSessionCurrent(context.scope))return;return work();}
+ catch(e){if(e?.code!=='FORJA_STALE_SESSION'&&forjaSessionCurrent(context.scope))toast('Não foi possível confirmar os dados desta ação. Tente novamente.','bad');}
+}
+const forjaLegacyAction=action;
+action=function(name){
+ if(state.role!=='admin')return forjaLegacyAction(name);
+ const keys=['newLesson','newSession','newUnavailable'].includes(name)?FORJA_ADMIN_AGENDA:forjaAdminReadKeys(name==='newUser'?'usuarios':state.page);
+ return forjaAdminCommand(keys,()=>forjaLegacyAction(name));
+};
+for(const [name,keys]of [['openLesson',['series','subjects','users','lessons','training','goals','skills','tasks','records']],['openSession',['users','sessions','therapy']],['openUser',Object.keys(FORJA_ADMIN_READS).filter(k=>!['audit','reports','announcements','documents','google','busy','requests','support'].includes(k))],['openSecretaryStudentWorkspaceD',forjaAdminReadKeys('alunos')]]){
+ const original=window[name];window[name]=function(...args){return state.role==='admin'?forjaAdminCommand(keys,()=>original(...args)):original(...args);};
+}
+</script>
+
 <script id="forja-google-secretaria-script">
 /* Central Google: CalendarList, on-demand freeBusy and server-owned Preview isolation. */
 (function(){
@@ -7859,6 +7978,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     const entry={uid};viewEntry=entry;rememberCentralView(true);
     entry.promise=(async()=>{await loadCentral();if(viewEntry===entry&&uid===state.user?.uid&&centralVisible())await autoRefreshCentral()})();
   }
+  window.forjaCentralPageLifecycle=enterCentralView;
   function timestampMs(value){
     if(value&&typeof value==='object'){const seconds=value.seconds??value._seconds;return typeof seconds==='number'?seconds*1000:NaN}
     return typeof value==='string'?Date.parse(value):NaN;

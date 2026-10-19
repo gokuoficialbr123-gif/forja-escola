@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 export function invitationDemoArtifact(source){
  let html=source.toString('utf8');
+ // The explicit in-memory demo keeps its existing complete-data fixture. Its
+ // synthetic API intentionally does not implement the live lazy-read contract.
+ html=html.replace(/<script id="forja-admin-page-data-script">[\s\S]*?<\/script>\s*/, '');
  const sdk=/<script src="https:\/\/www\.gstatic\.com\/firebasejs\/10\.14\.1\/firebase-(?:app|auth)-compat\.js"><\/script>/g;
  assert.equal([...html.matchAll(sdk)].length,2,'As duas dependências reais do Firebase devem ser removidas do demo.');
  html=html.replace(sdk,'');

@@ -49,6 +49,7 @@ async function fixture(t,{mobile=false,ageMs=301000,reauth=false,failList=0,oaut
    provider.lastRefreshAt={seconds:Date.now()/1000};provider.lastRefreshStatus='success';return json(list());
   }
   if(url.pathname==='/admin/usuarios')return json({users:[{uid:'LOCAL_ADMIN',role:'admin',active:true,fullName:'Admin local'},{uid:'LOCAL_TEACHER',role:'teacher',active:true,fullName:'Professor local'}]});
+  if(url.pathname==='/admin/disponibilidades-semana')return json({items:[],weekStart:url.searchParams.get('weekStart')});
   return json({ok:true,items:[],item:{},connections:[]});
  });
  await page.goto(local+(oauth?'/?googleSecretaria=connected':'/'));
@@ -90,6 +91,9 @@ test('real portal: scope/account status is rechecked on each entry instead of re
 test('real portal: F5 in settings restores that view and refreshes expired metadata once',async t=>{
  const f=await fixture(t,{ageMs:0});await f.enter();f.provider.lastRefreshAt={seconds:(Date.now()-301000)/1000};
  await f.page.reload();await f.page.waitForFunction(()=>state.role==='admin'&&!state.loading&&!state.googleSecretaria.loading&&!state.googleSecretaria.listLoading);
+ // Wait for the positive result of the entry's asynchronous refresh, rather
+ // than an idle flag that can be observed before that entry starts loading.
+ await f.page.waitForFunction(()=>{const g=state.googleSecretaria,v=g.lastRefreshAt,at=typeof v==='string'?Date.parse(v):(v?.seconds??v?._seconds)*1000;return g.lastRefreshStatus==='success'&&Date.now()-at<5000&&!g.loading&&!g.listLoading});
  assert.equal(await f.page.evaluate(()=>state.page),'configuracoes');assert.equal(f.posts().length,1);
 });
 test('real portal: F5 in settings with a fresh snapshot restores view without a POST',async t=>{
@@ -104,6 +108,7 @@ test('real portal: session settings marker from another admin never restores the
 });
 test('real portal: OAuth return opens settings and refreshes not_refreshed even with a recent timestamp',async t=>{
  const f=await fixture(t,{oauth:true,ageMs:0,status:'not_refreshed'});await f.page.waitForFunction(()=>!state.googleSecretaria.loading&&!state.googleSecretaria.listLoading);
+ await f.page.waitForFunction(()=>state.googleSecretaria.lastRefreshStatus==='success'&&!state.googleSecretaria.loading&&!state.googleSecretaria.listLoading);
  assert.equal(await f.page.evaluate(()=>state.page),'configuracoes');assert.equal(f.posts().length,1);
 });
 test('real portal: repeated binding and reentry during automatic refresh never duplicate POST',async t=>{
