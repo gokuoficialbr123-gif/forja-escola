@@ -1,3 +1,15 @@
+## 19/10/2026 — Hotfix login travado: preparado, não publicado
+
+- Reproduzido overlay preso após /me falhar: signOut invalida o UID e o finally
+  condicionado à sessão deixa o loading aberto no login manual.
+- Validação do perfil limitada a 20s por tentativa, duas tentativas transitórias;
+  erros claros e botão Tentar novamente, sem logout automático por falha de rede.
+- Limpeza da tentativa por proprietário e UID/geração; respostas antigas não
+  escondem o login novo. Portal exige perfil ativo e permissões válidas.
+- Regressões de rede, timeout, conta/sessão, recuperação e Auth/Firestore local;
+  guarda restaura exatamente a main publicada, sem alterar Agenda ou backend.
+- Sem merge, deploy ou testes com dados reais. Ver docs/LOGIN_HOTFIX_2026-10.md.
+
 ## 18/10/2026 — desempenho, preparado e NÃO publicado
 
 - Auditoria da produção71dca65(frontend)/9bb86ec(backend); benchmark Chromium

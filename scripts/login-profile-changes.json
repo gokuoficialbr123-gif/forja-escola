@@ -1,0 +1,72 @@
+[
+  {
+    "before": "      <button class=\"btn gold full\" data-action=\"enterPortal\">Entrar</button>",
+    "after": "      <button class=\"btn gold full\" data-action=\"enterPortal\">Entrar</button>\n      <button type=\"button\" id=\"loginProfileRetry\" class=\"btn ghost full hidden\">Tentar novamente</button>",
+    "positions": [
+      736346
+    ]
+  },
+  {
+    "before": "async function getProfile(){\n  const me=await api(\"/me\");\n  if(!me?.profile)throw new Error(\"Seu cadastro não foi encontrado na FORJA.\");\n  if(!ROLE_UI[me.profile.role])throw new Error(\"Perfil de acesso inválido.\");\n  return me.profile;\n}",
+    "after": "// Profile loading is bounded independently of business/booking requests.\nlet forjaProfileOperation=null;\nfunction forjaCancelProfileOperation(){const operation=forjaProfileOperation;forjaProfileOperation=null;operation?.controller.abort();forjaHideProfileRetry();}\nfunction forjaHideProfileRetry(){const b=$(\"#loginProfileRetry\");if(b){b.classList.add(\"hidden\");b.onclick=null;}}\nfunction forjaProfileError(code,status=0){const e=new Error(code);e.code=code;e.status=status;return e;}\nfunction forjaProfileRetryable(e){return e?.code==='FORJA_PROFILE_TIMEOUT'||e instanceof TypeError||[408,500,502,503,504].includes(e?.status);}\nfunction forjaProfileMessage(e){\n if(e?.code==='FORJA_PROFILE_TIMEOUT')return \"O servidor demorou para validar seu perfil. Ele pode estar iniciando. Tente novamente em instantes.\";\n if(e instanceof TypeError||[408,500,502,503,504].includes(e?.status))return \"Não foi possível alcançar o servidor FORJA. Verifique sua conexão e tente novamente em instantes.\";\n if(e?.status===429)return \"Muitas tentativas. Aguarde um pouco e tente novamente.\";\n if(e?.status===401)return \"Não foi possível validar sua sessão. Entre novamente com seu e-mail e senha.\";\n if(e?.status===403)return \"Seu acesso não foi autorizado. Verifique sua conta com a Secretaria.\";\n return \"Não foi possível validar seu perfil e permissões FORJA. Tente novamente; se persistir, procure a Secretaria.\";\n}\nasync function forjaProfileOnce(session,operation){\n const controller=new AbortController();let timer,rejectCanceled;\n const canceled=()=>{rejectCanceled?.(forjaStaleSession());controller.abort();};operation.controller.signal.addEventListener('abort',canceled,{once:true});\n try{\n  if(operation.controller.signal.aborted)throw forjaStaleSession();\n  return await Promise.race([\n   api('/me',{session,signal:controller.signal}),\n   new Promise((_,reject)=>{rejectCanceled=reject;timer=setTimeout(()=>{reject(forjaProfileError('FORJA_PROFILE_TIMEOUT'));controller.abort();},20000);})\n  ]);\n }finally{clearTimeout(timer);operation.controller.signal.removeEventListener('abort',canceled);controller.abort();}\n}\nasync function forjaProfilePause(operation){\n let timer;const signal=operation.controller.signal;\n await new Promise((resolve,reject)=>{const canceled=()=>{clearTimeout(timer);reject(forjaStaleSession());};if(signal.aborted)return canceled();signal.addEventListener('abort',canceled,{once:true});timer=setTimeout(()=>{signal.removeEventListener('abort',canceled);resolve();},1000);});\n}\nasync function getProfile(session,operation){\n for(let attempt=0;attempt<2;attempt++){\n  try{\n   const me=await forjaProfileOnce(session,operation);forjaAssertSession(session);\n   if(forjaProfileOperation!==operation)throw forjaStaleSession();\n   if(!me?.profile||!Object.hasOwn(ROLE_UI,me.profile.role)||me.profile.active!==true||(me.uid&&me.uid!==session.uid)||(me.profile.uid&&me.profile.uid!==session.uid))throw forjaProfileError('FORJA_PROFILE_INVALID');\n   return me.profile;\n  }catch(e){\n   if(!forjaSessionCurrent(session)||forjaProfileOperation!==operation)throw forjaStaleSession();\n   if(attempt||!forjaProfileRetryable(e))throw e;\n   updateProcess(\"Aguardando o servidor...\",\"O servidor pode estar iniciando. Faremos mais uma tentativa limitada.\",\"Conta\");\n   await forjaProfilePause(operation);\n  }\n }\n}",
+    "positions": [
+      848004
+    ]
+  },
+  {
+    "before": "  forjaSessionGeneration++;forjaAvailabilityRequestSequence++;forjaSessionUID=uid;",
+    "after": "  forjaSessionGeneration++;forjaAvailabilityRequestSequence++;forjaSessionUID=uid;\n  if(typeof forjaCancelProfileOperation===\"function\")forjaCancelProfileOperation();",
+    "positions": [
+      844376
+    ]
+  },
+  {
+    "before": "async function api(path,{method=\"GET\",body=null,authRequired=true,session=null}={}){",
+    "after": "async function api(path,{method=\"GET\",body=null,authRequired=true,session=null,signal=null}={}){",
+    "positions": [
+      845536
+    ]
+  },
+  {
+    "before": "  if(scope){forjaAssertSession(scope);forjaSessionRequests.add(controller);}\n  try{",
+    "after": "  if(scope){forjaAssertSession(scope);forjaSessionRequests.add(controller);}\n  const abort=()=>controller.abort();if(signal?.aborted)abort();else signal?.addEventListener(\"abort\",abort,{once:true});\n  try{\n    controller.signal.throwIfAborted();",
+    "positions": [
+      845735
+    ]
+  },
+  {
+    "before": "    const response=await fetch(`${FORJA_API_URL}${path}`,",
+    "after": "    controller.signal.throwIfAborted();\n    const response=await fetch(`${FORJA_API_URL}${path}`,",
+    "positions": [
+      846469
+    ]
+  },
+  {
+    "before": "  finally{forjaSessionRequests.delete(controller);}",
+    "after": "  finally{signal?.removeEventListener(\"abort\",abort);forjaSessionRequests.delete(controller);}",
+    "positions": [
+      847404
+    ]
+  },
+  {
+    "before": "async function enterPortal(){\n",
+    "after": "async function enterPortal(){\n  if(manualLoginInProgress)return;\n  forjaHideProfileRetry();\n",
+    "positions": [
+      853036
+    ]
+  },
+  {
+    "before": "  const email=$(\"#loginEmail\"),password=$(\"#loginPassword\"),error=$(\"#loginError\");",
+    "after": "  forjaHideProfileRetry();\n  const email=$(\"#loginEmail\"),password=$(\"#loginPassword\"),error=$(\"#loginError\");",
+    "positions": [
+      854627
+    ]
+  },
+  {
+    "before": "async function activateUser(user){\n  const session=forjaBeginSession(user);\n  state.loading=true; setAppVisibility(true); showProcess(\"Carregando seu perfil...\",\"Validando sua conta e permissões FORJA.\",\"Conta\"); $(\"#workspaceContent\").innerHTML=skeleton(5);\n  try{\n    const profile=await getProfile();forjaAssertSession(session);forjaCompleteSessionDefaults();\n    const authEmail=String(user?.email||\"\").trim().toLowerCase();\n    const profileEmail=String(profile?.email||\"\").trim().toLowerCase();\n    if(authEmail && profileEmail && authEmail!==profileEmail) throw new Error(\"A conta autenticada não corresponde ao perfil cadastrado. Saia e entre novamente.\");\n    if(!ROLE_UI[profile?.role]) throw new Error(\"Perfil de acesso inválido.\");\n    state.user=user; updateProcess(\"Perfil encontrado\",\"Carregando Registro FORJA, função e preferências.\",\"Perfil\");\n    state.profile=profile;state.role=profile.role;state.page=\"inicio\";\n    updateProcess(\"Preparando seu portal...\",\"Carregando agenda, notificações e informações do seu perfil.\",\"Portal\");\n    renderShell();$(\"#workspaceContent\").innerHTML=loading(\"Carregando os dados do portal...\");hideProcess();\n    await loadRoleData();forjaAssertSession(session);state.loading=false; renderShell();renderPage();api(\"/me/acesso\",{method:\"POST\",body:{}}).catch(()=>{});\n  }catch(e){if(!forjaSessionCurrent(session)||e?.code==='FORJA_STALE_SESSION')return;console.error(e);await auth.signOut().catch(()=>{});resetLoginForm({keepEmail:true,keepPassword:false,clearError:true});showLogin();showLoginError(e.message||\"Não foi possível abrir o portal.\");}\n  finally{if(forjaSessionCurrent(session)){state.loading=false;hideProcess();setBusy(document.querySelector('[data-action=\"enterPortal\"]'),false)}}\n}",
+    "after": "async function activateUser(user){\n  const session=forjaBeginSession(user),previous=forjaProfileOperation,operation={controller:new AbortController()};\n  forjaProfileOperation=operation;previous?.controller.abort();\n  const current=()=>forjaProfileOperation===operation&&forjaSessionCurrent(session);\n  forjaHideProfileRetry();$(\"#loginError\")?.classList.add(\"hidden\");\n  state.loading=true;$(\"#portalApp\")?.classList.add(\"hidden\");showProcess(\"Carregando seu perfil...\",\"Validando sua conta e permissões FORJA.\",\"Conta\");$(\"#workspaceContent\").innerHTML=skeleton(5);\n  try{\n    const profile=await getProfile(session,operation);if(!current())throw forjaStaleSession();forjaCompleteSessionDefaults();\n    const authEmail=String(user?.email||\"\").trim().toLowerCase();\n    const profileEmail=String(profile?.email||\"\").trim().toLowerCase();\n    if(authEmail && profileEmail && authEmail!==profileEmail)throw forjaProfileError('FORJA_PROFILE_INVALID');\n    state.user=user;state.profile=profile;state.role=profile.role;state.page=\"inicio\";setAppVisibility(true);\n    updateProcess(\"Preparando seu portal...\",\"Carregando agenda, notificações e informações do seu perfil.\",\"Portal\");\n    renderShell();$(\"#workspaceContent\").innerHTML=loading(\"Carregando os dados do portal...\");hideProcess();\n    await loadRoleData();if(!current())throw forjaStaleSession();state.loading=false;renderShell();renderPage();api(\"/me/acesso\",{method:\"POST\",body:{}}).catch(()=>{});\n  }catch(e){\n    if(!current()||e?.code==='FORJA_STALE_SESSION')return;\n    // A profile/network failure is not an Auth logout. Close/reset the owned UI\n    // synchronously; never wait for signOut or let it invalidate a newer login.\n    forjaChangeSession(user.uid);state.loading=false;\n    resetLoginForm({keepEmail:true,keepPassword:false,clearError:true});showLogin();showLoginError(forjaProfileMessage(e));\n    const retrySession=forjaCaptureSession(),button=$(\"#loginProfileRetry\");\n    if(button&&![401,403,429].includes(e?.status)){\n      button.classList.remove('hidden');button.onclick=()=>{if(forjaSessionCurrent(retrySession)&&!forjaProfileOperation)void activateUser(auth.currentUser);};\n    }\n  }finally{\n    if(forjaProfileOperation===operation){forjaProfileOperation=null;state.loading=false;hideProcess();setBusy(document.querySelector('[data-action=\"enterPortal\"]'),false);}\n  }\n}",
+    "positions": [
+      856408
+    ]
+  }
+]

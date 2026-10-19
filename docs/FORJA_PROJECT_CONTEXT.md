@@ -1,3 +1,15 @@
+## 19/10/2026 — Hotfix login: perfil com espera limitada (somente Draft)
+
+Missão atual sobre frontend ac0bb3b499d07837e2105d0dea96aab3adb82255 e backend
+47de323460fb8f037a29b7257be9e4f5fd94b09b. Ler docs/LOGIN_HOTFIX_2026-10.md.
+Corrigir exclusivamente recuperação do overlay/login: /me com até duas janelas
+20s, retry explícito, proprietário por tentativa e fences UID/geração mantidos.
+Erro de perfil não executa logout Auth nem abre portal sem permissões válidas.
+Backend, Agenda, Google, reservas, perfis e dados existentes preservados.
+QA somente mocks/Chromium e Auth+Firestore demo-forja emulados. PR Draft;
+nenhum merge ou deploy (inclusive Preview), dado real, plano Render, Cloud,
+OAuth, DNS, Rules ou credencial autorizado nesta missão.
+
 ## 18/10/2026 — FORJA mais rápida (somente Draft, sem deploy)
 
 Bases confirmadas: frontend71dca65c19f41e8582561227e3ed4dd820f4839f e

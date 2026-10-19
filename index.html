@@ -3596,6 +3596,7 @@ body.v630-drawer-open{overflow:hidden}
       <label>Senha</label><div class="password-wrap"><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Senha"><button type="button" class="show-pass" data-action="togglePassword">Mostrar</button></div>
       <div id="loginError" class="login-error hidden" role="alert"></div>
       <button class="btn gold full" data-action="enterPortal">Entrar</button>
+      <button type="button" id="loginProfileRetry" class="btn ghost full hidden">Tentar novamente</button>
       <button type="button" class="text-btn" data-action="forgotPassword" style="margin-top:14px">Esqueci minha senha</button>
       <div class="signup-note"><p>Aluno ou responsável ainda não possui acesso?</p><button type="button" class="btn ghost full" data-action="openSignup">Criar minha conta FORJA</button></div>
       <div class="email-delivery-note"><b>Dica sobre e-mails:</b> ao solicitar verificação ou recuperação de senha, confira também <b>Spam</b> ou <b>Lixo eletrônico</b>.</div>
@@ -3804,6 +3805,7 @@ function forjaChangeSession(uid){
   if(!forjaSessionDefaults&&uid)forjaSessionDefaults=structuredClone(state);
   if(typeof forjaClearLessonCancellationDrafts==='function')forjaClearLessonCancellationDrafts();
   forjaSessionGeneration++;forjaAvailabilityRequestSequence++;forjaSessionUID=uid;
+  if(typeof forjaCancelProfileOperation==="function")forjaCancelProfileOperation();
   if(typeof hideProcess==='function')hideProcess();
   for(const controller of forjaSessionRequests)controller.abort();forjaSessionRequests.clear();
   if(forjaSessionDefaults){
@@ -3823,10 +3825,12 @@ function forjaBeginSession(user){if(forjaSessionUID!==user.uid)forjaChangeSessio
 function forjaEndSession(){forjaChangeSession(null);}
 // END FORJA session isolation.
 
-async function api(path,{method="GET",body=null,authRequired=true,session=null}={}){
+async function api(path,{method="GET",body=null,authRequired=true,session=null,signal=null}={}){
   const scope=session||(forjaSessionUID?forjaCaptureSession():null),controller=new AbortController();
   if(scope){forjaAssertSession(scope);forjaSessionRequests.add(controller);}
+  const abort=()=>controller.abort();if(signal?.aborted)abort();else signal?.addEventListener("abort",abort,{once:true});
   try{
+    controller.signal.throwIfAborted();
     const headers={"Content-Type":"application/json"};
     if(authRequired){
       const user=auth?.currentUser;if(!user||!scope)throw new Error("Sua sessão expirou. Entre novamente.");
@@ -3834,13 +3838,14 @@ async function api(path,{method="GET",body=null,authRequired=true,session=null}=
       forjaAssertSession(scope);
     }
     if(["POST","PATCH","DELETE"].includes(method)&&path.startsWith("/admin/google-calendar/central")&&path!=="/admin/google-calendar/central/freebusy")window.forjaInvalidateCentralAvailability?.();
+    controller.signal.throwIfAborted();
     const response=await fetch(`${FORJA_API_URL}${path}`,{method,headers,body:body==null?undefined:JSON.stringify(body),signal:controller.signal});
     const data=await response.json().catch(()=>({}));
     if(scope)forjaAssertSession(scope);
     if(!response.ok){const e=new Error(data.error||`Erro ${response.status}`);e.status=response.status;e.code=data.code;e.bookingState=data.bookingState;e.googleVerification=data.googleVerification;e.googleDiagnosis=data.googleDiagnosis;if(path==="/google/calendar/connection"&&method==="DELETE")e.disconnectResult=googlePersonalDisconnectResult(data);if(data.code==='BOOKING_REQUEST_CHANGED')e.bookingExistingItem=data.item;if(String(data.code||'').startsWith('RECURRING_')){e.occurrences=data.occurrences;e.seriesId=data.seriesId;}throw e}
     return data;
   }catch(error){if(scope&&!forjaSessionCurrent(scope))throw forjaStaleSession();throw error;}
-  finally{forjaSessionRequests.delete(controller);}
+  finally{signal?.removeEventListener("abort",abort);forjaSessionRequests.delete(controller);}
 }
 
 async function publicApi(path,opts={}){return api(path,{...opts,authRequired:false})}
@@ -3862,11 +3867,49 @@ async function submitRegistration(token,body){
   throw lastError||new Error("Falha de rede ao concluir o cadastro.");
 }
 
-async function getProfile(){
-  const me=await api("/me");
-  if(!me?.profile)throw new Error("Seu cadastro não foi encontrado na FORJA.");
-  if(!ROLE_UI[me.profile.role])throw new Error("Perfil de acesso inválido.");
-  return me.profile;
+// Profile loading is bounded independently of business/booking requests.
+let forjaProfileOperation=null;
+function forjaCancelProfileOperation(){const operation=forjaProfileOperation;forjaProfileOperation=null;operation?.controller.abort();forjaHideProfileRetry();}
+function forjaHideProfileRetry(){const b=$("#loginProfileRetry");if(b){b.classList.add("hidden");b.onclick=null;}}
+function forjaProfileError(code,status=0){const e=new Error(code);e.code=code;e.status=status;return e;}
+function forjaProfileRetryable(e){return e?.code==='FORJA_PROFILE_TIMEOUT'||e instanceof TypeError||[408,500,502,503,504].includes(e?.status);}
+function forjaProfileMessage(e){
+ if(e?.code==='FORJA_PROFILE_TIMEOUT')return "O servidor demorou para validar seu perfil. Ele pode estar iniciando. Tente novamente em instantes.";
+ if(e instanceof TypeError||[408,500,502,503,504].includes(e?.status))return "Não foi possível alcançar o servidor FORJA. Verifique sua conexão e tente novamente em instantes.";
+ if(e?.status===429)return "Muitas tentativas. Aguarde um pouco e tente novamente.";
+ if(e?.status===401)return "Não foi possível validar sua sessão. Entre novamente com seu e-mail e senha.";
+ if(e?.status===403)return "Seu acesso não foi autorizado. Verifique sua conta com a Secretaria.";
+ return "Não foi possível validar seu perfil e permissões FORJA. Tente novamente; se persistir, procure a Secretaria.";
+}
+async function forjaProfileOnce(session,operation){
+ const controller=new AbortController();let timer,rejectCanceled;
+ const canceled=()=>{rejectCanceled?.(forjaStaleSession());controller.abort();};operation.controller.signal.addEventListener('abort',canceled,{once:true});
+ try{
+  if(operation.controller.signal.aborted)throw forjaStaleSession();
+  return await Promise.race([
+   api('/me',{session,signal:controller.signal}),
+   new Promise((_,reject)=>{rejectCanceled=reject;timer=setTimeout(()=>{reject(forjaProfileError('FORJA_PROFILE_TIMEOUT'));controller.abort();},20000);})
+  ]);
+ }finally{clearTimeout(timer);operation.controller.signal.removeEventListener('abort',canceled);controller.abort();}
+}
+async function forjaProfilePause(operation){
+ let timer;const signal=operation.controller.signal;
+ await new Promise((resolve,reject)=>{const canceled=()=>{clearTimeout(timer);reject(forjaStaleSession());};if(signal.aborted)return canceled();signal.addEventListener('abort',canceled,{once:true});timer=setTimeout(()=>{signal.removeEventListener('abort',canceled);resolve();},1000);});
+}
+async function getProfile(session,operation){
+ for(let attempt=0;attempt<2;attempt++){
+  try{
+   const me=await forjaProfileOnce(session,operation);forjaAssertSession(session);
+   if(forjaProfileOperation!==operation)throw forjaStaleSession();
+   if(!me?.profile||!Object.hasOwn(ROLE_UI,me.profile.role)||me.profile.active!==true||(me.uid&&me.uid!==session.uid)||(me.profile.uid&&me.profile.uid!==session.uid))throw forjaProfileError('FORJA_PROFILE_INVALID');
+   return me.profile;
+  }catch(e){
+   if(!forjaSessionCurrent(session)||forjaProfileOperation!==operation)throw forjaStaleSession();
+   if(attempt||!forjaProfileRetryable(e))throw e;
+   updateProcess("Aguardando o servidor...","O servidor pode estar iniciando. Faremos mais uma tentativa limitada.","Conta");
+   await forjaProfilePause(operation);
+  }
+ }
 }
 
 function setAppVisibility(logged){
@@ -3893,6 +3936,8 @@ function showLogin(){
 
 let manualLoginInProgress=false;
 async function enterPortal(){
+  if(manualLoginInProgress)return;
+  forjaHideProfileRetry();
   const email=String($("#loginEmail")?.value||"").trim().toLowerCase(), password=$("#loginPassword")?.value||"";
   const error=$("#loginError"); error?.classList.add("hidden");
   if(!email||!email.includes("@")||!password){showLoginError("Informe e-mail e senha.");return}
@@ -3912,6 +3957,7 @@ async function enterPortal(){
 }
 function showLoginError(msg,type="error"){const e=$("#loginError");if(e){e.textContent=msg;e.classList.remove("hidden");e.classList.toggle("success",type==="success");e.setAttribute("role",type==="success"?"status":"alert")}}
 function resetLoginForm({keepEmail=false,keepPassword=false,clearError=true}={}){
+  forjaHideProfileRetry();
   const email=$("#loginEmail"),password=$("#loginPassword"),error=$("#loginError");
   if(email && !keepEmail)email.value="";
   if(password){if(!keepPassword)password.value="";password.type="password";}
@@ -3938,21 +3984,33 @@ async function executeLogout(){
 function logout(){if(!auth?.currentUser){executeLogout();return}modal("Sair da conta",`<div class="system-note"><div><b>Deseja encerrar sua sessão?</b><br>Você precisará entrar novamente com seu e-mail e senha.</div></div>`,"Sair da conta",async btn=>{setBusy(btn,true,"Saindo...");await executeLogout();closeModal()})}
 
 async function activateUser(user){
-  const session=forjaBeginSession(user);
-  state.loading=true; setAppVisibility(true); showProcess("Carregando seu perfil...","Validando sua conta e permissões FORJA.","Conta"); $("#workspaceContent").innerHTML=skeleton(5);
+  const session=forjaBeginSession(user),previous=forjaProfileOperation,operation={controller:new AbortController()};
+  forjaProfileOperation=operation;previous?.controller.abort();
+  const current=()=>forjaProfileOperation===operation&&forjaSessionCurrent(session);
+  forjaHideProfileRetry();$("#loginError")?.classList.add("hidden");
+  state.loading=true;$("#portalApp")?.classList.add("hidden");showProcess("Carregando seu perfil...","Validando sua conta e permissões FORJA.","Conta");$("#workspaceContent").innerHTML=skeleton(5);
   try{
-    const profile=await getProfile();forjaAssertSession(session);forjaCompleteSessionDefaults();
+    const profile=await getProfile(session,operation);if(!current())throw forjaStaleSession();forjaCompleteSessionDefaults();
     const authEmail=String(user?.email||"").trim().toLowerCase();
     const profileEmail=String(profile?.email||"").trim().toLowerCase();
-    if(authEmail && profileEmail && authEmail!==profileEmail) throw new Error("A conta autenticada não corresponde ao perfil cadastrado. Saia e entre novamente.");
-    if(!ROLE_UI[profile?.role]) throw new Error("Perfil de acesso inválido.");
-    state.user=user; updateProcess("Perfil encontrado","Carregando Registro FORJA, função e preferências.","Perfil");
-    state.profile=profile;state.role=profile.role;state.page="inicio";
+    if(authEmail && profileEmail && authEmail!==profileEmail)throw forjaProfileError('FORJA_PROFILE_INVALID');
+    state.user=user;state.profile=profile;state.role=profile.role;state.page="inicio";setAppVisibility(true);
     updateProcess("Preparando seu portal...","Carregando agenda, notificações e informações do seu perfil.","Portal");
     renderShell();$("#workspaceContent").innerHTML=loading("Carregando os dados do portal...");hideProcess();
-    await loadRoleData();forjaAssertSession(session);state.loading=false; renderShell();renderPage();api("/me/acesso",{method:"POST",body:{}}).catch(()=>{});
-  }catch(e){if(!forjaSessionCurrent(session)||e?.code==='FORJA_STALE_SESSION')return;console.error(e);await auth.signOut().catch(()=>{});resetLoginForm({keepEmail:true,keepPassword:false,clearError:true});showLogin();showLoginError(e.message||"Não foi possível abrir o portal.");}
-  finally{if(forjaSessionCurrent(session)){state.loading=false;hideProcess();setBusy(document.querySelector('[data-action="enterPortal"]'),false)}}
+    await loadRoleData();if(!current())throw forjaStaleSession();state.loading=false;renderShell();renderPage();api("/me/acesso",{method:"POST",body:{}}).catch(()=>{});
+  }catch(e){
+    if(!current()||e?.code==='FORJA_STALE_SESSION')return;
+    // A profile/network failure is not an Auth logout. Close/reset the owned UI
+    // synchronously; never wait for signOut or let it invalidate a newer login.
+    forjaChangeSession(user.uid);state.loading=false;
+    resetLoginForm({keepEmail:true,keepPassword:false,clearError:true});showLogin();showLoginError(forjaProfileMessage(e));
+    const retrySession=forjaCaptureSession(),button=$("#loginProfileRetry");
+    if(button&&![401,403,429].includes(e?.status)){
+      button.classList.remove('hidden');button.onclick=()=>{if(forjaSessionCurrent(retrySession)&&!forjaProfileOperation)void activateUser(auth.currentUser);};
+    }
+  }finally{
+    if(forjaProfileOperation===operation){forjaProfileOperation=null;state.loading=false;hideProcess();setBusy(document.querySelector('[data-action="enterPortal"]'),false);}
+  }
 }
 
 // Independent admin datasets may overlap; other profiles keep their dependency order.
