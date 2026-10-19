@@ -43,6 +43,7 @@ for(const mobile of[false,true])test(`public, login and cadastro ${mobile?'mobil
   await f.page.waitForFunction(()=>document.querySelector('.public-header img').complete&&document.querySelector('.public-header img').naturalWidth>0);
   const publicStyle=await f.page.locator('.public-header').evaluate(el=>{const c=getComputedStyle(el);return {color:c.color,background:c.backgroundColor,padding:c.padding,height:el.getBoundingClientRect().height,logo:el.querySelector('img').naturalWidth}});
   await f.page.evaluate(()=>showLogin());await f.page.locator('#loginEmail').waitFor({state:'visible'});
+  await f.page.locator('#loginView').evaluate(async el=>{await Promise.all(el.getAnimations({subtree:true}).filter(a=>Number.isFinite(a.effect.getComputedTiming().endTime)).map(a=>a.finished.catch(()=>{})))});
   const loginStyle=await f.page.locator('#loginEmail').evaluate(el=>{const c=getComputedStyle(el);return {color:c.color,background:c.backgroundColor,padding:c.padding,radius:c.borderRadius,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height}});
   await f.login();await f.page.waitForFunction(()=>!state.loading);await f.page.evaluate(()=>{navigate('usuarios');newUserModal()});
   const formStyle=await f.page.locator('#forjaNewUserDialog').evaluate(el=>{const c=getComputedStyle(el);return {color:c.color,background:c.backgroundColor,padding:c.padding,radius:c.borderRadius,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,profiles:el.querySelectorAll('[name=newUserProfile]').length}});

@@ -1,0 +1,3 @@
+import assert from 'node:assert/strict';import{readFileSync}from'node:fs';import{createHash}from'node:crypto';
+const changes=JSON.parse(readFileSync(new URL('./login-critical-path-changes.json',import.meta.url),'utf8'));
+export function withoutLoginCriticalPath(html){for(const {before,after,positions}of [...changes].reverse())for(const at of [...positions].reverse()){assert.equal(html.slice(at,at+after.length),after,'Login critical path boundary changed');html=html.slice(0,at)+before+html.slice(at+after.length)}assert.equal(createHash('sha256').update(html).digest('hex'),'79ec70ea1747755d8bc2efb246c94470cff209bd85f32fd04386f833135b40e4','Only the reviewed login changes may differ from published main');return html;}

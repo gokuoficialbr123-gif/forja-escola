@@ -1,3 +1,16 @@
+## 19/10/2026 — Login por área e perfil compacto (somente Draft)
+
+Bases atuais: frontend9df471b0433e296dae990a16cb8a21fca8e149ef, backend47de323460fb8f037a29b7257be9e4f5fd94b09b.
+Hotfix #23 publicado; preservar suas janelas20s, recuperação e fences. Ler
+ docs/LOGIN_PERFORMANCE_2026-10.md. Missão: reduzir o caminho crítico, sem
+prometer10–20s no cold start Free. Backend preserva /me legado e adiciona vista
+compacta com as mesmas verificações de permissão/revogação e Server-Timing numérico.
+Frontend adia leituras administrativas por área; dados essenciais falhos ficam
+indisponíveis, não viram listas vazias definitivas. Locks/reserva final e Google
+nativos intactos. QA mutável só Auth/Firestore demo-forja; medições públicas só
+anônimas. Nenhum merge/deploy (inclusive Preview), plano/custo, Cloud/OAuth/DNS,
+Rules, credenciais ou dado real autorizado. PRs Draft; não disparar Render.
+
 ## 19/10/2026 — Hotfix login: perfil com espera limitada (somente Draft)
 
 Missão atual sobre frontend ac0bb3b499d07837e2105d0dea96aab3adb82255 e backend

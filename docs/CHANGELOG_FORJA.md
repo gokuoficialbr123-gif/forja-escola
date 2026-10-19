@@ -1,3 +1,16 @@
+## 19/10/2026 — Login por área: preparado, não publicado
+
+- Dados administrativos passam de33 para14 GETs iniciais; demais fontes somente
+  nas áreas/ações dependentes. Perfil válido e telas com dados completos exigidos.
+- Cache por UID/geração/fonte/semana, 30s entre entradas, coalescência pendente e
+  invalidação por sessão/mutação/refresh. Erro/timeout permite retry da área.
+- /me?view=portal evita metadados Auth redundantes e transação quando o Registro
+  FORJA já existe; autenticação fresca, role/ativo/OTP preservados. /me legado igual.
+- Durações numéricas por fase e comparação com10 amostras por cenário. Render Free
+  continua sujeito à suspensão; nenhuma contratação/configuração foi realizada.
+- QA da Etapa4 recebe relógio determinístico, mantendo testes de horário passado.
+- Ver docs/LOGIN_PERFORMANCE_2026-10.md. Sem publicação nesta missão.
+
 ## 19/10/2026 — Hotfix login travado: preparado, não publicado
 
 - Reproduzido overlay preso após /me falhar: signOut invalida o UID e o finally

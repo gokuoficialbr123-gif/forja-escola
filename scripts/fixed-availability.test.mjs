@@ -31,6 +31,7 @@ async function fixture(t,{mobile=false,status=200,policy=POLICY,hold=false,weekO
    else body={policy,revision:0,item:null,history:[]};
   }
   if(u.pathname==='/google/calendar/status')body={configured:false,item:{connected:false}};
+  if(u.pathname==='/admin/disponibilidades-semana')body={items:[],weekStart:u.searchParams.get('weekStart')};
   if(u.pathname==='/google/calendar/busy')body={items:[],complete:true,status:'success'};
   if(u.pathname==='/admin/google-calendar/central/status')body={configured:false,policy:'calendarlist-association-v2',item:{connected:false}};
   await route.fulfill({status:code,headers:{'Access-Control-Allow-Origin':origin},contentType:'application/json',body:JSON.stringify(body)}).catch(()=>{});
@@ -58,7 +59,7 @@ test('editing or removing after confirmation clears affirmative action; conflict
  const f=await fixture(t,{status:409}),p=f.page;await f.open();await p.fill('#fixedFrom','2030-01-07');await p.check('#fixedConfirm');await p.click('[data-fixed-add="1"]');assert.equal(await p.isChecked('#fixedConfirm'),false);await p.fill('[data-fixed-start]','13:00');await p.fill('[data-fixed-end]','15:00');await p.check('#fixedConfirm');await p.click('#modalSave');await p.waitForFunction(()=>document.getElementById('fixedFeedback').textContent.includes('outra sessão'));assert.equal(await p.inputValue('[data-fixed-start]'),'13:00');assert.equal(await p.locator('#forjaFixedForm').count(),1);
 });
 test('admin can inspect active teacher/psychologist configuration but cannot publish',async t=>{
- const f=await fixture(t),p=f.page;await f.login('C');await p.evaluate(()=>navigate('agenda'));assert.equal(await p.locator('#fixedProfessional option').count(),2);await p.selectOption('#fixedProfessional','B');await p.click('[data-fixed-open]');await p.waitForSelector('#forjaFixedForm');assert.equal(await p.locator('#modalSave').count(),0);assert.equal(await p.locator('#fixedEnabled').isDisabled(),true);assert.equal(f.requests.filter(x=>x.method==='PATCH').length,0);
+ const f=await fixture(t),p=f.page;await f.login('C');await p.evaluate(()=>navigate('agenda'));await p.locator('#fixedProfessional option').first().waitFor({state:'attached'});assert.equal(await p.locator('#fixedProfessional option').count(),2);await p.selectOption('#fixedProfessional','B');await p.click('[data-fixed-open]');await p.waitForSelector('#forjaFixedForm');assert.equal(await p.locator('#modalSave').count(),0);assert.equal(await p.locator('#fixedEnabled').isDisabled(),true);assert.equal(f.requests.filter(x=>x.method==='PATCH').length,0);
 });
 test('server-derived periods preserve editor values and exclude exception hours from teacher display',async t=>{
  const f=await fixture(t),p=f.page;await p.evaluate(()=>loadWeekAvailabilityV616('2030-01-07',{render:false}));
