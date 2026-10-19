@@ -49,6 +49,8 @@ async function fixture(t,{mobile=false,source=html}={}){
   if(url.pathname==='/admin/catalogos/disciplinas')return json({items:subjects});
   if(url.pathname==='/turmas')return json({items:[{id:'class-a',nome:'Turma A',serieId:'serie-a',active:true},{id:'class-b',nome:'Turma B',serieId:'serie-b',active:true},{id:'class-inactive',nome:'Turma inativa',serieId:'serie-a',active:false}]});
   if(url.pathname==='/admin/usuarios')return json({users:[]});
+  if(url.pathname==='/admin/familias')return json({links:[],pending:[],unlinkedStudents:[]});
+  if(url.pathname==='/admin/disponibilidades-semana')return json({weekStart:url.searchParams.get('weekStart'),items:[]});
   if(url.pathname==='/admin/google-calendar/central/status')return json({configured:true,policy:'calendarlist-association-v2',freeBusyPolicy:'central-freebusy-query-v1',item:{connected:false}});
   if(url.pathname==='/admin/google-calendar/central/calendars')return json({items:[],teachers:[],connected:false});
   if(url.pathname==='/health')return json({ok:true});
