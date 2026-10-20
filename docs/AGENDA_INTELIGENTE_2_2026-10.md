@@ -32,6 +32,9 @@ timeout 8s, cache em memória por vínculo exato/período por menos de 15s e
 compartilhamento pendente. Até quatro coletas/minuto/profissional, duas em voo.
 Consentimento administrativo e desconexão continuam respeitados. Falha nunca
 vira `busy: []` confirmado. Ausência legítima de conexão continua not_applicable.
+Credencial inativa/quarentenada ou cache busy órfão sem conexão fica desconhecido
+também para o próprio professor; somente a ausência limpa das duas fontes é
+not_applicable. A consulta não limpa nem reconstrói esses documentos.
 
 Central reutiliza o adaptador existente. A janela privada de tela pode abranger
 42 dias; os endpoints públicos anteriores conservam 31 dias. Cache específico

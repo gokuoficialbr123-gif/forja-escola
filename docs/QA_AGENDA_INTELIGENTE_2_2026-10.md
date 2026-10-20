@@ -8,11 +8,11 @@ repositórios. Nenhum teste usou contas, credenciais ou dados reais da escola.
 
 | Suíte | Passaram | Falharam | Ignorados | Duração |
 | --- | ---: | ---: | ---: | ---: |
-| Backend unitários | 308 | 0 | 0 | 5,1s |
-| Backend integração HTTP/Auth/Firestore + portal pareado | 264 | 0 | 0 | 509,3s |
+| Backend unitários | 308 | 0 | 0 | 11,1s |
+| Backend integração HTTP/Auth/Firestore + portal pareado | 265 | 0 | 0 | 488,3s |
 | Frontend completo, incluindo navegador | 363 | 0 | 0 | 524,5s |
 
-Total: **935 testes aprovados**. Contagens não somam reexecuções focadas.
+Total: **936 testes aprovados**. Contagens não somam reexecuções focadas.
 Ambiente: Windows, Node22.23.3, Playwright1.56.1, Chrome155.0.8059.80 headless,
 Firebase CLI15.32.1/Java21, Auth9099 e Firestore8081 em `127.0.0.1`, projeto
 `demo-forja`. Google/token/certificados e fronteiras externas simulados.
@@ -48,6 +48,9 @@ SHA256 do HTML no artefato local:
   manuais, aulas e disponibilidade explicitamente publicada preservados.
 - Fontes falhas, respostas parciais, dados vencidos e transporte lento sem
   reiniciar TTL; nenhuma falsa disponibilidade nem sucesso global falso.
+- Cache busy órfão ou credencial inativa também mantém a consulta do próprio
+  professor desconhecida; ausência limpa continua não aplicável, sem limpeza
+  implícita por leitura.
 - Ciclo20s, pausa/retorno da aba, tela fechada, timeout15s inclusive no token,
   backoff de rede/quota e atualização após mutações confirmadas.
 - Dois professores com estados independentes, múltiplas abas, troca de sessão,
