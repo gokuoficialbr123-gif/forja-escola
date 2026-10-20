@@ -1,3 +1,13 @@
+## 20/10/2026 — Drawer após polling: correção local, sem push
+
+- Horários verdes reutilizam o binding oficial para `v630Open` após a repintura.
+  Atribuição idempotente de onclick, sem remontar ou alterar formulários abertos.
+- Gerador preserva seletores `$$` literalmente; HTML/registros/hash regenerados,
+  mantendo a reversão exata e os guards anteriores.
+- Regressão permanente desktop/celular em dia/semana/mês, cinco ciclos de 20s,
+  preservação da edição e confirmação única. Ver `AGENDA_DRAWER_FIX_2026-10-20.md`.
+- Backend intacto. PR25/23 continuam Draft; aguardar autorização antes do push.
+
 ## 20/10/2026 — Agenda Inteligente 2.0: preparado, NÃO publicado
 
 - Consulta agregada somente leitura, fontes e validade explícitas, quatro cores.

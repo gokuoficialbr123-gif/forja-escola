@@ -8,7 +8,7 @@ const baseline=createHash('sha256').update(html).digest('hex'),changes=[];
 // Regeneration refuses manual edits outside the recorded, reversible migration.
 const current=readFileSync(new URL('../index.html',import.meta.url),'utf8').replace(/\r\n/g,'\n');
 if(current.includes('<script id="forja-agenda2-script">')){const {withoutAgendaIntelligence}=await import('./agenda-intelligence-scope.mjs');assert.equal(withoutAgendaIntelligence(current),html);}else assert.equal(current,html);
-function replace(before,after){const positions=[];let at=0;while((at=html.indexOf(before,at))>=0){positions.push(at);at+=before.length;}assert.equal(positions.length,1,'Unique migration boundary: '+before.slice(0,80));changes.push({before,after,positions});html=html.replace(before,after);}
+function replace(before,after){const positions=[];let at=0;while((at=html.indexOf(before,at))>=0){positions.push(at);at+=before.length;}assert.equal(positions.length,1,'Unique migration boundary: '+before.slice(0,80));changes.push({before,after,positions});html=html.replace(before,()=>after);}
 replace("  function v621AvailabilityForDay(role,uid,day){","  function v621AvailabilityForDay(role,uid,day){\n    if(window.forjaAgenda2Periods)return window.forjaAgenda2Periods(uid,day);");
 replace("  function v621GoogleBusy(uid,day){","  function v621GoogleBusy(uid,day){\n    const current=window.forjaAgenda2Google?.(uid,day);if(current)return current;");
 replace("function v621Lessons(uid,day){return (state.lessons||[])","function v621Lessons(uid,day){return window.forjaAgenda2Lessons?.(uid,day)||(state.lessons||[])");
@@ -32,6 +32,16 @@ replace("return state.role==='admin'&&state.googleBusyUnavailable?", "return !wi
 replace("if(document.hidden||state.role!=='admin'||state.page!=='agenda')return;if(Date.now()-v629TimerLast", "if(window.forjaAgenda2Enabled||document.hidden||state.role!=='admin'||state.page!=='agenda')return;if(Date.now()-v629TimerLast");
 replace("if(!document.hidden&&state.role==='admin'&&state.page==='agenda'&&Date.now()-v629TimerLast", "if(!window.forjaAgenda2Enabled&&!document.hidden&&state.role==='admin'&&state.page==='agenda'&&Date.now()-v629TimerLast");
 replace("    if([\"POST\",\"PATCH\",\"DELETE\"].includes(method)&&typeof forjaAdminMutationCommitted", "    if([\"POST\",\"PATCH\",\"DELETE\"].includes(method))window.forjaAgenda2Mutation?.(path);\n    if([\"POST\",\"PATCH\",\"DELETE\"].includes(method)&&typeof forjaAdminMutationCommitted");
+// Reuse the official drawer binding after replacing lane buttons. The hook only
+// assigns handlers; it never mounts or updates an open form.
+const bookingSlotBinding="    $$('[data-v621-book-slot]').forEach(b=>{b.onclick=e=>{e.preventDefault();e.stopPropagation();v630Open({teacherId:b.dataset.v621BookSlot,date:b.dataset.date,start:b.dataset.start,duration:Number(b.dataset.duration||60)})}});";
+replace(bookingSlotBinding,"    v630BindAgendaSlots();");
+replace("  function v630Mount(){",`  function v630BindAgendaSlots(){
+    if(state.role!=='admin'||state.page!=='agenda')return;
+${bookingSlotBinding}
+  }
+  window.forjaAgenda2BindBooking=v630BindAgendaSlots;
+  function v630Mount(){`);
 const hooks=`
   // Scoped rendering hooks: replace grid contents, never forms, toolbar or scroll containers.
   window.forjaAgenda2Context=()=>{const role=state.role;if(state.page!=='agenda'||!['admin','teacher'].includes(role)||!document.querySelector(role==='admin'?'.v629-calendar-card':'.v621-calendar-card'))return null;const days=v621RangeDays(role);return {from:days[0],to:days.at(-1),ids:role==='admin'?v629SelectedTeachers().map(t=>t.uid).sort():[state.user.uid],view:v621View(role)};};
@@ -48,7 +58,7 @@ const hooks=`
     const refresh=document.querySelector('[data-v629-refresh]');if(refresh)refresh.textContent='Atualizar consulta';
     if(!admin&&host&&!host.querySelector('[data-forja2-refresh]')){const b=document.createElement('button');b.className='small-btn';b.dataset.forja2Refresh='1';b.textContent='Atualizar consulta';b.onclick=()=>window.forjaAgenda2Refresh({manual:true});host.append(b);}
     if(admin){const summary=document.querySelector('.v629-secretary-summary'),s=v629VisibleStats();if(summary)summary.innerHTML='<span>'+s.total+' professor(es)</span><span class="ok">'+s.available+' período(s) confirmado(s)</span><span class="busy">'+s.busy+' ocupado(s)</span><span>'+s.lessons+' aula(s)</span>';}
-    v621Bind();if(admin)v629Bind();for(const b of document.querySelectorAll('[data-lesson]'))b.onclick=()=>openLesson(b.dataset.lesson);
+    v621Bind();if(admin){v629Bind();window.forjaAgenda2BindBooking?.();}for(const b of document.querySelectorAll('[data-lesson]'))b.onclick=()=>openLesson(b.dataset.lesson);
     if(focusKey&&!focus.isConnected){const target=[...document.querySelectorAll('.v621-lane button,.v621-month-grid button')].find(el=>JSON.stringify({...el.dataset})===focusKey);if(target)target.focus({preventScroll:true});else if(card){card.tabIndex=-1;card.focus({preventScroll:true});}}
   };
 `;

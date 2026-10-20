@@ -7427,7 +7427,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     const refresh=document.querySelector('[data-v629-refresh]');if(refresh)refresh.textContent='Atualizar consulta';
     if(!admin&&host&&!host.querySelector('[data-forja2-refresh]')){const b=document.createElement('button');b.className='small-btn';b.dataset.forja2Refresh='1';b.textContent='Atualizar consulta';b.onclick=()=>window.forjaAgenda2Refresh({manual:true});host.append(b);}
     if(admin){const summary=document.querySelector('.v629-secretary-summary'),s=v629VisibleStats();if(summary)summary.innerHTML='<span>'+s.total+' professor(es)</span><span class="ok">'+s.available+' período(s) confirmado(s)</span><span class="busy">'+s.busy+' ocupado(s)</span><span>'+s.lessons+' aula(s)</span>';}
-    v621Bind();if(admin)v629Bind();for(const b of document.querySelectorAll('[data-lesson]'))b.onclick=()=>openLesson(b.dataset.lesson);
+    v621Bind();if(admin){v629Bind();window.forjaAgenda2BindBooking?.();}for(const b of document.querySelectorAll('[data-lesson]'))b.onclick=()=>openLesson(b.dataset.lesson);
     if(focusKey&&!focus.isConnected){const target=[...document.querySelectorAll('.v621-lane button,.v621-month-grid button')].find(el=>JSON.stringify({...el.dataset})===focusKey);if(target)target.focus({preventScroll:true});else if(card){card.tabIndex=-1;card.focus({preventScroll:true});}}
   };
   const polishPortalBlockEBeforeV629=polishPortalBlockE;
@@ -7620,6 +7620,11 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   }
   function v630Render(){v630Update(['teacher','subjects','students','details','slots'])}
 
+  function v630BindAgendaSlots(){
+    if(state.role!=='admin'||state.page!=='agenda')return;
+    $$('[data-v621-book-slot]').forEach(b=>{b.onclick=e=>{e.preventDefault();e.stopPropagation();v630Open({teacherId:b.dataset.v621BookSlot,date:b.dataset.date,start:b.dataset.start,duration:Number(b.dataset.duration||60)})}});
+  }
+  window.forjaAgenda2BindBooking=v630BindAgendaSlots;
   function v630Mount(){
     if(state.role!=='admin'||state.page!=='agenda')return;
     let root=v630Root();
@@ -7629,7 +7634,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     const title=document.querySelector('.v629-secretary-title');if(title&&!title.querySelector('.v630-mode-tabs')){const tabs=document.createElement('div');tabs.className='v630-mode-tabs';tabs.innerHTML='<button type="button" class="active">Disponibilidade</button><button type="button" class="book" data-v630-open>Marcar aula</button>';title.appendChild(tabs)}
     const head=document.querySelector('.v629-secretary-head');if(head&&!head.querySelector('.v630-inline-action')){const btn=document.createElement('button');btn.type='button';btn.className='v630-inline-action';btn.dataset.v630Open='';btn.textContent='+ Marcar aula';head.appendChild(btn)}
     $$('[data-v630-open]').forEach(b=>{b.onclick=()=>v630Open()});
-    $$('[data-v621-book-slot]').forEach(b=>{b.onclick=e=>{e.preventDefault();e.stopPropagation();v630Open({teacherId:b.dataset.v621BookSlot,date:b.dataset.date,start:b.dataset.start,duration:Number(b.dataset.duration||60)})}});
+    v630BindAgendaSlots();
     $$('[data-action="newLesson"]').forEach(b=>{if(state.role==='admin'&&state.page==='agenda')b.onclick=e=>{e.preventDefault();v630Open()}});
     root.querySelectorAll('[data-v630-close]').forEach(el=>el.onclick=v630Close);
     if(v630Booking().open)v630Update();

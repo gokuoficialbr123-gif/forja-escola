@@ -16,8 +16,9 @@ async function fixture(t,{role='admin',mobile=false,mode='free',clock=false}={})
  await p.route('**/agenda/snapshot?**',async route=>{
   count++;const request=new URL(route.request().url()),from=request.searchParams.get('from'),to=request.searchParams.get('to'),ids=request.searchParams.getAll('professionalId'),chosen=current;
   if(held){held=false;await new Promise(r=>release=r);}
-  const at=Date.now(),days={};for(let d=from;d<=to;){days[d]=[{inicio:'09:00',fim:'18:00'}];const date=new Date(d+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+1);d=date.toISOString().slice(0,10);}
-  const body={ok:true,policy:'agenda-readonly-v1',from,to,professionalIds:ids,complete:!['partial','mixed'].includes(chosen),checkedAt:new Date(at).toISOString(),servedAt:new Date(at).toISOString(),expiresAt:new Date(at+(chosen==='expired'?-1:25000)).toISOString(),items:ids.map((professionalId,index)=>({professionalId,status:chosen==='partial'||chosen==='mixed'&&index===0?'unavailable':'success',nativeStatus:'success',days,lessons:[],blocks:[],school:chosen==='school'?[{data:from,horaInicio:'00:00',horaFim:'23:59'}]:chosen==='mixed'&&index===1?Object.keys(days).map(data=>({data,horaInicio:'10:00',horaFim:'11:00'})):[],busy:chosen==='all-day'?[{professionalId,startAt:from+'T00:00:00-03:00',endAt:to+'T23:59:00-03:00',source:'google'}]:[],personal:{status:chosen==='partial'||chosen==='mixed'&&index===0?'unavailable':'success',checkedAt:new Date(at).toISOString()},central:{status:'success',checkedAt:new Date(at).toISOString()}}))};
+  const at=Date.now(),days={};for(let d=from;d<=to;){days[d]=[{inicio:'09:00',fim:chosen==='short'?'09:30':'18:00'}];const date=new Date(d+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+1);d=date.toISOString().slice(0,10);}
+  const exclusiveEnd=new Date(Date.parse(to+'T12:00:00Z')+86400000).toISOString().slice(0,10);
+  const body={ok:true,policy:'agenda-readonly-v1',from,to,professionalIds:ids,complete:!['partial','mixed'].includes(chosen),checkedAt:new Date(at).toISOString(),servedAt:new Date(at).toISOString(),expiresAt:new Date(at+(chosen==='expired'?-1:25000)).toISOString(),items:ids.map((professionalId,index)=>({professionalId,status:chosen==='partial'||chosen==='mixed'&&index===0?'unavailable':'success',nativeStatus:'success',days,lessons:[],blocks:[],school:chosen==='school'?[{data:from,horaInicio:'00:00',horaFim:'23:59'}]:chosen==='mixed'&&index===1?Object.keys(days).map(data=>({data,horaInicio:'10:00',horaFim:'11:00'})):[],busy:chosen==='all-day'?[{professionalId,startAt:from+'T00:00:00-03:00',endAt:exclusiveEnd+'T00:00:00-03:00',source:'google'}]:[],personal:{status:chosen==='partial'||chosen==='mixed'&&index===0?'unavailable':'success',checkedAt:new Date(at).toISOString()},central:{status:'success',checkedAt:new Date(at).toISOString()}}))};
   if(chosen==='network')return route.abort();if(chosen==='quota')return route.fulfill({status:429,headers:{'Access-Control-Allow-Origin':f.origin},contentType:'application/json',body:'{"error":"Limite simulado"}'});
   return route.fulfill({headers:{'Access-Control-Allow-Origin':f.origin},contentType:'application/json',body:JSON.stringify(body)}).catch(()=>{});
  });
@@ -66,4 +67,103 @@ test('tab channels are private to UID/context and close when the session changes
 });
 test('transport delay cannot restart the twenty-five-second source validity',async t=>{
  const f=await fixture(t,{clock:true}),p=f.page;f.holdNext();await p.evaluate(()=>{void forjaAgenda2Refresh();});await delay(100);await p.clock.fastForward(10000);f.release();await p.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));const count=f.count();await p.clock.fastForward(15010);assert.equal(f.count(),count);assert.equal(await p.locator('.v621-block.availability').count(),0);assert.ok(await p.locator('.forja2-band.unknown').count()>0);
+});
+
+async function confirmedAgenda(page){
+ await page.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));
+}
+async function fiveAutomaticReads(f){
+ const before=f.count();
+ for(let i=0;i<5;i++){await f.page.clock.fastForward(20010);await confirmedAgenda(f.page);}
+ assert.equal(f.count()-before,5,'one read for each automatic cycle');
+}
+async function clickListeners(f,expression){
+ const {result}=await f.cdp.send('Runtime.evaluate',{expression,objectGroup:'agenda-drawer-regression'});
+ const {listeners}=await f.cdp.send('DOMDebugger.getEventListeners',{objectId:result.objectId});
+ return listeners.map(x=>x.type).sort();
+}
+
+for(const mobile of [false,true])for(const view of ['day','week','month'])test(`green slot uses official drawer before/after five polls ${mobile?'mobile':'desktop'} ${view}`,async t=>{
+ const f=await fixture(t,{mobile,clock:true,mode:view==='day'?'short':'free'}),p=f.page;
+ let linkReads=0,releasePost,startPost;const posts=[],postStarted=new Promise(resolve=>startPost=resolve),postGate=new Promise(resolve=>releasePost=resolve);
+ t.after(()=>releasePost());
+ await p.route('**/admin/aluno-materias',async route=>{
+  linkReads++;await route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':f.origin},body:JSON.stringify({items:[{id:'DRAWER_LINK',alunoId:'PERF_STUDENT',disciplinaId:'MATH',status:'ativo'}]})});
+ });
+ await p.route('**/profissionais/disponibilidade?**',async route=>{
+  const q=new URL(route.request().url()).searchParams,date=q.get('data'),duration=Number(q.get('duracaoMinutos')),end=duration===30?'09:30':'10:00';
+  await route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':f.origin},body:JSON.stringify({availabilityPolicy:'confirmed-week-v2',bookingSafetyPolicy:'future-live-google-v1',centralBookingPolicy:'central-booking-fail-closed-v1',serverNow:new Date().toISOString(),items:[{uid:q.get('professionalId'),googleVerification:{status:'verified'},slots:[{inicio:'09:00',fim:end,startAt:date+'T09:00:00-03:00',endAt:date+'T'+end+':00-03:00',status:'disponivel'}]}]})});
+ });
+ await p.route('**/aulas',async route=>{
+  if(route.request().method()!=='POST')return route.fallback();
+  const body=route.request().postDataJSON();posts.push(body);startPost();await postGate;
+  await route.fulfill({status:201,contentType:'application/json',headers:{'Access-Control-Allow-Origin':f.origin},body:JSON.stringify({ok:true,item:{...body,id:'DRAWER_CREATED',status:'confirmada'},warnings:[]})}).catch(()=>{});
+ });
+
+ // Establish the subject through the official UI; each green click then passes
+ // through the native package and future/live preflight gates before saving.
+ await p.locator('[data-v630-open]').first().click();await p.waitForFunction(()=>state.secretarySubjectLinksLoadedD===true);
+ await p.locator('#v630Subject').selectOption('MATH');await p.locator('button[data-v630-close]').first().click();
+ const date=await p.evaluate(()=>gAddDays(todayKey(),1));
+ await p.locator('[data-v621-date="admin"]').evaluate((el,value)=>{el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));},date);await confirmedAgenda(p);
+ await p.locator(`[data-v621-view="${view}"][data-role="admin"]`).click();await confirmedAgenda(p);
+ await p.locator('[data-v629-filter="lesson"]').click();await confirmedAgenda(p);
+ await p.evaluate(()=>{
+  window.drawerOpenCalls=0;let value=state.v630Booking.open;
+  Object.defineProperty(state.v630Booking,'open',{enumerable:true,configurable:true,get:()=>value,set:next=>{if(next===true)drawerOpenCalls++;value=next;}});
+  window.legacyBookingCalls=0;const legacy=newLessonModal;newLessonModal=function(...args){legacyBookingCalls++;return legacy(...args)};
+ });
+
+ let expected;
+ for(const phase of ['before','after']){
+  if(phase==='after')await fiveAutomaticReads(f);
+  if(view==='month'){
+   await p.locator(`.v629-month-tag.availability[data-date="${date}"]`).first().click();await confirmedAgenda(p);
+  }
+  const slot=p.locator(`.v621-block.availability[data-date="${date}"]`).first();
+  expected=await slot.evaluate(el=>({teacherId:el.dataset.v621BookSlot,date:el.dataset.date,start:el.dataset.start,duration:Number(el.dataset.duration)}));
+  const opens=await p.evaluate(()=>drawerOpenCalls),reads=linkReads;await slot.click();
+  assert.equal(await p.evaluate(()=>state.v630Booking.open),true,`${phase}: green slot must open current drawer`);
+  await p.waitForFunction(()=>state.secretarySubjectLinksLoadedD===true);
+  assert.equal(await p.evaluate(()=>drawerOpenCalls)-opens,1,'one official open per click');
+  assert.equal(linkReads-reads,1,'one package load per open');
+  assert.equal(await p.evaluate(()=>legacyBookingCalls),0,'legacy booking is never invoked');
+  assert.equal(await p.locator('#modal').evaluate(el=>el.classList.contains('hidden')),true);
+  assert.equal(await p.locator('#v630BookingRoot.open').count(),1);
+  assert.deepEqual(await p.evaluate(()=>({teacherId:state.v630Booking.teacherId,date:state.v630Booking.date,start:state.v630Booking.preferredStart||state.v630Booking.slotStart,duration:state.v630Booking.duration})),expected);
+  if(await p.locator('#v630Student').inputValue()!=='PERF_STUDENT')await p.locator('#v630Student').selectOption('PERF_STUDENT');
+  await p.waitForFunction(()=>!state.v630Booking.loading&&(state.v630Booking.slotStart==='09:00'||state.v630Booking.error||state.v630Booking.slots.length));
+  assert.equal(await p.evaluate(()=>state.v630Booking.slotStart),'09:00',JSON.stringify(await p.evaluate(()=>state.v630Booking)));
+  assert.equal(await p.locator('#v630Teacher').inputValue(),expected.teacherId);
+  assert.equal(await p.locator('#v630Date').inputValue(),expected.date);
+  assert.equal(await p.locator('#v630Duration').inputValue(),String(expected.duration));
+  assert.equal(await p.evaluate(()=>state.v630Booking.slotEnd),expected.duration===30?'09:30':'10:00');
+  if(phase==='before'){
+   await p.locator('button[data-v630-close]').first().click();
+   if(view==='month'){await p.locator('[data-v621-view="month"][data-role="admin"]').click();await confirmedAgenda(p);}
+  }
+ }
+
+ await p.locator('#v630Place').fill('Local presencial em edição');
+ const snapshot=()=>p.evaluate(()=>{
+  const wrap=document.querySelector('.v621-week-wrap'),root=document.querySelector('#v630BookingRoot');
+  return {top:wrap.scrollTop,left:wrap.scrollLeft,filters:JSON.stringify(state.v629SecretaryFilters),selected:JSON.stringify(state.v629SecretarySelectedTeacherIds),context:JSON.stringify(forjaAgenda2Context()),fields:[...root.querySelectorAll('input,select')].map(el=>[el.id,el.value]),slot:[state.v630Booking.slotStart,state.v630Booking.slotEnd],uid:state.user.uid,role:state.role,focus:document.activeElement.id};
+ });
+ await p.locator('.v621-week-wrap').evaluate(el=>{el.scrollTop=210;el.scrollLeft=95;});
+ const form=await p.locator('#v630Place').elementHandle(),before=await snapshot(),listeners=await clickListeners(f,'document');
+ await fiveAutomaticReads(f);await p.evaluate(()=>{for(let i=0;i<20;i++)forjaAgenda2Paint()});
+ assert.deepEqual(await snapshot(),before,'polling and binds preserve open form, focus, filters, session and scroll');
+ assert.equal(await form.evaluate(el=>el===document.querySelector('#v630Place')),true,'form node is preserved');
+ assert.deepEqual(await clickListeners(f,'document'),listeners);
+ assert.deepEqual(await clickListeners(f,'document.querySelector(".v621-block.availability")'),['click']);
+ assert.equal(await p.evaluate(()=>legacyBookingCalls),0);
+ const save=p.locator('[data-v630-save]');assert.equal(await save.isEnabled(),true);
+ await save.evaluate(el=>{el.dispatchEvent(new MouseEvent('click',{bubbles:true}));el.dispatchEvent(new MouseEvent('click',{bubbles:true}));});
+ await Promise.race([postStarted,delay(3000).then(()=>{throw Error('No booking POST received')})]);await delay(30);
+ assert.equal(posts.length,1,'double click issues exactly one booking POST');
+ assert.deepEqual({teacherId:posts[0].professorId,date:posts[0].dataAula,start:posts[0].horaAula,duration:expected.duration},expected);
+ assert.equal(posts[0].horaFim,expected.duration===30?'09:30':'10:00');
+ assert.equal(posts[0].localAula,'Local presencial em edição');assert.match(posts[0].bookingRequestId,/^[a-f0-9-]{36}$/);
+ releasePost();await p.waitForFunction(()=>state.v630Booking.open===false);
+ assert.equal(f.calls.filter(x=>x.path.endsWith('/sync')).length,0);assert.deepEqual(f.errors,[]);
 });

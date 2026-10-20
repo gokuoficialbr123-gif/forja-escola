@@ -1,5 +1,11 @@
 # Agenda Inteligente 2.0 — implementação local de 20/10/2026
 
+Correção posterior do binding do drawer: ver `AGENDA_DRAWER_FIX_2026-10-20.md`.
+Essa correção foi autorizada somente localmente, sem novo push. A preparação
+histórica abaixo foi disponibilizada nos Draft PRs frontend25/backend23;
+nenhuma publicação foi autorizada. Os SHAs e evidências originais continuam
+registrando a entrega anterior, distinguida do novo fonte local.
+
 Preparado para revisão. Nenhum merge, push, deploy, OAuth real, mudança de Rules,
 infraestrutura, credencial ou dado escolar foi executado por esta implementação.
 Bases auditadas: backend `32b4a0854d53c35853d0a9614727b5dfaa8d56ed`, frontend
@@ -130,7 +136,7 @@ Frontend:
 
 - `scripts/agenda-intelligence-client.js`: controlador, validação, sessão,
   fontes/cores, TTL, cancelamento, backoff e coordenação entre abas.
-- `scripts/agenda-intelligence-build.mjs`: aplica 25 alterações exatas sobre o
+- `scripts/agenda-intelligence-build.mjs`: aplica 27 alterações exatas sobre o
   main auditado e gera `index.html`; não editar o HTML gerado manualmente.
 - `scripts/agenda-intelligence-changes.json` e `agenda-intelligence-scope.mjs`:
   reversão exata até o hash auditado, sem remover os guards anteriores.
