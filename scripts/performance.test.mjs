@@ -10,12 +10,12 @@ for(const mobile of[false,true])test(`artifact ${mobile?'mobile':'desktop'}: aut
  assert.equal(await f.page.locator('#processOverlay').isVisible(),false);
  await f.page.evaluate(()=>navigate('usuarios'));assert.match(await f.page.locator('#workspaceContent').textContent(),/Carregando/);assert.equal(await f.page.locator('[data-action=newUser]').count(),0);
  releaseHome();release();await f.page.waitForFunction(()=>!state.loading);assert.equal(await f.page.evaluate(()=>state.page),'usuarios');await f.page.locator('[data-action=newUser]').waitFor({state:'visible'});assert.deepEqual(f.errors,[]);
- const before=f.calls.length;await f.page.evaluate(()=>navigate('agenda'));await f.page.waitForFunction(()=>Object.values(state.v631CentralRanges||{}).some(r=>r.valid));
+ const before=f.calls.length;await f.page.evaluate(()=>navigate('agenda'));await f.page.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));
  assert.equal(f.calls.slice(0,before).filter(x=>x.path.includes('google-central-busy')).length,0);
- const releaseWeek=f.hold('/admin/disponibilidades-semana'),weekStart=f.calls.length;
- await f.page.locator('[data-v621-nav=next][data-role=admin]').click();for(let i=0;i<300&&!f.calls.slice(weekStart).some(x=>x.path==='/admin/disponibilidades-semana');i++)await delay(10);
- await f.page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));assert.equal(f.calls.slice(weekStart).filter(x=>x.path==='/admin/disponibilidades-semana').length,1);
- releaseWeek();await f.page.waitForFunction(()=>Object.values(state.v631CentralRanges||{}).filter(r=>r.valid).length>=2);assert.deepEqual(f.errors,[]);
+ const releaseWeek=f.hold('/agenda/snapshot'),weekStart=f.calls.length;
+ await f.page.locator('[data-v621-nav=next][data-role=admin]').click();for(let i=0;i<300&&!f.calls.slice(weekStart).some(x=>x.path==='/agenda/snapshot');i++)await delay(10);
+ await f.page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));assert.equal(f.calls.slice(weekStart).filter(x=>x.path==='/agenda/snapshot').length,1);
+ releaseWeek();await f.page.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));assert.ok(f.calls.slice(weekStart).some(x=>x.path==='/agenda/snapshot'));assert.deepEqual(f.errors,[]);
 });
 test('old concurrent family/package loads cannot erase the next UID/session after logout',async t=>{
  const f=await setup(t),releaseFamily=f.hold('/admin/familias'),releasePackage=f.hold('/admin/aluno-materias');await f.login();await f.page.waitForFunction(()=>state.role==='admin'&&state.loading);
@@ -29,11 +29,11 @@ test('non-admin role loaders remain sequential and do not run the next dataset a
 
 test('failed central source remains unknown in the actual artifact; it never reveals published periods as free',async t=>{
  const f=await setup(t);await f.login();await f.page.waitForFunction(()=>!state.loading);await f.page.evaluate(()=>navigate('agenda'));
- await f.page.waitForFunction(()=>Object.values(state.v631CentralRanges||{}).some(r=>r.valid===true));
+ await f.page.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));
  assert.ok(await f.page.locator('.v629-block.availability').count()>0,'positive control: published periods really appear before failure');
- f.fail('/admin/agenda/google-central-busy');await f.page.locator('[data-v629-refresh]').click();
- await f.page.waitForFunction(()=>Object.values(state.v631CentralRanges||{}).some(r=>r.valid===false));
- assert.match(await f.page.locator('#workspaceContent').textContent(),/não confirmada|desconhecidos/);
+ f.fail('/agenda/snapshot');await f.page.locator('[data-v629-refresh]').click();
+ await f.page.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta incompleta'));
+ assert.match(await f.page.locator('[data-forja2-status]').textContent(),/incompleta|vencida/);
  assert.equal(await f.page.locator('.v629-block.availability').count(),0);assert.deepEqual(f.errors,[]);
 });
 for(const mobile of[false,true])test(`public, login and cadastro ${mobile?'mobile':'desktop'} retain exact computed appearance`,async t=>{

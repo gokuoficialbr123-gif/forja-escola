@@ -1,3 +1,13 @@
+## 20/10/2026 — Agenda Inteligente 2.0 (implementação local, sem publicação)
+
+Autorizados código local, testes seguros, commits e preparação de PRs Draft. Ler
+`docs/AGENDA_INTELIGENTE_2_2026-10.md`. Consulta de tela somente leitura, 20s
+enquanto visível, quatro cores e falha/vencimento desconhecidos. Preservar login
+compacto, UID/geração, consentimento, Google nativo, locks e confirmação final.
+QA somente Node 22, Auth/Firestore demo-forja e Google simulado. Nenhum merge,
+deploy (inclusive Preview), dado real, Rules, infraestrutura ou credencial.
+Código preparado não comprova publicação; aguardar revisão do proprietário.
+
 ## 19/10/2026 — Login por área e perfil compacto (somente Draft)
 
 Bases atuais: frontend9df471b0433e296dae990a16cb8a21fca8e149ef, backend47de323460fb8f037a29b7257be9e4f5fd94b09b.

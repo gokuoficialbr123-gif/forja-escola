@@ -85,7 +85,10 @@ test('Search Console: build recusa conteúdo alterado, newline, nome ausente e s
   }
   rmSync(file);
   assert.throws(()=>validateGoogleVerification(root),/ENOENT/);
-  symlinkSync(join(root,'index.html'),file);
+  // Windows file symlinks require an OS privilege. A directory junction is a
+  // real reparse point without that privilege; it must also fail the regular-file
+  // guard. Linux CI still exercises a file symlink to the otherwise valid bytes.
+  symlinkSync(process.platform==='win32'?join(root,'privacidade'):join(root,'index.html'),file,process.platform==='win32'?'junction':'file');
   assert.throws(()=>validateGoogleVerification(root),/arquivo regular/);
 });
 test('Search Console: HTTP real verifica a URL exata e recusa SPA200, newline, erros e redirects', async t => {

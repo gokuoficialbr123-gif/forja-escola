@@ -1,0 +1,740 @@
+{
+  "baseline": false,
+  "source": "actual portal + synthetic Auth/API/Google boundaries; not production or Render cold start",
+  "model": {
+    "authMs": 400,
+    "firstTokenMs": 100,
+    "meMs": 350,
+    "otherMs": 250,
+    "slowSecondaryMs": 2500,
+    "mobileCpu": 4,
+    "mobileMbps": 1.6,
+    "desktopMbps": 10,
+    "cache": "new context; interception disables HTTP cache"
+  },
+  "summary": [
+    {
+      "mobile": false,
+      "n": 3,
+      "metrics": {
+        "portalMs": {
+          "median": 1180.3999999761581,
+          "p95": 1186.699999988079
+        },
+        "agendaFromClickMs": {
+          "median": 1820.699999988079,
+          "p95": 1844.4000000357628
+        },
+        "agendaNavigationMs": {
+          "median": 639.1000000238419,
+          "p95": 656.5
+        },
+        "cadastroMs": {
+          "median": 277,
+          "p95": 287
+        },
+        "authMs": {
+          "median": 400.89999997615814,
+          "p95": 403.10000002384186
+        },
+        "tokenMs": {
+          "median": 100.5,
+          "p95": 101.5
+        },
+        "meBoundaryMs": {
+          "median": 354,
+          "p95": 356
+        },
+        "loginGetRequests": {
+          "median": 14,
+          "p95": 14
+        },
+        "longTaskMs": {
+          "median": 0,
+          "p95": 0
+        }
+      }
+    },
+    {
+      "mobile": true,
+      "n": 3,
+      "metrics": {
+        "portalMs": {
+          "median": 1375.699999988079,
+          "p95": 1388.8999999761581
+        },
+        "agendaFromClickMs": {
+          "median": 2634.099999964237,
+          "p95": 2803.300000011921
+        },
+        "agendaNavigationMs": {
+          "median": 1255.0999999642372,
+          "p95": 1411.6000000238419
+        },
+        "cadastroMs": {
+          "median": 342,
+          "p95": 359
+        },
+        "authMs": {
+          "median": 404.0999999642372,
+          "p95": 404.5
+        },
+        "tokenMs": {
+          "median": 103.09999996423721,
+          "p95": 104.10000002384186
+        },
+        "meBoundaryMs": {
+          "median": 359,
+          "p95": 364
+        },
+        "loginGetRequests": {
+          "median": 14,
+          "p95": 14
+        },
+        "longTaskMs": {
+          "median": 135,
+          "p95": 142
+        }
+      }
+    }
+  ],
+  "rows": [
+    {
+      "mobile": false,
+      "run": 0,
+      "portalMs": 1180.3999999761581,
+      "authMs": 403.10000002384186,
+      "tokenMs": 100.5,
+      "longTaskMs": 0,
+      "agendaFromClickMs": 1820.699999988079,
+      "agendaNavigationMs": 638.6999999880791,
+      "cadastroMs": 277,
+      "loginGetRequests": 14,
+      "meBoundaryMs": 354,
+      "loginCalls": [
+        {
+          "path": "/me",
+          "method": "GET",
+          "startMs": 511,
+          "endMs": 865
+        },
+        {
+          "path": "/configuracoes/escola",
+          "method": "GET",
+          "startMs": 893,
+          "endMs": 1147
+        },
+        {
+          "path": "/notificacoes",
+          "method": "GET",
+          "startMs": 895,
+          "endMs": 1148
+        },
+        {
+          "path": "/admin/catalogos/series",
+          "method": "GET",
+          "startMs": 896,
+          "endMs": 1148
+        },
+        {
+          "path": "/admin/catalogos/disciplinas",
+          "method": "GET",
+          "startMs": 896,
+          "endMs": 1148
+        },
+        {
+          "path": "/admin/usuarios",
+          "method": "GET",
+          "startMs": 896,
+          "endMs": 1148
+        },
+        {
+          "path": "/aulas",
+          "method": "GET",
+          "startMs": 896,
+          "endMs": 1149
+        },
+        {
+          "path": "/sessoes-terapia",
+          "method": "GET",
+          "startMs": 899,
+          "endMs": 1150
+        },
+        {
+          "path": "/admin/matriculas",
+          "method": "GET",
+          "startMs": 899,
+          "endMs": 1150
+        },
+        {
+          "path": "/admin/vinculos",
+          "method": "GET",
+          "startMs": 899,
+          "endMs": 1150
+        },
+        {
+          "path": "/admin/pendencias-registro",
+          "method": "GET",
+          "startMs": 899,
+          "endMs": 1150
+        },
+        {
+          "path": "/terapia/solicitacoes",
+          "method": "GET",
+          "startMs": 899,
+          "endMs": 1151
+        },
+        {
+          "path": "/admin/aluno-materias",
+          "method": "GET",
+          "startMs": 899,
+          "endMs": 1151
+        },
+        {
+          "path": "/admin/disponibilidades-semana",
+          "method": "GET",
+          "startMs": 900,
+          "endMs": 1151
+        },
+        {
+          "path": "/me/acesso",
+          "method": "POST",
+          "startMs": 1178,
+          "endMs": 1443
+        }
+      ],
+      "errors": []
+    },
+    {
+      "mobile": false,
+      "run": 1,
+      "portalMs": 1186.699999988079,
+      "authMs": 400.89999997615814,
+      "tokenMs": 100.39999997615814,
+      "longTaskMs": 0,
+      "agendaFromClickMs": 1844.4000000357628,
+      "agendaNavigationMs": 656.5,
+      "cadastroMs": 287,
+      "loginGetRequests": 14,
+      "meBoundaryMs": 356,
+      "loginCalls": [
+        {
+          "path": "/me",
+          "method": "GET",
+          "startMs": 510,
+          "endMs": 866
+        },
+        {
+          "path": "/configuracoes/escola",
+          "method": "GET",
+          "startMs": 893,
+          "endMs": 1146
+        },
+        {
+          "path": "/notificacoes",
+          "method": "GET",
+          "startMs": 893,
+          "endMs": 1147
+        },
+        {
+          "path": "/admin/catalogos/series",
+          "method": "GET",
+          "startMs": 894,
+          "endMs": 1147
+        },
+        {
+          "path": "/admin/catalogos/disciplinas",
+          "method": "GET",
+          "startMs": 897,
+          "endMs": 1148
+        },
+        {
+          "path": "/admin/usuarios",
+          "method": "GET",
+          "startMs": 898,
+          "endMs": 1149
+        },
+        {
+          "path": "/aulas",
+          "method": "GET",
+          "startMs": 898,
+          "endMs": 1149
+        },
+        {
+          "path": "/sessoes-terapia",
+          "method": "GET",
+          "startMs": 898,
+          "endMs": 1150
+        },
+        {
+          "path": "/admin/matriculas",
+          "method": "GET",
+          "startMs": 898,
+          "endMs": 1150
+        },
+        {
+          "path": "/admin/vinculos",
+          "method": "GET",
+          "startMs": 898,
+          "endMs": 1151
+        },
+        {
+          "path": "/admin/pendencias-registro",
+          "method": "GET",
+          "startMs": 900,
+          "endMs": 1152
+        },
+        {
+          "path": "/terapia/solicitacoes",
+          "method": "GET",
+          "startMs": 901,
+          "endMs": 1153
+        },
+        {
+          "path": "/admin/aluno-materias",
+          "method": "GET",
+          "startMs": 901,
+          "endMs": 1153
+        },
+        {
+          "path": "/admin/disponibilidades-semana",
+          "method": "GET",
+          "startMs": 901,
+          "endMs": 1154
+        },
+        {
+          "path": "/me/acesso",
+          "method": "POST",
+          "startMs": 1186,
+          "endMs": 1442
+        }
+      ],
+      "errors": []
+    },
+    {
+      "mobile": false,
+      "run": 2,
+      "portalMs": 1177.7999999523163,
+      "authMs": 400.19999998807907,
+      "tokenMs": 101.5,
+      "longTaskMs": 0,
+      "agendaFromClickMs": 1817.8999999761581,
+      "agendaNavigationMs": 639.1000000238419,
+      "cadastroMs": 277,
+      "loginGetRequests": 14,
+      "meBoundaryMs": 354,
+      "loginCalls": [
+        {
+          "path": "/me",
+          "method": "GET",
+          "startMs": 508,
+          "endMs": 862
+        },
+        {
+          "path": "/configuracoes/escola",
+          "method": "GET",
+          "startMs": 890,
+          "endMs": 1145
+        },
+        {
+          "path": "/notificacoes",
+          "method": "GET",
+          "startMs": 890,
+          "endMs": 1146
+        },
+        {
+          "path": "/admin/catalogos/series",
+          "method": "GET",
+          "startMs": 890,
+          "endMs": 1146
+        },
+        {
+          "path": "/admin/catalogos/disciplinas",
+          "method": "GET",
+          "startMs": 892,
+          "endMs": 1146
+        },
+        {
+          "path": "/admin/usuarios",
+          "method": "GET",
+          "startMs": 892,
+          "endMs": 1146
+        },
+        {
+          "path": "/aulas",
+          "method": "GET",
+          "startMs": 892,
+          "endMs": 1147
+        },
+        {
+          "path": "/sessoes-terapia",
+          "method": "GET",
+          "startMs": 893,
+          "endMs": 1147
+        },
+        {
+          "path": "/admin/matriculas",
+          "method": "GET",
+          "startMs": 894,
+          "endMs": 1147
+        },
+        {
+          "path": "/admin/vinculos",
+          "method": "GET",
+          "startMs": 895,
+          "endMs": 1147
+        },
+        {
+          "path": "/admin/pendencias-registro",
+          "method": "GET",
+          "startMs": 895,
+          "endMs": 1147
+        },
+        {
+          "path": "/terapia/solicitacoes",
+          "method": "GET",
+          "startMs": 896,
+          "endMs": 1148
+        },
+        {
+          "path": "/admin/aluno-materias",
+          "method": "GET",
+          "startMs": 896,
+          "endMs": 1148
+        },
+        {
+          "path": "/admin/disponibilidades-semana",
+          "method": "GET",
+          "startMs": 896,
+          "endMs": 1149
+        },
+        {
+          "path": "/me/acesso",
+          "method": "POST",
+          "startMs": 1176,
+          "endMs": 1426
+        }
+      ],
+      "errors": []
+    },
+    {
+      "mobile": true,
+      "run": 0,
+      "portalMs": 1375.699999988079,
+      "authMs": 401.69999998807907,
+      "tokenMs": 104.10000002384186,
+      "longTaskMs": 135,
+      "agendaFromClickMs": 2622.300000011921,
+      "agendaNavigationMs": 1242.800000011921,
+      "cadastroMs": 342,
+      "loginGetRequests": 14,
+      "meBoundaryMs": 359,
+      "loginCalls": [
+        {
+          "path": "/me",
+          "method": "GET",
+          "startMs": 534,
+          "endMs": 893
+        },
+        {
+          "path": "/configuracoes/escola",
+          "method": "GET",
+          "startMs": 942,
+          "endMs": 1192
+        },
+        {
+          "path": "/notificacoes",
+          "method": "GET",
+          "startMs": 943,
+          "endMs": 1193
+        },
+        {
+          "path": "/admin/catalogos/series",
+          "method": "GET",
+          "startMs": 943,
+          "endMs": 1193
+        },
+        {
+          "path": "/admin/catalogos/disciplinas",
+          "method": "GET",
+          "startMs": 943,
+          "endMs": 1193
+        },
+        {
+          "path": "/admin/usuarios",
+          "method": "GET",
+          "startMs": 943,
+          "endMs": 1194
+        },
+        {
+          "path": "/aulas",
+          "method": "GET",
+          "startMs": 945,
+          "endMs": 1196
+        },
+        {
+          "path": "/sessoes-terapia",
+          "method": "GET",
+          "startMs": 946,
+          "endMs": 1196
+        },
+        {
+          "path": "/admin/matriculas",
+          "method": "GET",
+          "startMs": 946,
+          "endMs": 1196
+        },
+        {
+          "path": "/admin/vinculos",
+          "method": "GET",
+          "startMs": 946,
+          "endMs": 1197
+        },
+        {
+          "path": "/admin/pendencias-registro",
+          "method": "GET",
+          "startMs": 946,
+          "endMs": 1197
+        },
+        {
+          "path": "/terapia/solicitacoes",
+          "method": "GET",
+          "startMs": 946,
+          "endMs": 1197
+        },
+        {
+          "path": "/admin/aluno-materias",
+          "method": "GET",
+          "startMs": 946,
+          "endMs": 1197
+        },
+        {
+          "path": "/admin/disponibilidades-semana",
+          "method": "GET",
+          "startMs": 946,
+          "endMs": 1197
+        },
+        {
+          "path": "/me/acesso",
+          "method": "POST",
+          "startMs": 1355,
+          "endMs": 1620
+        }
+      ],
+      "errors": []
+    },
+    {
+      "mobile": true,
+      "run": 1,
+      "portalMs": 1388.8999999761581,
+      "authMs": 404.0999999642372,
+      "tokenMs": 101.19999998807907,
+      "longTaskMs": 142,
+      "agendaFromClickMs": 2803.300000011921,
+      "agendaNavigationMs": 1411.6000000238419,
+      "cadastroMs": 359,
+      "loginGetRequests": 14,
+      "meBoundaryMs": 350,
+      "loginCalls": [
+        {
+          "path": "/me",
+          "method": "GET",
+          "startMs": 533,
+          "endMs": 883
+        },
+        {
+          "path": "/configuracoes/escola",
+          "method": "GET",
+          "startMs": 932,
+          "endMs": 1196
+        },
+        {
+          "path": "/notificacoes",
+          "method": "GET",
+          "startMs": 933,
+          "endMs": 1197
+        },
+        {
+          "path": "/admin/catalogos/series",
+          "method": "GET",
+          "startMs": 934,
+          "endMs": 1197
+        },
+        {
+          "path": "/admin/catalogos/disciplinas",
+          "method": "GET",
+          "startMs": 934,
+          "endMs": 1197
+        },
+        {
+          "path": "/admin/usuarios",
+          "method": "GET",
+          "startMs": 934,
+          "endMs": 1197
+        },
+        {
+          "path": "/aulas",
+          "method": "GET",
+          "startMs": 934,
+          "endMs": 1197
+        },
+        {
+          "path": "/sessoes-terapia",
+          "method": "GET",
+          "startMs": 935,
+          "endMs": 1197
+        },
+        {
+          "path": "/admin/matriculas",
+          "method": "GET",
+          "startMs": 936,
+          "endMs": 1197
+        },
+        {
+          "path": "/admin/vinculos",
+          "method": "GET",
+          "startMs": 936,
+          "endMs": 1198
+        },
+        {
+          "path": "/admin/pendencias-registro",
+          "method": "GET",
+          "startMs": 936,
+          "endMs": 1198
+        },
+        {
+          "path": "/terapia/solicitacoes",
+          "method": "GET",
+          "startMs": 936,
+          "endMs": 1198
+        },
+        {
+          "path": "/admin/aluno-materias",
+          "method": "GET",
+          "startMs": 936,
+          "endMs": 1198
+        },
+        {
+          "path": "/admin/disponibilidades-semana",
+          "method": "GET",
+          "startMs": 936,
+          "endMs": 1198
+        },
+        {
+          "path": "/me/acesso",
+          "method": "POST",
+          "startMs": 1368,
+          "endMs": 1620
+        }
+      ],
+      "errors": []
+    },
+    {
+      "mobile": true,
+      "run": 2,
+      "portalMs": 1375.5,
+      "authMs": 404.5,
+      "tokenMs": 103.09999996423721,
+      "longTaskMs": 133,
+      "agendaFromClickMs": 2634.099999964237,
+      "agendaNavigationMs": 1255.0999999642372,
+      "cadastroMs": 335,
+      "loginGetRequests": 14,
+      "meBoundaryMs": 364,
+      "loginCalls": [
+        {
+          "path": "/me",
+          "method": "GET",
+          "startMs": 535,
+          "endMs": 899
+        },
+        {
+          "path": "/configuracoes/escola",
+          "method": "GET",
+          "startMs": 946,
+          "endMs": 1196
+        },
+        {
+          "path": "/notificacoes",
+          "method": "GET",
+          "startMs": 948,
+          "endMs": 1199
+        },
+        {
+          "path": "/admin/catalogos/series",
+          "method": "GET",
+          "startMs": 949,
+          "endMs": 1199
+        },
+        {
+          "path": "/admin/catalogos/disciplinas",
+          "method": "GET",
+          "startMs": 949,
+          "endMs": 1199
+        },
+        {
+          "path": "/admin/usuarios",
+          "method": "GET",
+          "startMs": 949,
+          "endMs": 1199
+        },
+        {
+          "path": "/aulas",
+          "method": "GET",
+          "startMs": 949,
+          "endMs": 1200
+        },
+        {
+          "path": "/sessoes-terapia",
+          "method": "GET",
+          "startMs": 949,
+          "endMs": 1200
+        },
+        {
+          "path": "/admin/matriculas",
+          "method": "GET",
+          "startMs": 949,
+          "endMs": 1200
+        },
+        {
+          "path": "/admin/vinculos",
+          "method": "GET",
+          "startMs": 949,
+          "endMs": 1200
+        },
+        {
+          "path": "/admin/pendencias-registro",
+          "method": "GET",
+          "startMs": 949,
+          "endMs": 1201
+        },
+        {
+          "path": "/terapia/solicitacoes",
+          "method": "GET",
+          "startMs": 950,
+          "endMs": 1202
+        },
+        {
+          "path": "/admin/aluno-materias",
+          "method": "GET",
+          "startMs": 950,
+          "endMs": 1202
+        },
+        {
+          "path": "/admin/disponibilidades-semana",
+          "method": "GET",
+          "startMs": 950,
+          "endMs": 1202
+        },
+        {
+          "path": "/me/acesso",
+          "method": "POST",
+          "startMs": 1356,
+          "endMs": 1605
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "sourceSha256": "cd9da89e5d563b24f0e846ce152f090f04c6baafc844d19f5baa6706d88bcc60"
+}
