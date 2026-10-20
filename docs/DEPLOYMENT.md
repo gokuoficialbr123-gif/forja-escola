@@ -1,3 +1,9 @@
+## 20/10/2026 — Agenda 2.0 preparada localmente, NÃO publicada
+
+Nenhum merge/deploy/Preview autorizado. Ver `AGENDA_INTELIGENTE_2_2026-10.md`.
+Publicação futura requer revisão, backend compatível primeiro e depois frontend.
+A rota ausente ou incompleta deixa a tela desconhecida; não contornar permissões.
+
 ## 16/10/2026 — Missão2 contínua, NÃO publicar nesta rodada
 
 PR18/19 permanecem Draft. Ver configuração futura/limites em

@@ -1,3 +1,12 @@
+## 20/10/2026 — Agenda Inteligente 2.0: preparado, NÃO publicado
+
+- Consulta agregada somente leitura, fontes e validade explícitas, quatro cores.
+- Dia inteiro Google, bloqueios escolares e falhas deixam de produzir falso verde.
+- Controlador visível de 20s, sem sync/backfill por ciclo; quotas reservam comandos.
+- UID/período, abas, expiração, backoff e preservação de edição/scroll.
+- Node 22, guards Windows preservados, QA somente demo-forja e Google simulado.
+- Ver documentação da missão para limites, evidências e resultados finais.
+
 ## 19/10/2026 — Login por área: preparado, não publicado
 
 - Dados administrativos passam de33 para14 GETs iniciais; demais fontes somente
