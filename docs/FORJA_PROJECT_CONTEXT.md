@@ -3,6 +3,9 @@
 Base frontend publicada `8def27c` e backend `239e4ec`, verificadas por artefato/health anônimos.
 Na retomada, publicação externa mudou o backend para `d148303`; validação foi
 repetida nessa base, preservando o checkout anterior e sem alterações backend.
+Após abrir o Draft #28, a main frontend avançou externamente para `c659f4f`;
+a correção preserva esse diagnóstico da Agenda e restaura essa base nos guards.
+Em 17:49 UTC o HTML servido ainda era o anterior; main não comprova deploy.
 Correção em codex/navigation-student-review. Ler NAVIGATION_STUDENT_DOMAIN_2026-10.md.
 Histórico usa os renderizadores/permissões existentes; Escape fecha somente o modal.
 Aluno recebe tópicos neutros; semáforo profissional e dados pedagógicos preservados.

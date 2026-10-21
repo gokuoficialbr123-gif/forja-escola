@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-export const navigationBaseline='16e1ecbdb3ed0a973da72ff6bb66e3bf4ecb1890bbaf0a93a976c68ea79cf30b';
+export const navigationBaseline='a36dc71f05b74a9c6d96c2f16c72428d79bdbbbee3b0d1fa8e434250ef422232';
 export function withoutNavigationStudent(html){
  html=html.replace(/\r\n/g,'\n');
  if(!html.includes('<script id="forja-navigation-script">'))return html;

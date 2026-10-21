@@ -4,12 +4,14 @@ Código preparado para revisão; este trabalho não publica o site, Preview, DNS
 
 ## Bases verificadas e isolamento
 
-- Frontend main publicada: `8def27cccc429f01ee29dd9230466693f4331aad` (merge #26).
+- Frontend publicado no início: `8def27cccc429f01ee29dd9230466693f4331aad` (merge #26). Após abrir o Draft #28, uma alteração externa incorporou o PR #27 à main `c659f4fa0fcde823b8a7b84eac396c90294b8b11`, com diagnóstico de fontes desconhecidas na Agenda. Essa main foi integrada somente à branch corretiva, preservando o diagnóstico, seus testes e todos os guards. Nenhum PR foi integrado à main por esta missão.
 - Backend publicado no início: `239e4ec51eac85fb1911e6c8a917ffbc133d92a4` (merge #24). Durante a pausa por limite de uso, uma publicação externa avançou o backend para `d1483037be294428ab1af7788311f42389790c1a` (merge #25, diagnóstico seguro de consentimento na Agenda), confirmado no health em 21/10 às 17:41 UTC. Esta missão não executou essa publicação.
 - Em 21/10, o HTML público do Hosting tinha SHA-256 `5da10123f591bc37a6a4abdb1e40b5e9d8df18f673f181d37a3b2755b6944ca9`.
 - O checkout backend anterior foi preservado. A branch local de validação `codex/navigation-backend-validation` aponta para a nova main `d148303`, sem alterações ou commits próprios. Nenhum arquivo rastreado backend foi alterado nesta missão.
 - Branch nova frontend: `codex/navigation-student-review`, baseada diretamente nessa main.
 - Testes de navegador usam o portal completo, Chrome/Playwright, cinco perfis sintéticos e interceptação de todo tráfego externo. A integração usa somente Auth/Firestore `demo-forja` emulados e Google simulado. Consultas externas desta missão se limitam a metadados públicos/configuração de domínio, sem dados de alunos ou Google pessoal.
+
+Em 17:49 UTC o HTML servido ainda tinha o hash inicial acima, enquanto a main já era `c659f4f`. **Main atualizada não comprova deploy concluído.** A migração reversível da correção agora restaura exatamente o HTML auditado dessa main, SHA-256 `a36dc71f05b74a9c6d96c2f16c72428d79bdbbbee3b0d1fa8e434250ef422232`. As capturas de aluno anteriores continuam válidas: o PR #27 altera somente o diagnóstico da Agenda, não a renderização pedagógica do aluno.
 
 ## Bugs reproduzidos e correções
 
@@ -73,7 +75,7 @@ Referências oficiais: [Hosting: domínio personalizado](https://firebase.google
 
 ## Regeneração e validação
 
-- `node scripts/navigation-student-build.mjs`: migração reversível sobre a main publicada exata, com fronteiras únicas e SHA integral.
+- `node scripts/navigation-student-build.mjs`: migração reversível sobre a main auditada `c659f4f`, com fronteiras únicas e SHA integral.
 - `node scripts/agenda-intelligence-build.mjs`: preserva e reaplica a camada nova; regeneração foi executada nos dois sentidos. Os 45 ajustes da Agenda e todos os guards anteriores continuam verificáveis.
 - `node scripts/validate.mjs`: valida hash, restauração, sintaxe e allowlist do artefato; hashes/guardas não foram desativados.
 - `scripts/navigation-student.test.mjs`: regressões permanentes incluídas no workflow Node 22, mantendo o orçamento de 20 minutos e os gates de deploy existentes.
@@ -89,7 +91,7 @@ Node local: **22.23.3**. Resultados antes do envio do PR:
 | Backend na base inicial | **310/310** unitários e **275/275** integração emulada. |
 | Backend publicado na retomada, `d148303` | **311/311** unitários; a suíte emulada está sendo repetida sobre essa base. |
 
-A asserção do guard agora aceita também a mensagem exata da nova camada reversível. Continua exigindo o hash da base restaurada e uma exceção para edição indevida; nenhum hash, guarda ou validação foi desativado. A suíte completa de **410 testes** será novamente exigida pelo workflow Node 22 no SHA do PR. Os resultados finais da CI e da repetição emulada atual serão vinculados ao PR; não são presumidos por este registro anterior ao push. Execuções interrompidas não contam como aprovação.
+A asserção do guard agora aceita também a mensagem exata da nova camada reversível. Continua exigindo o hash da base restaurada e uma exceção para edição indevida; nenhum hash, guarda ou validação foi desativado. Depois da integração da main externa, a suíte completa passa a **411 testes**, incluindo a regressão adicional de diagnóstico do PR #27. Ela é exigida pelo workflow Node 22 no SHA final do PR. Os resultados finais da CI, da regressão focada reconciliada e da repetição emulada atual serão vinculados ao PR; não são presumidos por este registro. Execuções interrompidas não contam como aprovação.
 
 ## Riscos e revisão
 

@@ -29,7 +29,14 @@ export async function agendaPresentationFixture(browser,{role='teacher',mobile=f
  // Keep the synthetic event day explicit even when QA resumes on another day.
  const request=nextSnapshot(p);
  await p.evaluate(day=>{state.teacherLessonAgendaDateG=day;state.adminLessonAgendaDateG=day;navigate('agenda');},reviewDay);await ready(p,{request});
- return {...f,setMode:x=>current=x,reads:()=>reads};
+ return {...f,setMode:x=>current=x,reads:()=>reads,
+  async close(){
+   // Playwright route callbacks can still be resolving a synthetic page clock
+   // when node:test ends. Dispose page interception before closing context.
+   // Do not mask assertions or swallow route errors while tests are running.
+   await p.unrouteAll({behavior:'ignoreErrors'});
+   await f.close();
+  }};
 }
 export const nextSnapshot=page=>page.waitForRequest(r=>r.method()==='GET'&&new URL(r.url()).pathname==='/agenda/snapshot');
 export async function ready(page,{request}={}){

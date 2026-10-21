@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 import {withoutNavigationStudent,navigationBaseline} from './navigation-student-scope.mjs';
 const hash=x=>createHash('sha256').update(x).digest('hex');
-let html=execFileSync('git',['show','8def27cccc429f01ee29dd9230466693f4331aad:index.html'],{encoding:'utf8',maxBuffer:4*1024*1024}).replace(/\r\n/g,'\n');
+let html=execFileSync('git',['show','c659f4fa0fcde823b8a7b84eac396c90294b8b11:index.html'],{encoding:'utf8',maxBuffer:4*1024*1024}).replace(/\r\n/g,'\n');
 assert.equal(hash(html),navigationBaseline);
 assert.equal(withoutNavigationStudent(readFileSync(new URL('../index.html',import.meta.url),'utf8')),html,'Refuse unrecorded source edits');
 const changes=[];
