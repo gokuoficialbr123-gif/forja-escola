@@ -87,7 +87,15 @@
  function paint(){window.forjaAgenda2Paint?.();for(const host of document.querySelectorAll('[data-forja2-status]')){
   const unavailable=!record||record.error||!fresh()||!record.value.complete;
   if(context?.ids.length>50){host.classList.add('unavailable');host.textContent='Selecione até 50 professores para confirmar a consulta automática.';continue;}
-  host.classList.toggle('unavailable',!!unavailable);host.textContent=(flight?'Consultando… · ':unavailable?'Consulta incompleta ou vencida · ':'Consulta confirmada · ')+(lastSuccess?'Última consulta completa: '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Aguardando primeira consulta completa');
+  // Preserve fail-closed colors. Explain only safe, fixed source states to the
+  // Secretariat; never display personal Google event content or credentials.
+  const unresolved=state.role==='admin'&&!record?.error?(record?.value?.items||[]).filter(x=>x.status!=='success'):[];
+  const consent=unresolved.filter(x=>x.availabilityReason==='personal_consent_required').length;
+  const sync=unresolved.filter(x=>x.availabilityReason==='personal_sync_unavailable').length;
+  const personal=unresolved.filter(x=>x.personal?.status==='unavailable'&&!x.availabilityReason).length;
+  const central=unresolved.filter(x=>x.central?.status==='unavailable').length;
+  const details=[consent?`${consent} profissional(is) precisam autorizar a consulta Google pela Secretaria no próprio painel, em Configurações > Google Calendar`:null,sync?`${sync} profissional(is) com sincronização Google pessoal indisponível; conferir a conexão do professor`:null,personal?'Google pessoal não confirmou todos os horários':null,central?'Google central não confirmou todos os horários; conferir vínculos e acesso':null].filter(Boolean);
+  host.classList.toggle('unavailable',!!unavailable);host.textContent=(flight?'Consultando… · ':unavailable?'Consulta incompleta ou vencida · ':'Consulta confirmada · ')+(lastSuccess?'Última consulta completa: '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Aguardando primeira consulta completa')+(details.length?' · '+details.join(' · '):'');
  }}
  const timeValid=x=>typeof x==='string'&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(x);
  function valid(value,c){
