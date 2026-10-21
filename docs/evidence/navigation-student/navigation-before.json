@@ -1,0 +1,136 @@
+{
+  "baseline": "8def27cccc429f01ee29dd9230466693f4331aad",
+  "scope": "actual published HTML; synthetic profiles; no external school data",
+  "observations": [
+    {
+      "role": "admin",
+      "mobile": false,
+      "historyBefore": 2,
+      "historyAfter": 2,
+      "page": "perfil"
+    },
+    {
+      "role": "admin",
+      "mobile": false,
+      "backUrl": "about:blank",
+      "portalVisible": false
+    },
+    {
+      "role": "teacher",
+      "mobile": false,
+      "historyBefore": 2,
+      "historyAfter": 2,
+      "page": "perfil"
+    },
+    {
+      "role": "teacher",
+      "mobile": false,
+      "backUrl": "about:blank",
+      "portalVisible": false
+    },
+    {
+      "role": "psychologist",
+      "mobile": false,
+      "historyBefore": 2,
+      "historyAfter": 2,
+      "page": "perfil"
+    },
+    {
+      "role": "psychologist",
+      "mobile": false,
+      "backUrl": "about:blank",
+      "portalVisible": false
+    },
+    {
+      "role": "student",
+      "mobile": false,
+      "historyBefore": 2,
+      "historyAfter": 2,
+      "page": "perfil"
+    },
+    {
+      "role": "student",
+      "mobile": false,
+      "backUrl": "about:blank",
+      "portalVisible": false
+    },
+    {
+      "role": "parent",
+      "mobile": false,
+      "historyBefore": 2,
+      "historyAfter": 2,
+      "page": "perfil"
+    },
+    {
+      "role": "parent",
+      "mobile": false,
+      "backUrl": "about:blank",
+      "portalVisible": false
+    },
+    {
+      "role": "admin",
+      "mobile": true,
+      "historyBefore": 2,
+      "historyAfter": 2,
+      "page": "perfil"
+    },
+    {
+      "role": "admin",
+      "mobile": true,
+      "backUrl": "about:blank",
+      "portalVisible": false
+    },
+    {
+      "role": "teacher",
+      "mobile": true,
+      "historyBefore": 2,
+      "historyAfter": 2,
+      "page": "perfil"
+    },
+    {
+      "role": "teacher",
+      "mobile": true,
+      "backUrl": "about:blank",
+      "portalVisible": false
+    },
+    {
+      "role": "psychologist",
+      "mobile": true,
+      "historyBefore": 2,
+      "historyAfter": 2,
+      "page": "perfil"
+    },
+    {
+      "role": "psychologist",
+      "mobile": true,
+      "backUrl": "about:blank",
+      "portalVisible": false
+    },
+    {
+      "role": "student",
+      "mobile": true,
+      "historyBefore": 2,
+      "historyAfter": 2,
+      "page": "perfil"
+    },
+    {
+      "role": "student",
+      "mobile": true,
+      "backUrl": "about:blank",
+      "portalVisible": false
+    },
+    {
+      "role": "parent",
+      "mobile": true,
+      "historyBefore": 2,
+      "historyAfter": 2,
+      "page": "perfil"
+    },
+    {
+      "role": "parent",
+      "mobile": true,
+      "backUrl": "about:blank",
+      "portalVisible": false
+    }
+  ]
+}

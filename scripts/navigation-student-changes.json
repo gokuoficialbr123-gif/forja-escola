@@ -1,0 +1,110 @@
+{
+  "baseline": "16e1ecbdb3ed0a973da72ff6bb66e3bf4ecb1890bbaf0a93a976c68ea79cf30b",
+  "changes": [
+    {
+      "before": "if(e.key===\"Escape\"){e.preventDefault();closeModal();return}",
+      "after": "if(e.key===\"Escape\"){e.preventDefault();e.stopPropagation();closeModal();return}",
+      "positions": [
+        947608
+      ]
+    },
+    {
+      "before": "function studentMathSummaryB(compact=false){\n  const m=studentMathDataB();if(!m.sid)return `<div class=\"student-b-math-card\"><div class=\"student-b-math-top\"><div><small>MATEMÁTICA</small><h3>Aguardando liberação</h3><p>A Secretaria ainda não adicionou Matemática ao seu pacote.</p></div></div></div>`;\n  const level=m.diag?.nivelLabel||m.link?.nivelLabel||\"Nivelamento pendente\",score=m.diag?.scoreProcesso;\n  const topics=m.skills.slice(0,compact?3:8).map(x=>`<div class=\"student-b-topic\"><div><b>${esc(x.topico||\"Tópico\")}</b><small>${esc(x.observacao||\"\")}</small></div><span class=\"student-b-chip ${x.status==='reforco'?'bad':x.status==='dominio'?'good':'warn'}\">${esc(mathTopicStateLabel(x.status))}</span></div>`).join(\"\");\n  const action=m.active?`<button class=\"small-btn teacher-primary-btn\" data-page=\"nivelamento\">Continuar nivelamento</button>`:!m.diag?`<button class=\"small-btn teacher-primary-btn\" data-page=\"nivelamento\">Fazer nivelamento</button>`:`<button class=\"small-btn\" data-page=\"nivelamento\">Ver nivelamento</button>`;\n  return `<div class=\"student-b-math-card\"><div class=\"student-b-math-top\"><div><small>MINHA MATEMÁTICA</small><h3>${esc(level)}</h3><p>${m.diag?`Último diagnóstico concluído com ${m.diag.totalRespostas||0} questões.`:\"Faça o diagnóstico para descobrir seu nível inicial.\"}</p></div><div class=\"student-b-level-score\">${score!=null?`<strong>${esc(`${score}%`)}</strong><span>processo de resolução</span>`:`<strong>—</strong><span>diagnóstico</span>`}</div></div><div class=\"student-b-traffic\"><div class=\"red\"><strong>${m.counts.r}</strong><small>🔴 reforço</small></div><div class=\"yellow\"><strong>${m.counts.y}</strong><small>🟡 atenção</small></div><div class=\"green\"><strong>${m.counts.g}</strong><small>🟢 domínio</small></div></div>${topics?`<div class=\"student-b-topic-list\">${topics}</div>`:\"\"}<div class=\"student-b-actions\">${action}${!compact?`<button class=\"small-btn\" data-page=\"agenda\">Ver minhas aulas</button>`:\"\"}</div></div>`;\n}\n",
+      "after": "function studentMathSummaryB(compact=false){\n  const m=studentMathDataB();if(!m.sid)return `<div class=\"student-b-math-card\"><div class=\"student-b-math-top\"><div><small>MATEMÁTICA</small><h3>Aguardando liberação</h3><p>A Secretaria ainda não adicionou Matemática ao seu pacote.</p></div></div></div>`;\n  const level=m.diag?.nivelLabel||m.link?.nivelLabel||\"Nivelamento pendente\",score=m.diag?.scoreProcesso;\n  const topics=m.skills.slice(0,compact?3:8).map(x=>`<div class=\"student-b-topic\"><div><b>${esc(x.topico||\"Tópico\")}</b><small>${esc(x.observacao||\"\")}</small></div><span class=\"student-b-chip\">Conteúdo para praticar</span></div>`).join(\"\");\n  const action=m.active?`<button class=\"small-btn teacher-primary-btn\" data-page=\"nivelamento\">Continuar nivelamento</button>`:!m.diag?`<button class=\"small-btn teacher-primary-btn\" data-page=\"nivelamento\">Fazer nivelamento</button>`:`<button class=\"small-btn\" data-page=\"nivelamento\">Ver nivelamento</button>`;\n  return `<div class=\"student-b-math-card\"><div class=\"student-b-math-top\"><div><small>MINHA MATEMÁTICA</small><h3>${esc(level)}</h3><p>${m.diag?`Último diagnóstico concluído com ${m.diag.totalRespostas||0} questões.`:\"Faça o diagnóstico para descobrir seu nível inicial.\"}</p></div><div class=\"student-b-level-score\">${score!=null?`<strong>${esc(`${score}%`)}</strong><span>processo de resolução</span>`:`<strong>—</strong><span>diagnóstico</span>`}</div></div>${topics?`<div class=\"student-b-topic-list\">${topics}</div>`:\"\"}<div class=\"student-b-actions\">${action}${!compact?`<button class=\"small-btn\" data-page=\"agenda\">Ver minhas aulas</button>`:\"\"}</div></div>`;\n}\n",
+      "positions": [
+        1286359
+      ]
+    },
+    {
+      "before": "\"Matemática, nível e semáforo.\"",
+      "after": "\"Matérias e conteúdo para praticar.\"",
+      "positions": [
+        1293584
+      ]
+    },
+    {
+      "before": "<span><small>Semáforo</small><b>${esc(`🔴 ${r} · 🟡 ${y} · 🟢 ${g}`)}</b></span>",
+      "after": "<span><small>Conteúdo para praticar</small><b>${skills.length} tópico(s)</b></span>",
+      "positions": [
+        1296573
+      ]
+    },
+    {
+      "before": "${math?'warn':'info'}",
+      "after": "${math?'':'info'}",
+      "positions": [
+        1296232
+      ]
+    },
+    {
+      "before": "function studentMathDiagnosticPage(){\n  const data=state.mathDiagnosticData||{},latest=data.latest,active=data.active,subjectId=mathSubjectForStudent(),link=(state.mathSubjectLinks||[]).find(x=>x.disciplinaId===subjectId),topics=latest?.topicos||[],r=topics.filter(x=>x.status===\"reforco\").length,y=topics.filter(x=>x.status===\"atencao\").length,g=topics.filter(x=>x.status===\"dominio\").length;\n  if(!subjectId)return pageHead(\"MATEMÁTICA\",\"Nivelamento\",\"O teste adaptativo é liberado quando Matemática faz parte do seu pacote.\")+`<div class=\"math-focus-banner\"><div><small>NIVELAMENTO FORJA</small><h2>Matemática ainda não foi liberada</h2><p>A Secretaria precisa vincular Matemática ao seu pacote ou agendar sua primeira aula da matéria.</p></div></div>`;\n  const actions=active?`<button class=\"btn gold\" data-math-resume>Continuar nivelamento</button>`:`<button class=\"btn gold\" data-math-start=\"${esc(subjectId)}\">${latest?\"Refazer nivelamento\":\"Começar nivelamento\"}</button>`;\n  return pageHead(\"MATEMÁTICA\",\"Nivelamento\",\"Um diagnóstico de raciocínio: o FORJA observa resposta, caminho de resolução e consistência.\",actions)+\n    `<div class=\"math-focus-banner\"><div><small>MATEMÁTICA EM FOCO</small><h2>${esc(latest?.nivelLabel||link?.nivelLabel||\"Descobrir seu nível\")}</h2><p>O objetivo não é só acertar. Explique como pensou em cada problema para que o professor consiga entender seu processo.</p></div></div>`+\n    mathLevelFlow(latest?.nivelRecomendado||link?.nivelAtual||\"\")+\n    `<div class=\"math-status-grid\"><div class=\"math-status-card red\"><strong>${r}</strong><span>tópicos em reforço</span></div><div class=\"math-status-card yellow\"><strong>${y}</strong><span>tópicos em atenção</span></div><div class=\"math-status-card green\"><strong>${g}</strong><span>tópicos com bom domínio</span></div></div>`+\n    `<div style=\"margin-top:14px\">${latest?`<section class=\"math-diag-card\"><small>ÚLTIMO NIVELAMENTO</small><h3>${esc(latest.nivelLabel||mathLevelShort(latest.nivelRecomendado))}</h3><div class=\"math-diag-meta\"><span><small>Desempenho de processo</small><b>${esc(`${latest.scoreProcesso??0}%`)}</b></span><span><small>Questões respondidas</small><b>${esc(latest.totalRespostas||8)}</b></span><span><small>Validação</small><b>${latest.sinaisValidacao?.length?\"Revisar sinais\":\"Sem alerta relevante\"}</b></span></div>${latest.sinaisValidacao?.length?`<div class=\"math-signal-list\">${latest.sinaisValidacao.map(x=>`<span>${esc(x.replaceAll(\"_\",\" \"))}</span>`).join(\"\")}</div>`:`<div class=\"math-signal-list\"><span class=\"ok\">Processo sem alerta relevante</span></div>`}</section>`:empty(\"Nivelamento ainda não realizado\",\"Comece o teste para identificar o nível inicial de Matemática.\")}</div>`;\n}\n",
+      "after": "function studentMathDiagnosticPage(){\n  const data=state.mathDiagnosticData||{},latest=data.latest,active=data.active,subjectId=mathSubjectForStudent(),link=(state.mathSubjectLinks||[]).find(x=>x.disciplinaId===subjectId),topics=latest?.topicos||[],r=topics.filter(x=>x.status===\"reforco\").length,y=topics.filter(x=>x.status===\"atencao\").length,g=topics.filter(x=>x.status===\"dominio\").length;\n  if(!subjectId)return pageHead(\"MATEMÁTICA\",\"Nivelamento\",\"O teste adaptativo é liberado quando Matemática faz parte do seu pacote.\")+`<div class=\"math-focus-banner\"><div><small>NIVELAMENTO FORJA</small><h2>Matemática ainda não foi liberada</h2><p>A Secretaria precisa vincular Matemática ao seu pacote ou agendar sua primeira aula da matéria.</p></div></div>`;\n  const actions=active?`<button class=\"btn gold\" data-math-resume>Continuar nivelamento</button>`:`<button class=\"btn gold\" data-math-start=\"${esc(subjectId)}\">${latest?\"Refazer nivelamento\":\"Começar nivelamento\"}</button>`;\n  return pageHead(\"MATEMÁTICA\",\"Nivelamento\",\"Um diagnóstico de raciocínio: o FORJA observa resposta, caminho de resolução e consistência.\",actions)+\n    `<div class=\"math-focus-banner\"><div><small>MATEMÁTICA EM FOCO</small><h2>${esc(latest?.nivelLabel||link?.nivelLabel||\"Descobrir seu nível\")}</h2><p>O objetivo não é só acertar. Explique como pensou em cada problema para que o professor consiga entender seu processo.</p></div></div>`+\n    mathLevelFlow(latest?.nivelRecomendado||link?.nivelAtual||\"\")+\n    `<div style=\"margin-top:14px\">${latest?`<section class=\"math-diag-card\"><small>ÚLTIMO NIVELAMENTO</small><h3>${esc(latest.nivelLabel||mathLevelShort(latest.nivelRecomendado))}</h3><div class=\"math-diag-meta\"><span><small>Desempenho de processo</small><b>${esc(`${latest.scoreProcesso??0}%`)}</b></span><span><small>Questões respondidas</small><b>${esc(latest.totalRespostas||8)}</b></span><span><small>Validação</small><b>${latest.sinaisValidacao?.length?\"Revisar sinais\":\"Sem alerta relevante\"}</b></span></div>${latest.sinaisValidacao?.length?`<div class=\"math-signal-list\">${latest.sinaisValidacao.map(x=>`<span>${esc(x.replaceAll(\"_\",\" \"))}</span>`).join(\"\")}</div>`:`<div class=\"math-signal-list\"><span class=\"ok\">Processo sem alerta relevante</span></div>`}</section>`:empty(\"Nivelamento ainda não realizado\",\"Comece o teste para identificar o nível inicial de Matemática.\")}</div>`;\n}\n",
+      "positions": [
+        1235765
+      ]
+    },
+    {
+      "before": "function mathTopicStateLabel(v){return v===",
+      "after": "function mathTopicStateLabel(v){if(state.role===\"student\")return \"Conteúdo para praticar\";return v===",
+      "positions": [
+        1234441
+      ]
+    },
+    {
+      "before": "function mathTopicStateClass(v){return v===",
+      "after": "function mathTopicStateClass(v){if(state.role===\"student\")return \"neutral\";return v===",
+      "positions": [
+        1234624
+      ]
+    },
+    {
+      "before": "function topicStatusLabel(status,forStudent=false){const s=",
+      "after": "function topicStatusLabel(status,forStudent=false){if(forStudent||state.role===\"student\")return \"Conteúdo para praticar\";const s=",
+      "positions": [
+        1156758
+      ]
+    },
+    {
+      "before": "function topicStatusClass(status){return status===",
+      "after": "function topicStatusClass(status){if(state.role===\"student\")return \"neutral\";return status===",
+      "positions": [
+        1157049
+      ]
+    },
+    {
+      "before": "<i class=\"competency-dot\"></i>${esc(topicStatusLabel(c.status,studentView))}",
+      "after": "${studentView?\"\":`<i class=\"competency-dot\"></i>`}${esc(topicStatusLabel(c.status,studentView))}",
+      "positions": [
+        1166013
+      ]
+    },
+    {
+      "before": "<div class=\"competency-legend\"><span>🔴 ${studentView?\"Em desenvolvimento\":\"Precisa de reforço\"}</span><span>🟡 Em atenção</span><span>🟢 Bom domínio</span></div>",
+      "after": "${studentView?\"\":`<div class=\"competency-legend\"><span>🔴 Precisa de reforço</span><span>🟡 Em atenção</span><span>🟢 Bom domínio</span></div>`}",
+      "positions": [
+        1168244
+      ]
+    },
+    {
+      "before": "returnFocus:document.activeElement;b.open=true;",
+      "after": "returnFocus:document.activeElement;b.open=true;window.forjaNavigationDrawer?.(true);",
+      "positions": [
+        1688674
+      ]
+    },
+    {
+      "before": "    v630UnlockBackground();",
+      "after": "    v630UnlockBackground();window.forjaNavigationDrawer?.(false);",
+      "positions": [
+        1689951
+      ]
+    },
+    {
+      "before": "</body>\n</html>",
+      "after": "<script id=\"forja-navigation-script\">\n// One history adapter around the existing renderers, permissions and session fences.\n// Only route identifiers enter history. Drafts stay in memory and are cleared on session change.\n(()=>{\n const key='forjaNavigation',token=crypto.randomUUID(),views=new Map();\n let owner='',epoch=0,index=0,current=null,replaying=false,pending=null,modalInitial='',returning=false;\n const visible=id=>!document.getElementById(id)?.classList.contains('hidden');\n const scope=()=>state.user?.uid&&forjaSessionUID?`${forjaSessionGeneration}:${forjaSessionUID}:${state.role}`:'';\n function route(){if(visible('portalApp'))return {kind:'portal',page:state.page,epoch};if(visible('loginView'))return {kind:'login'};if(visible('enrollmentView'))return {kind:'enrollment',step:state.enrollmentStep||1};return {kind:'public'};}\n const fields=root=>[...root.querySelectorAll('input[id],select[id],textarea[id]')].filter(el=>!['password','file','hidden'].includes(el.type)).map(el=>({id:el.id,value:el.value,checked:el.checked}));\n const signature=()=>JSON.stringify([...document.querySelectorAll('#modal input,#modal select,#modal textarea')].map(el=>[el.type==='password'?Boolean(el.value):el.type==='file'?el.files.length:el.value,el.checked]));\n function session(){const next=scope();if(next===owner)return;owner=next;epoch++;views.clear();pending=null;current=null;index=0;}\n function save(){if(!current)return;const content=document.getElementById('workspaceContent');views.set(current.index,{fields:current.kind==='portal'?fields(content):[],scroll:scrollY,contentScroll:content.scrollTop});if(views.size>32)views.delete(views.keys().next().value);}\n function record(next,replace=false){\n  session();if(replaying)return;\n  if(current&&JSON.stringify({...current,index:0})===JSON.stringify({...next,index:0,epoch:next.epoch}))return;\n  replace=replace||current?.collapsed===true;\n  current={...next,index:replace?index:++index};\n  history[replace?'replaceState':'pushState']({...history.state,[key]:{token,...current}},'');\n }\n function root(){session();current={...route(),index};history.replaceState({...history.state,[key]:{token,...current}},'');}\n function restore(){if(!pending||state.loading||pending.page!==state.page||pending.epoch!==epoch)return;const data=views.get(pending.index);pending=null;if(!data)return;\n  for(const f of data.fields){const el=document.getElementById(f.id);if(el&&document.getElementById('workspaceContent').contains(el)){el.value=f.value;if(['checkbox','radio'].includes(el.type))el.checked=f.checked;}}\n  // These existing handlers only filter local lists. Never replay form save/change handlers.\n  for(const id of ['userSearch','teacherCStudentSearch','secretaryDStudentSearch'])document.getElementById(id)?.oninput?.();\n  requestAnimationFrame(()=>requestAnimationFrame(()=>{document.getElementById('workspaceContent').scrollTop=data.contentScroll;scrollTo({top:data.scroll,behavior:'instant'});}));\n }\n const render=renderPage;renderPage=function(...args){const value=render(...args);restore();return value;};\n const go=navigate;navigate=function(page){session();save();const before=state.page;pending=page===before&&current?{page,epoch,index:current.index}:null;const result=go(page);if(state.page!==before)record(route());return result;};\n const visibility=setAppVisibility;setAppVisibility=function(logged){const result=visibility(logged);root();return result;};\n const end=forjaEndSession;forjaEndSession=function(...args){const result=end(...args);session();return result;};\n const login=showLogin;showLogin=function(...args){session();if(owner){setAppVisibility(true);renderShell();renderPage();return;}save();const result=login(...args);record(route());return result;};\n const publicPage=showPublic;showPublic=function(...args){save();const result=publicPage(...args);record(route());return result;};\n const enrollment=renderEnrollment;renderEnrollment=function(...args){save();const result=enrollment(...args);record({kind:'enrollment',step:1});return result;};\n const step=setEnrollmentStep;setEnrollmentStep=function(...args){if(!replaying&&current?.kind==='enrollment'&&args[0]===state.enrollmentStep-1){history.back();return;}const result=step(...args);record(route());return result;};\n const open=modal;modal=function(...args){save();const wasOpen=visible('modal'),base=current&&current.kind!=='modal'?{...current}:route(),result=open(...args);modalInitial=signature();if(!wasOpen)record({kind:'modal',base,epoch});return result;};\n const close=closeModal;closeModal=function(...args){const result=close(...args);if(current?.kind==='modal'&&!replaying){current={...current.base,index:current.index,collapsed:true};history.replaceState({...history.state,[key]:{token,...current}},'');}return result;};\n window.forjaNavigationDrawer=open=>{\n  if(replaying)return;\n  if(open){if(current?.kind!=='drawer'){save();record({kind:'drawer',base:{...current},epoch});}}\n  else if(current?.kind==='drawer'){current={...current.base,index:current.index,collapsed:true};history.replaceState({...history.state,[key]:{token,...current}},'');}\n };\n for(const button of document.querySelectorAll('[data-scroll]')){const click=button.onclick;button.onclick=function(event){save();const result=click?.call(this,event);record({kind:'public',section:this.dataset.scroll});return result;};}\n const section=showPublicSection;showPublicSection=function(id){save();const previous=replaying;replaying=true;try{section(id);}finally{replaying=previous;}record({kind:'public',section:id});};\n addEventListener('popstate',event=>{\n  session();const target=event.state?.[key];\n  if(!target||target.token!==token){root();return;}\n  if(returning){returning=false;return;}\n  if(current?.collapsed&&target.kind===current.kind&&target.page===current.page&&target.section===current.section&&target.index<current.index){current=target;index=target.index;history.back();return;}\n  if(visible('modal')&&signature()!==modalInitial&&!confirm('Há dados não enviados nesta janela. Deseja sair dela?')){returning=true;history.go((current?.index||0)-target.index);return;}\n  save();replaying=true;\n  try{\n   if(visible('modal'))closeModal();\n   if(state.v630Booking?.open)document.querySelector('[data-v630-close]')?.click();\n   const next=['modal','drawer'].includes(target.kind)?target.base:target;\n   if(next.kind==='portal'){\n    if(!owner||next.epoch!==epoch){if(owner){setAppVisibility(true);go('inicio');}else publicPage();root();return;}\n    setAppVisibility(true);pending={...next,index:target.index};go(next.page);if(state.page!==next.page){pending=null;root();return;}\n   }else if(next.kind==='login'){if(owner){setAppVisibility(true);go('inicio');root();return;}login();}\n   else if(next.kind==='enrollment'){\n    document.getElementById('publicSite').classList.add('hidden');document.getElementById('loginView').classList.add('hidden');document.getElementById('portalApp').classList.add('hidden');document.getElementById('enrollmentView').classList.remove('hidden');\n    if(!document.getElementById('enrollName'))enrollment();step(next.step);\n   }else publicPage();\n   current={...next,index:target.index};index=target.index;\n   // A closed modal has no executable replay; forward returns to its underlying page.\n   history.replaceState({...history.state,[key]:{token,...current}},'');\n   if(next.kind==='public'){const data=views.get(target.index);requestAnimationFrame(()=>{if(data)scrollTo({top:data.scroll,behavior:'instant'});else if(next.section)document.getElementById(next.section)?.scrollIntoView({behavior:'instant'});});}\n  }finally{replaying=false;}\n });\n root();\n})();\n\n</script>\n</body>\n</html>",
+      "positions": [
+        1829576
+      ]
+    }
+  ]
+}
