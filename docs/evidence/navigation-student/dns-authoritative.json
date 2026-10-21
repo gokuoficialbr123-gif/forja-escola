@@ -1,0 +1,88 @@
+[
+  {
+    "server": "a.sec.dns.br",
+    "name": "forjaescola.com.br",
+    "type": "A",
+    "records": [
+      {
+        "Name": "forjaescola.com.br",
+        "Type": 1,
+        "IPAddress": "199.36.158.100",
+        "NameHost": null,
+        "Strings": null,
+        "TTL": 3600
+      }
+    ]
+  },
+  {
+    "server": "a.sec.dns.br",
+    "name": "forjaescola.com.br",
+    "type": "AAAA",
+    "records": [
+      {
+        "Name": "forjaescola.com.br",
+        "Type": 6,
+        "IPAddress": null,
+        "NameHost": null,
+        "Strings": null,
+        "TTL": 900
+      }
+    ]
+  },
+  {
+    "server": "a.sec.dns.br",
+    "name": "forjaescola.com.br",
+    "type": "CNAME",
+    "records": [
+      {
+        "Name": "forjaescola.com.br",
+        "Type": 6,
+        "IPAddress": null,
+        "NameHost": null,
+        "Strings": null,
+        "TTL": 900
+      }
+    ]
+  },
+  {
+    "server": "a.sec.dns.br",
+    "name": "forjaescola.com.br",
+    "type": "TXT",
+    "records": [
+      {
+        "Name": "forjaescola.com.br",
+        "Type": 16,
+        "IPAddress": null,
+        "NameHost": null,
+        "Strings": [
+          "hosting-site=forja-escola"
+        ],
+        "TTL": 3600
+      }
+    ]
+  },
+  {
+    "server": "a.sec.dns.br",
+    "name": "www.forjaescola.com.br",
+    "type": "A",
+    "error": "www.forjaescola.com.br : O nome DNS não existe."
+  },
+  {
+    "server": "a.sec.dns.br",
+    "name": "www.forjaescola.com.br",
+    "type": "AAAA",
+    "error": "www.forjaescola.com.br : O nome DNS não existe."
+  },
+  {
+    "server": "a.sec.dns.br",
+    "name": "www.forjaescola.com.br",
+    "type": "CNAME",
+    "error": "www.forjaescola.com.br : O nome DNS não existe."
+  },
+  {
+    "server": "a.sec.dns.br",
+    "name": "www.forjaescola.com.br",
+    "type": "TXT",
+    "error": "www.forjaescola.com.br : O nome DNS não existe."
+  }
+]

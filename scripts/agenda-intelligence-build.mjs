@@ -101,3 +101,5 @@ writeFileSync(new URL('./agenda-intelligence-changes.json',import.meta.url),JSON
 const validator=new URL('./validate.mjs',import.meta.url),digest=createHash('sha256').update(html).digest('hex');
 writeFileSync(validator,readFileSync(validator,'utf8').replace(/export const referenceSha256 = '[a-f0-9]{64}';/,"export const referenceSha256 = '"+digest+"';"));
 console.log(JSON.stringify({baseline,sha256:createHash('sha256').update(html).digest('hex'),changes:changes.length}));
+// Preserve the later scoped migration when regenerating this published Agenda layer.
+if(current.includes('<script id="forja-navigation-script">'))execFileSync(process.execPath,[new URL('./navigation-student-build.mjs',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1')],{stdio:'inherit'});

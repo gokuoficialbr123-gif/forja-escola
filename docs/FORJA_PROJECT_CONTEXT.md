@@ -1,3 +1,17 @@
+## 21/10/2026 — Navegação, aluno e domínio (código em revisão, sem publicação)
+
+Base frontend publicada `8def27c` e backend `239e4ec`, verificadas por artefato/health anônimos.
+Na retomada, publicação externa mudou o backend para `d148303`; validação foi
+repetida nessa base, preservando o checkout anterior e sem alterações backend.
+Após abrir o Draft #28, a main frontend avançou externamente para `c659f4f`;
+a correção preserva esse diagnóstico da Agenda e restaura essa base nos guards.
+Em 17:49 UTC o HTML servido ainda era o anterior; main não comprova deploy.
+Correção em codex/navigation-student-review. Ler NAVIGATION_STUDENT_DOMAIN_2026-10.md.
+Histórico usa os renderizadores/permissões existentes; Escape fecha somente o modal.
+Aluno recebe tópicos neutros; semáforo profissional e dados pedagógicos preservados.
+Domínio: apex serve o mesmo HTML; www sem DNS, Auth/CORS pendentes de aprovação.
+Nenhum DNS/Auth/OAuth/infra/Rules/dado real ou deploy/Preview alterado. PR somente Draft.
+
 ## 20/10/2026 — Agenda Inteligente 2.0 (implementação local, sem publicação)
 
 Autorizados código local, testes seguros, commits e preparação de PRs Draft. Ler

@@ -1,0 +1,221 @@
+{
+  "observedAt": "2026-10-21T14:51:25.515Z",
+  "dns": [
+    {
+      "resolver": "https://dns.google/resolve",
+      "name": "forjaescola.com.br",
+      "type": "A",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://dns.google/resolve",
+      "name": "forjaescola.com.br",
+      "type": "AAAA",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://dns.google/resolve",
+      "name": "forjaescola.com.br",
+      "type": "CNAME",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://dns.google/resolve",
+      "name": "forjaescola.com.br",
+      "type": "NS",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://dns.google/resolve",
+      "name": "forjaescola.com.br",
+      "type": "TXT",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://dns.google/resolve",
+      "name": "www.forjaescola.com.br",
+      "type": "A",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://dns.google/resolve",
+      "name": "www.forjaescola.com.br",
+      "type": "AAAA",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://dns.google/resolve",
+      "name": "www.forjaescola.com.br",
+      "type": "CNAME",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://dns.google/resolve",
+      "name": "www.forjaescola.com.br",
+      "type": "NS",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://dns.google/resolve",
+      "name": "www.forjaescola.com.br",
+      "type": "TXT",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://cloudflare-dns.com/dns-query",
+      "name": "forjaescola.com.br",
+      "type": "A",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://cloudflare-dns.com/dns-query",
+      "name": "forjaescola.com.br",
+      "type": "AAAA",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://cloudflare-dns.com/dns-query",
+      "name": "forjaescola.com.br",
+      "type": "CNAME",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://cloudflare-dns.com/dns-query",
+      "name": "forjaescola.com.br",
+      "type": "NS",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://cloudflare-dns.com/dns-query",
+      "name": "forjaescola.com.br",
+      "type": "TXT",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://cloudflare-dns.com/dns-query",
+      "name": "www.forjaescola.com.br",
+      "type": "A",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://cloudflare-dns.com/dns-query",
+      "name": "www.forjaescola.com.br",
+      "type": "AAAA",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://cloudflare-dns.com/dns-query",
+      "name": "www.forjaescola.com.br",
+      "type": "CNAME",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://cloudflare-dns.com/dns-query",
+      "name": "www.forjaescola.com.br",
+      "type": "NS",
+      "error": "ENOTFOUND"
+    },
+    {
+      "resolver": "https://cloudflare-dns.com/dns-query",
+      "name": "www.forjaescola.com.br",
+      "type": "TXT",
+      "error": "ENOTFOUND"
+    }
+  ],
+  "http": [
+    {
+      "host": "forjaescola.com.br",
+      "scheme": "http",
+      "status": 301,
+      "location": "https://forjaescola.com.br/",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "host": "forjaescola.com.br",
+      "scheme": "https",
+      "status": 200,
+      "location": null,
+      "sha256": "5da10123f591bc37a6a4abdb1e40b5e9d8df18f673f181d37a3b2755b6944ca9"
+    },
+    {
+      "host": "www.forjaescola.com.br",
+      "scheme": "http",
+      "error": "ENOTFOUND"
+    },
+    {
+      "host": "www.forjaescola.com.br",
+      "scheme": "https",
+      "error": "ENOTFOUND"
+    },
+    {
+      "host": "forja-escola.web.app",
+      "scheme": "http",
+      "status": 301,
+      "location": "https://forja-escola.web.app/",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "host": "forja-escola.web.app",
+      "scheme": "https",
+      "status": 200,
+      "location": null,
+      "sha256": "5da10123f591bc37a6a4abdb1e40b5e9d8df18f673f181d37a3b2755b6944ca9"
+    }
+  ],
+  "tls": [
+    {
+      "host": "forjaescola.com.br",
+      "authorized": true,
+      "subjectAltName": "DNS:forjaescola.com.br",
+      "issuer": "Google Trust Services",
+      "validFrom": "Oct 17 03:19:41 2026 GMT",
+      "validTo": "Jan 15 04:18:13 2027 GMT"
+    },
+    {
+      "host": "forja-escola.web.app",
+      "authorized": true,
+      "subjectAltName": "DNS:*.web.app",
+      "issuer": "Google Trust Services",
+      "validFrom": "Sep 23 17:59:58 2026 GMT",
+      "validTo": "Dec 22 17:59:57 2026 GMT"
+    }
+  ],
+  "auth": {
+    "status": 200,
+    "authorizedDomains": [
+      "localhost",
+      "forja-escola.firebaseapp.com",
+      "forja-escola.web.app",
+      "forja-escola--pr7-feat-novo-usuario-qu-d3whqaia.web.app",
+      "forja-escola--pr8-feat-oauth-branding-f6bv79lf.web.app",
+      "forja-escola--pr9-fix-google-personal-w4fpr8jd.web.app",
+      "forja-escola--pr10-fix-google-personal-5988fodb.web.app",
+      "forja-escola--pr12-feat-secretaria-cent-yagluqdq.web.app",
+      "forja-escola--pr13-release-minimal-avai-uv1tq026.web.app",
+      "forja-escola--pr18-chore-google-search-ntrvcy6w.web.app"
+    ]
+  },
+  "cors": [
+    {
+      "origin": "https://forjaescola.com.br",
+      "status": 403,
+      "allowOrigin": null
+    },
+    {
+      "origin": "https://www.forjaescola.com.br",
+      "status": 403,
+      "allowOrigin": null
+    },
+    {
+      "origin": "https://forja-escola.web.app",
+      "status": 204,
+      "allowOrigin": "https://forja-escola.web.app"
+    }
+  ],
+  "managementApi": {
+    "hosting": 403,
+    "auth": 403,
+    "expectedDomainSpecificDns": "not accessible with current CLI account"
+  },
+  "recheckedAt": "2026-10-21T17:44:59.139Z"
+}
