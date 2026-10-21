@@ -94,7 +94,7 @@
   const sync=unresolved.filter(x=>x.availabilityReason==='personal_sync_unavailable').length;
   const personal=unresolved.filter(x=>x.personal?.status==='unavailable'&&!x.availabilityReason).length;
   const central=unresolved.filter(x=>x.central?.status==='unavailable').length;
-  const details=[consent?`${consent} profissional(is) precisam autorizar a consulta Google pela Secretaria no próprio painel, em Configurações > Google Calendar`:null,sync?`${sync} profissional(is) com sincronização Google pessoal indisponível; conferir a conexão do professor`:null,personal?'Google pessoal não confirmou todos os horários':null,central?'Google central não confirmou todos os horários; conferir vínculos e acesso':null].filter(Boolean);
+  const details=[consent?`${consent} profissional(is) precisam autorizar a consulta Google pela Secretaria em Hoje ou Conta e perfil, na seção Google Calendar`:null,sync?`${sync} profissional(is) com sincronização Google pessoal indisponível; conferir a conexão do professor`:null,personal?'Google pessoal não confirmou todos os horários':null,central?'Google central não confirmou todos os horários; conferir vínculos e acesso':null].filter(Boolean);
   host.classList.toggle('unavailable',!!unavailable);host.textContent=(flight?'Consultando… · ':unavailable?'Consulta incompleta ou vencida · ':'Consulta confirmada · ')+(lastSuccess?'Última consulta completa: '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Aguardando primeira consulta completa')+(details.length?' · '+details.join(' · '):'');
  }}
  const timeValid=x=>typeof x==='string'&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(x);
