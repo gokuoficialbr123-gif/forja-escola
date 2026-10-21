@@ -1,0 +1,131 @@
+{
+  "completedAt": "2026-10-21T13:44:42.128Z",
+  "node": "v22.23.3",
+  "environment": "Windows; Playwright 1.56.1; isolated installed Chrome; all Auth/API/Google responses simulated",
+  "frontendBase": "b1bc02d77aa49385d9023567de1c35f54d4fbb10",
+  "sourceSha256": "16e1ecbdb3ed0a973da72ff6bb66e3bf4ecb1890bbaf0a93a976c68ea79cf30b",
+  "hostingArtifactSha256": "5da10123f591bc37a6a4abdb1e40b5e9d8df18f673f181d37a3b2755b6944ca9",
+  "canonicalFunctionalFilesUnchanged": [
+    "index.html",
+    "scripts/agenda-intelligence-client.js",
+    "scripts/agenda-intelligence-build.mjs",
+    "scripts/agenda-intelligence-style.css",
+    "scripts/validate.mjs"
+  ],
+  "historicalFalsePositive": {
+    "result": {
+      "tests": 2,
+      "pass": 0,
+      "fail": 2,
+      "skipped": 0,
+      "durationMs": 17424.4323
+    },
+    "diagnostics": [
+      {
+        "beforeRequest": {
+          "settled": true,
+          "reads": 2
+        },
+        "heldResponse": {
+          "settled": true,
+          "reads": 2
+        },
+        "completed": {
+          "settled": true,
+          "reads": 2
+        },
+        "initialReads": 2
+      },
+      {
+        "beforeRequest": {
+          "settled": true,
+          "reads": 2
+        },
+        "heldResponse": {
+          "settled": true,
+          "reads": 2
+        },
+        "completed": {
+          "settled": true,
+          "reads": 2
+        },
+        "initialReads": 2
+      }
+    ]
+  },
+  "correctedRequestBarrier": {
+    "result": {
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 16902.2309
+    },
+    "diagnostics": [
+      {
+        "beforeRequest": {
+          "settled": false,
+          "reads": 2
+        },
+        "heldResponse": {
+          "settled": false,
+          "reads": 2
+        },
+        "completed": {
+          "settled": true,
+          "reads": 3
+        },
+        "initialReads": 2
+      },
+      {
+        "beforeRequest": {
+          "settled": false,
+          "reads": 2
+        },
+        "heldResponse": {
+          "settled": false,
+          "reads": 2
+        },
+        "completed": {
+          "settled": true,
+          "reads": 3
+        },
+        "initialReads": 2
+      }
+    ]
+  },
+  "monthlyRepetitions": [
+    {
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 112804.6427
+    },
+    {
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 110272.1621
+    },
+    {
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 108104.1193
+    }
+  ],
+  "fullFrontend": {
+    "tests": 389,
+    "pass": 389,
+    "fail": 0,
+    "skipped": 0,
+    "durationMs": 740265.7281
+  },
+  "ciBudgetMinutes": 20,
+  "realPollingIntervalUnchangedMs": 20000,
+  "clockAdvanceUnchangedMs": 20010,
+  "duplicateCounting": "Focused repetitions and the two new regressions are subsets of the 389 frontend tests, not additional unique tests."
+}

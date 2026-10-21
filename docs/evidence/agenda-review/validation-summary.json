@@ -1,0 +1,109 @@
+{
+  "completedAt": "2026-10-21T12:52:50.160Z",
+  "node": "v22.23.3",
+  "environment": "Windows; Playwright 1.56.1 with installed Chrome; demo-forja Auth/Firestore emulators; Google simulated only",
+  "frontendBase": "390cda1ae73d9f9c6b710beb096105d9aeff01bf",
+  "backendBase": "36535c0c66ae7522fea162c22a2f6c8a38bacbf1",
+  "frontendSourceSha256": "16e1ecbdb3ed0a973da72ff6bb66e3bf4ecb1890bbaf0a93a976c68ea79cf30b",
+  "hostingArtifactSha256": "5da10123f591bc37a6a4abdb1e40b5e9d8df18f673f181d37a3b2755b6944ca9",
+  "suites": [
+    {
+      "name": "backend-unit",
+      "tests": 310,
+      "pass": 310,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 4735.5888
+    },
+    {
+      "name": "paired-integration",
+      "tests": 275,
+      "pass": 275,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 510716.88
+    },
+    {
+      "name": "frontend-complete",
+      "tests": 387,
+      "pass": 387,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 619599.5334
+    }
+  ],
+  "totalTests": 972,
+  "syntheticReviewDay": "2026-10-20",
+  "visualCaptures": {
+    "before": 4,
+    "after": 12,
+    "allAfterWithoutDocumentOverflow": true,
+    "allAfterWithOneLegend": true
+  },
+  "images": [
+    {
+      "file": "after-admin-desktop-day.png",
+      "sha256": "aac3e527bae7f8b6342ccabaca0c63473035f0351e259226011d97cc098e91ef"
+    },
+    {
+      "file": "after-admin-desktop-month.png",
+      "sha256": "a17b4a8f0db1f1c254737b6a8d5992dd90bbf1be82724260280cc53d4d064231"
+    },
+    {
+      "file": "after-admin-desktop-week.png",
+      "sha256": "f08dd28033460a9ea1a4f284465ac2df7e96fcab11a9714d8b928fd6828184d6"
+    },
+    {
+      "file": "after-admin-mobile-day.png",
+      "sha256": "82ebf5899fbb782d06b8fc753dfd7c95a668a77657425418812967a6f52729a0"
+    },
+    {
+      "file": "after-admin-mobile-month.png",
+      "sha256": "08693eb1150c8bac43e6fea90f418635dee21c07bc557eddb2745088dfa773da"
+    },
+    {
+      "file": "after-admin-mobile-week.png",
+      "sha256": "f07f184370e88cccfdbcafd068be3013861432a049bb0b7557ea4529de5a498b"
+    },
+    {
+      "file": "after-teacher-desktop-day.png",
+      "sha256": "681bb3f60241fa9a23f106f49dd2cde0d3d587d74502a4b1b803b54b369e1c73"
+    },
+    {
+      "file": "after-teacher-desktop-month.png",
+      "sha256": "24ce93abea5c2b3525884e965642034c9ddda76857ecf76275f92209d0a8c9bd"
+    },
+    {
+      "file": "after-teacher-desktop-week.png",
+      "sha256": "8496a7f0414fa34f1540f53279cf75fafa2c326d87e6cb15f7c108eaa98e751c"
+    },
+    {
+      "file": "after-teacher-mobile-day.png",
+      "sha256": "ed38aa960f9b2efdba059e3f93dd00caba648498b631a51cb933f61b57f7a3a9"
+    },
+    {
+      "file": "after-teacher-mobile-month.png",
+      "sha256": "08357881a97ddddfdb751700a12ff1fbd902a9754945f24c30f714f10931b242"
+    },
+    {
+      "file": "after-teacher-mobile-week.png",
+      "sha256": "d2aa22991cbaf14cdbf9d5df91cc2d485bafe9eb910fc7b87e7eef8f1bb7b195"
+    },
+    {
+      "file": "before-admin-desktop-week.png",
+      "sha256": "c91ac466bd18c222320ddc281cd8dc2d42b3f6dfea3898594320c7c976a94faa"
+    },
+    {
+      "file": "before-admin-mobile-week.png",
+      "sha256": "2545ffdf996d87ee42825eee0eccb6645b017bc4e32bc41f69bb684597b2b2ea"
+    },
+    {
+      "file": "before-teacher-desktop-day.png",
+      "sha256": "4f3806a699ce62a7f754e1c8e4f319e11d79428e9e9c34617aa18c7cb90cf98a"
+    },
+    {
+      "file": "before-teacher-mobile-day.png",
+      "sha256": "05660990c9330b38329246e24982b20aff9a5f0758c240f717887820bc99a891"
+    }
+  ]
+}

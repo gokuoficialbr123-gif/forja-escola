@@ -1,0 +1,8 @@
+{
+  "beforeSourceSha256": "d0ed7cd54c6d305789887fe9e7b67a0951019c92310c8a67adb9c9d7e0c51611",
+  "afterSourceSha256": "16e1ecbdb3ed0a973da72ff6bb66e3bf4ecb1890bbaf0a93a976c68ea79cf30b",
+  "inlineScripts": 11,
+  "scriptBlocks": 13,
+  "allInlineScriptsByteIdentical": true,
+  "description": "Final change after full local suites is scoped calendar CSS only. Regressions are rerun on the final artifact."
+}

@@ -7,6 +7,7 @@ import {createHash} from 'node:crypto';
 import {withoutAgendaIntelligence} from './agenda-intelligence-scope.mjs';
 import {performancePortal,delay} from './helpers/performance-portal-fixture.mjs';
 import {buildHostingArtifact} from './prepare-hosting.mjs';
+import {automaticCycle,nextSnapshot,ready} from './helpers/agenda-presentation-fixture.mjs';
 const {chromium}=await import(pathToFileURL(resolve(process.env.FORJA_PLAYWRIGHT_MODULE)).href);let browser;
 before(async()=>browser=await chromium.launch({headless:true,executablePath:process.env.FORJA_CHROMIUM_PATH}));after(()=>browser?.close());
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
@@ -22,8 +23,7 @@ async function fixture(t,{role='admin',mobile=false,mode='free',clock=false}={})
   if(chosen==='network')return route.abort();if(chosen==='quota')return route.fulfill({status:429,headers:{'Access-Control-Allow-Origin':f.origin},contentType:'application/json',body:'{"error":"Limite simulado"}'});
   return route.fulfill({headers:{'Access-Control-Allow-Origin':f.origin},contentType:'application/json',body:JSON.stringify(body)}).catch(()=>{});
  });
- t.after(()=>f.close());if(clock)await p.clock.install();await p.evaluate(()=>{const Native=BroadcastChannel;window.fixtureBroadcastNames=[];window.fixtureBroadcastClosed=0;window.BroadcastChannel=class extends Native{constructor(name){super(name);fixtureBroadcastNames.push(name)}close(){fixtureBroadcastClosed++;return super.close()}};});await f.login();await p.waitForFunction(()=>state.profile&&!state.loading);await p.evaluate(()=>navigate('agenda'));await p.locator('[data-forja2-status]').waitFor();
- await p.waitForFunction(()=>!document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consultando'));
+ t.after(()=>f.close());if(clock)await p.clock.install();await p.evaluate(()=>{const Native=BroadcastChannel;window.fixtureBroadcastNames=[];window.fixtureBroadcastClosed=0;window.BroadcastChannel=class extends Native{constructor(name){super(name);fixtureBroadcastNames.push(name)}close(){fixtureBroadcastClosed++;return super.close()}};});await f.login();await p.waitForFunction(()=>state.profile&&!state.loading);const request=nextSnapshot(p);await p.evaluate(()=>navigate('agenda'));await ready(p,{request});
  return {...f,setMode:x=>current=x,count:()=>count,holdNext:()=>held=true,release:()=>release?.()};
 }
 for(const role of ['admin','teacher'])for(const mode of ['all-day','school','partial','expired'])test(`${role}: ${mode} never offers false green; unknown differs from confirmed blocking`,async t=>{
@@ -56,7 +56,7 @@ test('same browser tabs coalesce simultaneous reads through a lock and memory-on
 });
 for(const mobile of [false,true])test(`mixed professionals retain independent states and all four colors ${mobile?'mobile':'desktop'}`,async t=>{
  const f=await fixture(t,{mobile}),p=f.page;f.setMode('mixed');await p.evaluate(()=>{state.users.push({uid:'PERF_TEACHER_2',role:'teacher',active:true,fullName:'Segundo professor sintético',disciplinaIds:['MATH']});});await p.locator('[data-v629-select-all]').click();await p.locator('[data-v621-view="day"][data-role="admin"]').click();
- await p.waitForFunction(()=>document.querySelector('.forja2-band.unknown')&&document.querySelector('.forja2-band.available')&&document.querySelector('.forja2-band.busy')&&document.querySelector('.forja2-band.outside'));await p.evaluate(()=>renderPage());await delay(50);assert.equal(await p.locator('[data-forja2-status]').count(),1);assert.equal(await p.locator('.forja2-legend').count(),1);assert.equal(await p.locator('[data-v629-refresh]').textContent(),'Atualizar consulta');assert.ok(await p.locator('.v621-block.school').count()>0);
+ await p.waitForFunction(()=>document.querySelector('.forja2-band.unknown')&&document.querySelector('.v621-block.availability')&&document.querySelector('.forja2-band.busy')&&document.querySelector('.forja2-band.outside'));await p.evaluate(()=>renderPage());await delay(50);assert.equal(await p.locator('[data-forja2-status]').count(),1);assert.equal(await p.locator('.forja2-legend').count(),1);assert.equal(await p.locator('[data-v629-refresh]').textContent(),'Atualizar consulta');assert.ok(await p.locator('.v621-block.school').count()>0);
  assert.ok(await p.locator('.v621-block.availability').count()>0);assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);const root=process.env.FORJA_AGENDA_EVIDENCE_DIR;if(root){mkdirSync(root,{recursive:true});await p.screenshot({path:resolve(root,`agenda2-four-colors-${mobile?'mobile':'desktop'}.png`),fullPage:true});}assert.deepEqual(f.errors,[]);
 });
 test('a stalled token read times out without signing out or blocking navigation',async t=>{
@@ -74,7 +74,7 @@ async function confirmedAgenda(page){
 }
 async function fiveAutomaticReads(f){
  const before=f.count();
- for(let i=0;i<5;i++){await f.page.clock.fastForward(20010);await confirmedAgenda(f.page);}
+ for(let i=0;i<5;i++){await automaticCycle(f.page);await confirmedAgenda(f.page);assert.equal(f.count()-before,i+1,'one completed read for each automatic cycle');}
  assert.equal(f.count()-before,5,'one read for each automatic cycle');
 }
 async function clickListeners(f,expression){
