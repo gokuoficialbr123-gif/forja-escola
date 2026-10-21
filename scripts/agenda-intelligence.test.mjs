@@ -36,7 +36,7 @@ test('admin partial response clearly requests teacher consent without exposing e
  const f=await fixture(t,{role:'admin',mode:'consent'}),p=f.page;
  const status=await p.locator('[data-forja2-status]').textContent();
  assert.match(status,/precisam autorizar a consulta Google pela Secretaria/);
- assert.match(status,/Configurações > Google Calendar/);
+ assert.match(status,/Hoje ou Conta e perfil/);
  assert.equal(await p.locator('.v621-block.availability').count(),0);
  assert.ok(await p.locator('.forja2-band.unknown').count()>0);
  assert.ok(!status.includes('SENSITIVE_PROVIDER_DETAIL'));
