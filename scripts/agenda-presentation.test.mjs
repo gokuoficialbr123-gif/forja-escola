@@ -2,19 +2,37 @@ import {test,before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {agendaPresentationFixture,reviewDay,ready,setView} from './helpers/agenda-presentation-fixture.mjs';
+import {delay} from './helpers/performance-portal-fixture.mjs';
+import {agendaPresentationFixture,reviewDay,ready,setView,nextSnapshot,automaticCycle} from './helpers/agenda-presentation-fixture.mjs';
 const {chromium}=await import(pathToFileURL(resolve(process.env.FORJA_PLAYWRIGHT_MODULE)).href);let browser;
 before(async()=>browser=await chromium.launch({headless:true,executablePath:process.env.FORJA_CHROMIUM_PATH}));after(()=>browser?.close());
 const signatures=new Map();
 const laneFor=(p,role,date=reviewDay)=>p.locator(role==='admin'?`[data-v629-day="${date}"]`:`[data-v621-lane="teacher"][data-date="${date}"]`);
-async function cycles(f){const start=f.reads();for(let n=0;n<5;n++){await f.page.clock.fastForward(20010);await ready(f.page);}assert.equal(f.reads()-start,5,'exactly five automatic reads');}
-async function refresh(f,mode){f.setMode(mode);await f.page.evaluate(()=>forjaAgenda2Refresh());await ready(f.page);}
-async function setDay(f,role,date){await f.page.locator(`[data-v621-date="${role}"]`).evaluate((el,value)=>{el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));},date);await ready(f.page);}
+async function cycles(f){const start=f.reads();for(let n=0;n<5;n++){await automaticCycle(f.page);assert.equal(f.reads()-start,n+1,'exactly one completed read per automatic cycle');}assert.equal(f.reads()-start,5,'exactly five automatic reads');}
+async function refresh(f,mode){f.setMode(mode);const request=nextSnapshot(f.page);await f.page.evaluate(()=>forjaAgenda2Refresh());await ready(f.page,{request});}
+async function setDay(f,role,date){const request=nextSnapshot(f.page);await f.page.locator(`[data-v621-date="${role}"]`).evaluate((el,value)=>{el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));},date);await ready(f.page,{request});}
 async function geometry(lane){return lane.evaluate(el=>{
  const base=el.getBoundingClientRect(),cards=[...el.querySelectorAll('.v621-block,.forja2-state')].map(x=>({cls:x.className,top:parseFloat(x.style.top),height:parseFloat(x.style.height),rect:x.getBoundingClientRect().toJSON()})),overlaps=[];
  for(let i=0;i<cards.length;i++)for(let j=i+1;j<cards.length;j++){const a=cards[i].rect,b=cards[j].rect;if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>1&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1)overlaps.push([cards[i].cls,cards[j].cls]);}
  return {height:base.height,overlaps,cards:cards.map(({cls,top,height})=>({cls,top,height})),now:el.querySelector('.v623-now-line')?.style.top};
  });}
+
+for(const mobile of [false,true])test(`current snapshot readiness cannot reuse previous monthly confirmation ${mobile?'mobile':'desktop'}`,async t=>{
+ const f=await agendaPresentationFixture(browser,{role:'admin',mobile});t.after(()=>f.close());const p=f.page;await setView(f,'admin','month');
+ const before=f.reads();let release;const gate=new Promise(resolve=>release=resolve);t.after(()=>release());
+ await p.route('**/agenda/snapshot?**',async route=>{await gate;await route.fallback();});
+ const request=p.waitForRequest(r=>r.method()==='GET'&&new URL(r.url()).pathname==='/agenda/snapshot');
+ let settled=false;const completion=ready(p,{request}).then(()=>settled=true);
+ // The previous confirmation is genuinely still present. A status-only wait
+ // resolves here, before the next automatic request has even started.
+ await delay(100);const beforeRequest={settled,reads:f.reads()};
+ await p.clock.fastForward(20010);await request;await delay(100);const heldResponse={settled,reads:f.reads()};
+ release();await completion;
+ t.diagnostic(JSON.stringify({beforeRequest,heldResponse,completed:{settled,reads:f.reads()},initialReads:before}));
+ assert.equal(beforeRequest.settled,false,'previous confirmed status cannot finish the next cycle');assert.equal(beforeRequest.reads,before);
+ assert.equal(heldResponse.settled,false,'new request must await its response body and UI completion');assert.equal(heldResponse.reads,before);
+ assert.equal(f.reads(),before+1,'exactly one automatic request, with no manual refresh');assert.deepEqual(f.errors,[]);
+});
 
 for(const role of ['teacher','admin'])for(const mobile of [false,true])for(const view of ['day','week','month'])test(`one agenda representation ${role} ${mobile?'mobile':'desktop'} ${view}`,async t=>{
  const f=await agendaPresentationFixture(browser,{role,mobile});t.after(()=>f.close());const p=f.page;await setView(f,role,view);

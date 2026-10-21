@@ -7,6 +7,7 @@ import {createHash} from 'node:crypto';
 import {withoutAgendaIntelligence} from './agenda-intelligence-scope.mjs';
 import {performancePortal,delay} from './helpers/performance-portal-fixture.mjs';
 import {buildHostingArtifact} from './prepare-hosting.mjs';
+import {automaticCycle,nextSnapshot,ready} from './helpers/agenda-presentation-fixture.mjs';
 const {chromium}=await import(pathToFileURL(resolve(process.env.FORJA_PLAYWRIGHT_MODULE)).href);let browser;
 before(async()=>browser=await chromium.launch({headless:true,executablePath:process.env.FORJA_CHROMIUM_PATH}));after(()=>browser?.close());
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
@@ -22,8 +23,7 @@ async function fixture(t,{role='admin',mobile=false,mode='free',clock=false}={})
   if(chosen==='network')return route.abort();if(chosen==='quota')return route.fulfill({status:429,headers:{'Access-Control-Allow-Origin':f.origin},contentType:'application/json',body:'{"error":"Limite simulado"}'});
   return route.fulfill({headers:{'Access-Control-Allow-Origin':f.origin},contentType:'application/json',body:JSON.stringify(body)}).catch(()=>{});
  });
- t.after(()=>f.close());if(clock)await p.clock.install();await p.evaluate(()=>{const Native=BroadcastChannel;window.fixtureBroadcastNames=[];window.fixtureBroadcastClosed=0;window.BroadcastChannel=class extends Native{constructor(name){super(name);fixtureBroadcastNames.push(name)}close(){fixtureBroadcastClosed++;return super.close()}};});await f.login();await p.waitForFunction(()=>state.profile&&!state.loading);await p.evaluate(()=>navigate('agenda'));await p.locator('[data-forja2-status]').waitFor();
- await p.waitForFunction(()=>!document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consultando'));
+ t.after(()=>f.close());if(clock)await p.clock.install();await p.evaluate(()=>{const Native=BroadcastChannel;window.fixtureBroadcastNames=[];window.fixtureBroadcastClosed=0;window.BroadcastChannel=class extends Native{constructor(name){super(name);fixtureBroadcastNames.push(name)}close(){fixtureBroadcastClosed++;return super.close()}};});await f.login();await p.waitForFunction(()=>state.profile&&!state.loading);const request=nextSnapshot(p);await p.evaluate(()=>navigate('agenda'));await ready(p,{request});
  return {...f,setMode:x=>current=x,count:()=>count,holdNext:()=>held=true,release:()=>release?.()};
 }
 for(const role of ['admin','teacher'])for(const mode of ['all-day','school','partial','expired'])test(`${role}: ${mode} never offers false green; unknown differs from confirmed blocking`,async t=>{
@@ -74,7 +74,7 @@ async function confirmedAgenda(page){
 }
 async function fiveAutomaticReads(f){
  const before=f.count();
- for(let i=0;i<5;i++){await f.page.clock.fastForward(20010);await confirmedAgenda(f.page);}
+ for(let i=0;i<5;i++){await automaticCycle(f.page);await confirmedAgenda(f.page);assert.equal(f.count()-before,i+1,'one completed read for each automatic cycle');}
  assert.equal(f.count()-before,5,'one read for each automatic cycle');
 }
 async function clickListeners(f,expression){

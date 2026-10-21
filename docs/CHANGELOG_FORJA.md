@@ -1,3 +1,12 @@
+## 21/10/2026 — Estabilização de testes e CI da Agenda, somente Draft
+
+- Espera vinculada à nova requisição, corpo concluído e confirmação da tela,
+  com contagem estrita de um por ciclo e cinco no total; inclui teste do drawer.
+- Duas regressões reproduzem o status anterior aceito pelo helper antigo.
+- Teto do job frontend de 10 para 20 minutos, preservando cobertura e gates.
+- HTML/CSS/controlador e backend funcionais intactos nesta rodada.
+- Evidência e validação em `AGENDA_CI_STABILITY_2026-10.md`; sem publicação.
+
 ## 20/10/2026 — Revisão visual e sincronização da Agenda, somente Draft
 
 - Base publicada: main `390cda1`; nova correção em `codex/agenda-visual-sync-review`.

@@ -1,5 +1,9 @@
 # Agenda — correção visual e revisão da sincronização — 20/10/2026
 
+Complemento de 21/10: [estabilização dos testes mensais e orçamento da CI](AGENDA_CI_STABILITY_2026-10.md).
+Os resultados funcionais desta rodada são mantidos abaixo; o complemento
+registra as duas regressões adicionais, sem alterar o artefato funcional.
+
 Preparado para revisão em `codex/agenda-visual-sync-review`. **Nenhum merge,
 deploy, Preview, OAuth, alteração de infraestrutura/Rules ou dado real de QA.**
 Esta correção ainda não está em produção.

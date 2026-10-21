@@ -1,4 +1,5 @@
-import {performancePortal,delay} from './performance-portal-fixture.mjs';
+import assert from 'node:assert/strict';
+import {performancePortal} from './performance-portal-fixture.mjs';
 import {buildHostingArtifact} from '../prepare-hosting.mjs';
 export const reviewDay='2026-10-20';
 const next=d=>new Date(Date.parse(d+'T12:00:00Z')+86400000).toISOString().slice(0,10);
@@ -26,8 +27,16 @@ export async function agendaPresentationFixture(browser,{role='teacher',mobile=f
  if(mode==='professionals')await p.evaluate(()=>{state.users.push({uid:'REVIEW_BUSY',fullName:'Professor ocupado',role:'teacher',active:true,disciplinaIds:['MATH']},{uid:'REVIEW_UNKNOWN',fullName:'Professor desconhecido',role:'teacher',active:true,disciplinaIds:['MATH']});state.v629SecretarySelectionTouched=true;state.v629SecretarySelectedTeacherIds=['PERF_TEACHER','REVIEW_BUSY','REVIEW_UNKNOWN'];});
  // The portal initializes its selected date before the test clock is installed.
  // Keep the synthetic event day explicit even when QA resumes on another day.
- await p.evaluate(day=>{state.teacherLessonAgendaDateG=day;state.adminLessonAgendaDateG=day;navigate('agenda');},reviewDay);await ready(p);
+ const request=nextSnapshot(p);
+ await p.evaluate(day=>{state.teacherLessonAgendaDateG=day;state.adminLessonAgendaDateG=day;navigate('agenda');},reviewDay);await ready(p,{request});
  return {...f,setMode:x=>current=x,reads:()=>reads};
 }
-export async function ready(page){await page.waitForFunction(()=>/^(Consulta confirmada|Consulta incompleta)/.test(document.querySelector('[data-forja2-status]')?.textContent||''));await delay(20);}
-export async function setView(f,role,view){await f.page.locator(`[data-v621-view="${view}"][data-role="${role}"]`).click();await ready(f.page);}
+export const nextSnapshot=page=>page.waitForRequest(r=>r.method()==='GET'&&new URL(r.url()).pathname==='/agenda/snapshot');
+export async function ready(page,{request}={}){
+ // For a new read, status alone can still belong to the previous response.
+ // Bind completion to the request captured before the action/clock advance.
+ if(request){const response=await(await request).response();assert.ok(response,'snapshot must receive a response');assert.equal(response.status(),200);assert.equal(await response.finished(),null,'snapshot response body must finish');}
+ await page.waitForFunction(()=>/^(Consulta confirmada|Consulta incompleta)/.test(document.querySelector('[data-forja2-status]')?.textContent||''));
+}
+export async function automaticCycle(page){const [request]=await Promise.all([nextSnapshot(page),page.clock.fastForward(20010)]);await ready(page,{request});}
+export async function setView(f,role,view){const button=f.page.locator(`[data-v621-view="${view}"][data-role="${role}"]`),changes=!(await button.evaluate(el=>el.classList.contains('active'))),request=changes?nextSnapshot(f.page):undefined;await button.click();await ready(f.page,{request});}
