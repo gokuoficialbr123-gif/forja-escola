@@ -19,7 +19,7 @@ async function fixture(t,{role='admin',mobile=false,mode='free',clock=false}={})
   if(held){held=false;await new Promise(r=>release=r);}
   const at=Date.now(),days={};for(let d=from;d<=to;){days[d]=[{inicio:'09:00',fim:chosen==='short'?'09:30':'18:00'}];const date=new Date(d+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+1);d=date.toISOString().slice(0,10);}
   const exclusiveEnd=new Date(Date.parse(to+'T12:00:00Z')+86400000).toISOString().slice(0,10);
-  const body={ok:true,policy:'agenda-readonly-v1',from,to,professionalIds:ids,complete:!['partial','mixed'].includes(chosen),checkedAt:new Date(at).toISOString(),servedAt:new Date(at).toISOString(),expiresAt:new Date(at+(chosen==='expired'?-1:25000)).toISOString(),items:ids.map((professionalId,index)=>({professionalId,status:chosen==='partial'||chosen==='mixed'&&index===0?'unavailable':'success',nativeStatus:'success',days,lessons:[],blocks:[],school:chosen==='school'?[{data:from,horaInicio:'00:00',horaFim:'23:59'}]:chosen==='mixed'&&index===1?Object.keys(days).map(data=>({data,horaInicio:'10:00',horaFim:'11:00'})):[],busy:chosen==='all-day'?[{professionalId,startAt:from+'T00:00:00-03:00',endAt:exclusiveEnd+'T00:00:00-03:00',source:'google'}]:[],personal:{status:chosen==='partial'||chosen==='mixed'&&index===0?'unavailable':'success',checkedAt:new Date(at).toISOString()},central:{status:'success',checkedAt:new Date(at).toISOString()}}))};
+  const body={ok:true,policy:'agenda-readonly-v1',from,to,professionalIds:ids,complete:!['partial','mixed','consent'].includes(chosen),checkedAt:new Date(at).toISOString(),servedAt:new Date(at).toISOString(),expiresAt:new Date(at+(chosen==='expired'?-1:25000)).toISOString(),items:ids.map((professionalId,index)=>({professionalId,status:chosen==='partial'||chosen==='consent'||chosen==='mixed'&&index===0?'unavailable':'success',nativeStatus:chosen==='consent'?'unavailable':'success',...(chosen==='consent'?{availabilityReason:'personal_consent_required'}:{}),days,lessons:[],blocks:[],school:chosen==='school'?[{data:from,horaInicio:'00:00',horaFim:'23:59'}]:chosen==='mixed'&&index===1?Object.keys(days).map(data=>({data,horaInicio:'10:00',horaFim:'11:00'})):[],busy:chosen==='all-day'?[{professionalId,startAt:from+'T00:00:00-03:00',endAt:exclusiveEnd+'T00:00:00-03:00',source:'google'}]:[],personal:{status:chosen==='partial'||chosen==='consent'||chosen==='mixed'&&index===0?'unavailable':'success',checkedAt:new Date(at).toISOString()},central:{status:'success',checkedAt:new Date(at).toISOString()}}))};
   if(chosen==='network')return route.abort();if(chosen==='quota')return route.fulfill({status:429,headers:{'Access-Control-Allow-Origin':f.origin},contentType:'application/json',body:'{"error":"Limite simulado"}'});
   return route.fulfill({headers:{'Access-Control-Allow-Origin':f.origin},contentType:'application/json',body:JSON.stringify(body)}).catch(()=>{});
  });
@@ -31,6 +31,16 @@ for(const role of ['admin','teacher'])for(const mode of ['all-day','school','par
  if(mode==='school'){await p.locator(`[data-v621-view="day"][data-role="${role}"]`).click();await p.waitForFunction(()=>document.querySelectorAll('.forja2-band.busy').length>0);}
  assert.equal(await p.locator('.v621-block.availability').count(),0);
  assert.ok(await p.locator('.forja2-band.'+(['all-day','school'].includes(mode)?'busy':'unknown')).count()>0);assert.deepEqual(f.errors,[]);
+});
+test('admin partial response clearly requests teacher consent without exposing events or fake green',async t=>{
+ const f=await fixture(t,{role:'admin',mode:'consent'}),p=f.page;
+ const status=await p.locator('[data-forja2-status]').textContent();
+ assert.match(status,/precisam autorizar a consulta Google pela Secretaria/);
+ assert.match(status,/Hoje ou Conta e perfil/);
+ assert.equal(await p.locator('.v621-block.availability').count(),0);
+ assert.ok(await p.locator('.forja2-band.unknown').count()>0);
+ assert.ok(!status.includes('SENSITIVE_PROVIDER_DETAIL'));
+ assert.deepEqual(f.errors,[]);
 });
 test('20-second reads pause while hidden/closed, resume immediately and never invoke sync',async t=>{
  const f=await fixture(t,{clock:true}),p=f.page;const initial=f.count();await p.clock.fastForward(20010);await p.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));assert.equal(f.count(),initial+1);
