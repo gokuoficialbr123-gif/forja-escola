@@ -36,12 +36,14 @@ simulado na borda HTTP.
 | Professor | Handler mensal ignora qualquer `.v621-month-tag`, inclusive disponibilidade e “+N”. | Só o botão de aula intercepta a abertura dos detalhes; demais indicadores abrem o dia oficial. Números dos dias são botões com rótulo e foco preservado. |
 | Ambos | No mês móvel, nome do professor ocupa toda a tag e esconde seu significado. | Palavra de estado explícita antes do texto, rótulo acessível e tooltip completo. Célula não recebe estado agregado de todos os professores. |
 | Secretaria | Lateral inteira antecede o calendário no celular, consumindo mais de uma tela. | Painel nativo `details` recolhível até 900px, mantendo busca, seleção, filtros e calendário. Estado de abertura preservado. |
-| Professor | Regra móvel `display:none` torna os três filtros inacessíveis. | Os controles nativos ficam no painel recolhível, junto do calendário e disponibilidade fixa; filtros continuam funcionando após polling e navegação. |
+| Professor | Regra móvel `display:none` torna os três filtros inacessíveis. | Filtros e calendário ficam no painel recolhível; a ação original de disponibilidade fixa permanece visível. Filtros continuam funcionando após polling e navegação. |
 | Secretaria | Seleção de 50 professores produz cartões de apenas 16px e texto ilegível. | Mínimo de 112px por coluna de profissional, rolagem **interna**, cabeçalho e corpo com a mesma largura. Sem extrapolar a página. |
 | Ambos | Regra global `height:100dvh` disputa com o padding do modal: topo em y=-6px no celular. | Limite de altura desconta as margens somente com a Agenda aberta; cabeçalho/rodapé ficam dentro da tela e ações são alcançáveis pela rolagem do corpo. |
+| Ambos | Polling mantém a rolagem, mas filtrar e sair/voltar recriam o calendário em 0/0. | Posição interna guardada no estado existente da Agenda, por sessão/profissionais/período/visualização, limitada a oito contextos e apagada pela troca de sessão. Quatro regressões permanentes cobrem filtros, retorno, cinco ciclos e isolamento. |
 
-O acesso à disponibilidade fixa move o **mesmo nó**, com seus handlers, para o
-painel da Agenda. Não se recria o select durante o polling. A nota lateral
+Na Secretaria, o acesso à disponibilidade fixa move o **mesmo nó**, com seus
+handlers, para o painel da Agenda. No professor, preserva a ação original visível
+mesmo com filtros recolhidos. Não se recria o select durante o polling. A nota lateral
 explica a consulta de ocupações e deixa de prometer sincronização de ida e volta.
 
 ## Preservação dos contratos
@@ -81,14 +83,14 @@ infraestrutura, páginas públicas, dados pedagógicos ou demais perfis.
   modifica seu comportamento. Guardas e reversão continuam obrigatórios.
 - `helpers/agenda-presentation-fixture.mjs`: transformação opcional de dados
   sintéticos; as fixtures anteriores mantêm o mesmo comportamento.
-- `agenda-fine.test.mjs`: 26 regressões novas, incluídas em `validation.yml`.
+- `agenda-fine.test.mjs`: 30 regressões novas, incluídas em `validation.yml`.
   Testes antigos do drawer/disponibilidade abrem o painel recolhível pelo
   controle visível antes de usar seus filtros, mantendo todas as asserções.
   O workflow de Hosting e seus gates de publicação permanecem intactos.
 
 Regeneração repetida produz o mesmo hash, com todos os guards anteriores ativos.
-Fonte SHA256: `3d4309ccd38f48d4000a47e9885753926b956ec48dca6bad97fbb3167bf5b1d4`.
-Artefato Hosting preparado: `14bd0430f1e31c0bc9d58beba2632cb222fb30cdfa009ae6a85f6d1330238593`.
+Fonte SHA256: `fc0250d76f1d89dc6d8bdb573db7099065928870093e9d747040f3a1508eccb6`.
+Artefato Hosting preparado: `83ed7ffc1233136161288293a05e4c1fa7332927f70550c436fb6d6d0f40d693`.
 Preparar `.firebase-public` não executa deploy. Documentação, screenshots e
 ferramentas de QA não entram no artefato público.
 
@@ -114,11 +116,16 @@ Screenshots de página inteira costuram conteúdo rolável; a barra de navegaç�
 fixa pode aparecer no meio dessa imagem. As capturas `*-detail-actions.png` e
 `*-drawer.png` são de viewport e comprovam os limites reais das janelas.
 
+[Reprodução complementar da rolagem](evidence/agenda-fine/before-scroll.json),
+no candidato inicial: polling preservava 80px, mas filtro e retorno zeravam os
+dois eixos. A revisão adiciona quatro testes de retenção e limpeza por sessão;
+o adaptador de navegação publicado permanece literalmente idêntico.
+
 ## Validação e limites
 
 O parecer final dos testes completos e da CI, com SHA e links, será registrado
 no PR antes de qualquer merge. Os comandos finais cobrem todos os arquivos
-`scripts/*.test.mjs` (26 novos testes mais a suíte anterior), backend unitário
+`scripts/*.test.mjs` (30 novos testes mais a suíte anterior), backend unitário
 e todos os `test/integration/*.test.mjs` com emuladores. A suíte local é
 distribuída entre o arquivo novo e os demais arquivos; nenhum teste foi excluído.
 

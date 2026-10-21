@@ -7078,7 +7078,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   function v621CalendarSidebar(role,uid){
     const teacher=role==='teacher',filters=state.v624Filters||{lesson:true,availability:true,busy:true};
     const actions=teacher?`<div class="v626-create-panel"><span class="v626-create-kicker">ADICIONAR HORÁRIO</span><button type="button" class="available" data-v625-new-slot="available"><i></i><span><b>Disponível</b><small>Liberar para novas aulas</small></span><strong>+</strong></button><button type="button" class="busy" data-v625-new-slot="busy"><i></i><span><b>Ocupado</b><small>Bloquear este período</small></span><strong>+</strong></button></div>`:`<button class="v622-create" data-action="newLesson"><span class="v623-plus">+</span>Marcar aula</button>`;
-    return `<aside class="v622-left">${actions}<details class="forja2-filters forja2-teacher-filters" ${state.v625AgendaFiltersOpen??!matchMedia("(max-width:900px)").matches?"open":""}><summary>Filtros, calendário e disponibilidade</summary><div class="forja2-filter-content">${v621MiniMonth(role)}<div class="v622-cal-list"><h4>Exibir na agenda</h4><button type="button" class="v622-filter ${filters.lesson!==false?'on':''}" data-v624-filter="lesson"><span class="v623-check lesson">${filters.lesson!==false?'✓':''}</span>Aulas FORJA</button><button type="button" class="v622-filter ${filters.availability!==false?'on':''}" data-v624-filter="availability"><span class="v623-check availability">${filters.availability!==false?'✓':''}</span>Disponível</button><button type="button" class="v622-filter ${filters.busy!==false?'on':''}" data-v624-filter="busy"><span class="v623-check busy">${filters.busy!==false?'✓':''}</span>Ocupado</button></div>${teacher?`<div class="v625-slot-help"><b>Dica</b><span>Você também pode clicar em um horário vazio da grade para adicionar um período.</span></div>`:''}<div class="v622-left-note"><b>Privacidade Google</b><br>${teacher?'Compromissos pessoais continuam privados e aparecem aqui somente como “Ocupado”.':'Use os horários verdes para marcar aulas. Vermelho significa que o professor não pode receber agendamento.'}</div></div></details></aside>`;
+    return `<aside class="v622-left">${actions}<details class="forja2-filters forja2-teacher-filters" ${state.v625AgendaFiltersOpen??!matchMedia("(max-width:900px)").matches?"open":""}><summary>Filtros e calendário</summary><div class="forja2-filter-content">${v621MiniMonth(role)}<div class="v622-cal-list"><h4>Exibir na agenda</h4><button type="button" class="v622-filter ${filters.lesson!==false?'on':''}" data-v624-filter="lesson"><span class="v623-check lesson">${filters.lesson!==false?'✓':''}</span>Aulas FORJA</button><button type="button" class="v622-filter ${filters.availability!==false?'on':''}" data-v624-filter="availability"><span class="v623-check availability">${filters.availability!==false?'✓':''}</span>Disponível</button><button type="button" class="v622-filter ${filters.busy!==false?'on':''}" data-v624-filter="busy"><span class="v623-check busy">${filters.busy!==false?'✓':''}</span>Ocupado</button></div>${teacher?`<div class="v625-slot-help"><b>Dica</b><span>Você também pode clicar em um horário vazio da grade para adicionar um período.</span></div>`:''}<div class="v622-left-note"><b>Privacidade Google</b><br>${teacher?'Compromissos pessoais continuam privados e aparecem aqui somente como “Ocupado”.':'Use os horários verdes para marcar aulas. Vermelho significa que o professor não pode receber agendamento.'}</div></div></details></aside>`;
   }
 
   function v621TeacherTopbar(){
@@ -8720,10 +8720,18 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   if(calendar)calendar.style.setProperty('--forja2-lane-min',Math.max(112,(orderedIds?.length||1)*112)+'px');
   // Move the existing control node (and its handlers) beside the calendar's
   // filters, once per render. Do not recreate an edited select on each poll.
-  const entry=document.getElementById('forjaFixedEntry'),target=document.querySelector(state.role==='admin'?'.v629-sidebar .forja2-filter-content':'.forja2-teacher-filters .forja2-filter-content');
+  const entry=document.getElementById('forjaFixedEntry'),target=state.role==='admin'?document.querySelector('.v629-sidebar .forja2-filter-content'):null;
   if(entry&&target&&entry.parentElement!==target)target.append(entry);
   const teacherFilters=document.querySelector('.forja2-teacher-filters');
   if(teacherFilters&&!teacherFilters.dataset.boundFine){teacherFilters.dataset.boundFine='1';teacherFilters.ontoggle=()=>{state.v625AgendaFiltersOpen=teacherFilters.open};}
+  const viewport=document.querySelector('.forja2-agenda .v621-week-wrap'),c=context;
+  if(viewport&&current(c)&&viewport.dataset.forja2ScrollBound!==c.key){
+   viewport.dataset.forja2ScrollBound=c.key;
+   const saved=state.forjaAgenda2Scrolls?.[c.key];if(saved){viewport.scrollTop=saved.top;viewport.scrollLeft=saved.left;}
+   // This is view state only. Native session reset clears it; the context key
+   // also fences UID/generation, professional selection, range and view.
+   viewport.onscroll=()=>{if(!viewport.isConnected||!current(c))return;const positions=state.forjaAgenda2Scrolls||={};positions[c.key]={top:viewport.scrollTop,left:viewport.scrollLeft};for(const key of Object.keys(positions).slice(0,-8))delete positions[key];};
+  }
   for(const lane of document.querySelectorAll('.forja2-agenda .v621-lane')){
    const day=lane.dataset.date||lane.dataset.v629Day,ids=orderedIds||context?.ids||[];
    for(const [index,uid] of ids.entries()){

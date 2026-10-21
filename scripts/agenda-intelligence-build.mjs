@@ -81,7 +81,7 @@ replace('já preenchidos.</div></aside>`;', 'já preenchidos.</div></div></detai
 {
  const start=html.indexOf('  function v621CalendarSidebar(role,uid){'),end=html.indexOf('\n  function v621TeacherTopbar(',start),body=html.slice(start,end);
  assert.ok(start>0&&end>start);
- const updated=body.replace('${actions}${v621MiniMonth(role)}','${actions}<details class="forja2-filters forja2-teacher-filters" ${state.v625AgendaFiltersOpen??!matchMedia("(max-width:900px)").matches?"open":""}><summary>Filtros, calendário e disponibilidade</summary><div class="forja2-filter-content">${v621MiniMonth(role)}').replace('</div></aside>`;','</div></div></details></aside>`;');
+ const updated=body.replace('${actions}${v621MiniMonth(role)}','${actions}<details class="forja2-filters forja2-teacher-filters" ${state.v625AgendaFiltersOpen??!matchMedia("(max-width:900px)").matches?"open":""}><summary>Filtros e calendário</summary><div class="forja2-filter-content">${v621MiniMonth(role)}').replace('</div></aside>`;','</div></div></details></aside>`;');
  assert.notEqual(updated,body);replace(body,updated);
 }
 replace('<b>Google ⇄ FORJA</b><br>O professor continua usando o Google Calendar.', '<b>Privacidade Google</b><br>A consulta automática verifica ocupações, sem escrever eventos.');

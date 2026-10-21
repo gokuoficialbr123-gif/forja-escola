@@ -80,10 +80,18 @@
   if(calendar)calendar.style.setProperty('--forja2-lane-min',Math.max(112,(orderedIds?.length||1)*112)+'px');
   // Move the existing control node (and its handlers) beside the calendar's
   // filters, once per render. Do not recreate an edited select on each poll.
-  const entry=document.getElementById('forjaFixedEntry'),target=document.querySelector(state.role==='admin'?'.v629-sidebar .forja2-filter-content':'.forja2-teacher-filters .forja2-filter-content');
+  const entry=document.getElementById('forjaFixedEntry'),target=state.role==='admin'?document.querySelector('.v629-sidebar .forja2-filter-content'):null;
   if(entry&&target&&entry.parentElement!==target)target.append(entry);
   const teacherFilters=document.querySelector('.forja2-teacher-filters');
   if(teacherFilters&&!teacherFilters.dataset.boundFine){teacherFilters.dataset.boundFine='1';teacherFilters.ontoggle=()=>{state.v625AgendaFiltersOpen=teacherFilters.open};}
+  const viewport=document.querySelector('.forja2-agenda .v621-week-wrap'),c=context;
+  if(viewport&&current(c)&&viewport.dataset.forja2ScrollBound!==c.key){
+   viewport.dataset.forja2ScrollBound=c.key;
+   const saved=state.forjaAgenda2Scrolls?.[c.key];if(saved){viewport.scrollTop=saved.top;viewport.scrollLeft=saved.left;}
+   // This is view state only. Native session reset clears it; the context key
+   // also fences UID/generation, professional selection, range and view.
+   viewport.onscroll=()=>{if(!viewport.isConnected||!current(c))return;const positions=state.forjaAgenda2Scrolls||={};positions[c.key]={top:viewport.scrollTop,left:viewport.scrollLeft};for(const key of Object.keys(positions).slice(0,-8))delete positions[key];};
+  }
   for(const lane of document.querySelectorAll('.forja2-agenda .v621-lane')){
    const day=lane.dataset.date||lane.dataset.v629Day,ids=orderedIds||context?.ids||[];
    for(const [index,uid] of ids.entries()){

@@ -108,9 +108,19 @@ for(const mobile of [false,true])test(`Secretary selection of 50 professionals k
 });
 
 test('teacher mobile exposes all native filters and fixed availability without losing edits or polling context',async t=>{
- const f=await fixture(t,{role:'teacher',mobile:true}),p=f.page;const details=p.locator('.forja2-teacher-filters');assert.equal(await details.getAttribute('open'),null);
+ const f=await fixture(t,{role:'teacher',mobile:true}),p=f.page;const details=p.locator('.forja2-teacher-filters');assert.equal(await details.getAttribute('open'),null);assert.equal(await p.locator('[data-fixed-open]:visible').count(),1,'original fixed availability action stays visible when filters are collapsed');
  await details.locator('summary').click();assert.equal(await p.locator('[data-v624-filter]:visible').count(),3);assert.equal(await p.locator('[data-fixed-open]:visible').count(),1);
  await p.locator('[data-v624-filter="busy"]').click();await ready(p);assert.equal(await details.getAttribute('open'),'');assert.equal(await p.evaluate(()=>state.v624Filters.busy),false);
  const reads=f.reads();for(let i=0;i<5;i++)await automaticCycle(p);assert.equal(f.reads()-reads,5);assert.equal(await p.evaluate(()=>state.v624Filters.busy),false);
  await details.locator('summary').click();await p.evaluate(()=>navigate('inicio'));await p.evaluate(()=>navigate('agenda'));await ready(p);assert.equal(await details.getAttribute('open'),null);await details.locator('summary').click();assert.equal(await p.locator('[data-v624-filter]:visible').count(),3);assert.equal(await p.evaluate(()=>state.v624Filters.busy),false);assert.deepEqual(f.errors,[]);
+});
+
+for(const role of ['admin','teacher'])for(const mobile of [false,true])test(`Agenda internal scroll survives filters, navigation, five polls and clears by session ${role} ${mobile}`,async t=>{
+ const f=await fixture(t,{role,mobile}),p=f.page,details=p.locator('.forja2-filters');if(!(await details.evaluate(el=>el.open)))await details.locator('summary').click();
+ const position=()=>p.locator('.v621-week-wrap').evaluate(el=>({top:el.scrollTop,left:el.scrollLeft}));
+ await p.locator('.v621-week-wrap').evaluate(el=>{el.scrollTop=80;el.scrollLeft=80;});await p.waitForFunction(()=>Object.values(state.forjaAgenda2Scrolls||{}).some(x=>x.top>0));const expected=await position();assert.ok(expected.top>0);
+ await p.locator(role==='admin'?'[data-v629-filter="busy"]':'[data-v624-filter="busy"]').click();await ready(p);assert.deepEqual(await position(),expected,'filter repaint preserves both axes');
+ const before=f.reads();for(let i=0;i<5;i++)await automaticCycle(p);assert.equal(f.reads()-before,5);assert.deepEqual(await position(),expected);
+ await p.evaluate(()=>navigate('inicio'));await p.evaluate(()=>navigate('agenda'));await ready(p);assert.deepEqual(await position(),expected,'same session and period recover the exact scroll');
+ await p.evaluate(()=>forjaChangeSession('QA_ANOTHER_SESSION'));assert.equal(await p.evaluate(()=>state.forjaAgenda2Scrolls),undefined,'view positions never cross session ownership');assert.deepEqual(f.errors,[]);
 });
