@@ -39,7 +39,7 @@ async function fixture(t,{mobile=false,status=200,policy=POLICY,hold=false,weekO
  await page.goto(origin);await page.waitForFunction(()=>state.user?.uid==='A'&&!state.loading);
  // Complete the login screen autofocus before automated input, without a fixed delay.
  const login=async(uid)=>{await page.evaluate(()=>executeLogout());await page.evaluate(async()=>{showLogin();await new Promise(resolve=>requestAnimationFrame(resolve));});await page.fill('#loginEmail',uid+'@forja.invalid');await page.fill('#loginPassword','local-only-password');await page.click('[data-action="enterPortal"]');await page.waitForFunction(uid=>state.user?.uid===uid&&!state.loading,uid);};
- const open=async()=>{await page.evaluate(()=>navigate(state.role==='teacher'?'agenda':'disponibilidade'));await page.click('[data-fixed-open]');await page.waitForSelector('#forjaFixedForm');};
+ const open=async()=>{await page.evaluate(()=>navigate(state.role==='teacher'?'agenda':'disponibilidade'));const filters=page.locator('.forja2-filters');if(await filters.count()&&!(await filters.evaluate(el=>el.open)))await filters.locator('summary').click();await page.click('[data-fixed-open]');await page.waitForSelector('#forjaFixedForm');};
  return {page,requests,errors,login,open,release};
 }
 for(const mobile of [false,true])test(`fixed editor ${mobile?'mobile psychologist':'desktop teacher'}: affirmative confirmation, multiple periods, exact hash and exceptions`,async t=>{

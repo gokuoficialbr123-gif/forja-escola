@@ -1,4 +1,15 @@
-## 21/10/2026 — Navegação, aluno e domínio (código em revisão, sem publicação)
+## 21/10/2026 — Pente-fino das Agendas (publicação condicionada aos checks)
+
+Autorização específica do proprietário inclui corrigir, testar, PR, merge e
+pipeline oficial, exclusivamente nas Agendas admin/professor, após aprovação
+do SHA exato. Base main frontend 5a29e32 / backend d148303; PR28 publicado e
+comprovado pelo HTML. Nova branch codex/agenda-fine-review. Backend intacto.
+Ler AGENDA_FINE_REVIEW_2026-10.md: colisões, detalhes, cancelamento de aula nova,
+foco, mês, filtros móveis e limites de janelas. Preservados Google/locks/login,
+sem dados reais de QA. Hash do artefato servido e production success ainda
+devem ser comprovados no PR; código preparado não significa publicado.
+
+## 21/10/2026 — Navegação, aluno e domínio (registro histórico do preparo)
 
 Base frontend publicada `8def27c` e backend `239e4ec`, verificadas por artefato/health anônimos.
 Na retomada, publicação externa mudou o backend para `d148303`; validação foi

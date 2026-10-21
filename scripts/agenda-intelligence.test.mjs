@@ -117,6 +117,9 @@ for(const mobile of [false,true])for(const view of ['day','week','month'])test(`
  const date=await p.evaluate(()=>gAddDays(todayKey(),1));
  await p.locator('[data-v621-date="admin"]').evaluate((el,value)=>{el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));},date);await confirmedAgenda(p);
  await p.locator(`[data-v621-view="${view}"][data-role="admin"]`).click();await confirmedAgenda(p);
+ // The native filters now live in the responsive disclosure. Follow the same
+ // visible action as the user; keep every drawer/POST/five-cycle assertion.
+ const filters=p.locator('.forja2-filters');if(await filters.count()&&!(await filters.evaluate(el=>el.open)))await filters.locator('summary').click();
  await p.locator('[data-v629-filter="lesson"]').click();await confirmedAgenda(p);
  await p.evaluate(()=>{
   window.drawerOpenCalls=0;let value=state.v630Booking.open;

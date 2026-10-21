@@ -1,0 +1,227 @@
+{
+  "base": "5a29e325cc938185ad02082b3e0d52dc4f479c5e",
+  "servedArtifactSha256": "700f4949cce5892ecdae7612acec1dc9c645496e0357a2f754a4529bf4ae97ae",
+  "browser": "155.0.8059.85",
+  "screens": [
+    {
+      "file": "before-admin-desktop-day.png",
+      "width": 1920,
+      "height": 1080,
+      "role": "admin",
+      "view": "day"
+    },
+    {
+      "file": "before-admin-desktop-week.png",
+      "width": 1920,
+      "height": 1080,
+      "role": "admin",
+      "view": "week"
+    },
+    {
+      "file": "before-admin-desktop-month.png",
+      "width": 1920,
+      "height": 1080,
+      "role": "admin",
+      "view": "month"
+    },
+    {
+      "file": "before-admin-notebook-day.png",
+      "width": 1366,
+      "height": 768,
+      "role": "admin",
+      "view": "day"
+    },
+    {
+      "file": "before-admin-notebook-week.png",
+      "width": 1366,
+      "height": 768,
+      "role": "admin",
+      "view": "week"
+    },
+    {
+      "file": "before-admin-notebook-month.png",
+      "width": 1366,
+      "height": 768,
+      "role": "admin",
+      "view": "month"
+    },
+    {
+      "file": "before-admin-tablet-day.png",
+      "width": 768,
+      "height": 1024,
+      "role": "admin",
+      "view": "day"
+    },
+    {
+      "file": "before-admin-tablet-week.png",
+      "width": 768,
+      "height": 1024,
+      "role": "admin",
+      "view": "week"
+    },
+    {
+      "file": "before-admin-tablet-month.png",
+      "width": 768,
+      "height": 1024,
+      "role": "admin",
+      "view": "month"
+    },
+    {
+      "file": "before-admin-mobile-day.png",
+      "width": 390,
+      "height": 844,
+      "role": "admin",
+      "view": "day"
+    },
+    {
+      "file": "before-admin-mobile-week.png",
+      "width": 390,
+      "height": 844,
+      "role": "admin",
+      "view": "week"
+    },
+    {
+      "file": "before-admin-mobile-month.png",
+      "width": 390,
+      "height": 844,
+      "role": "admin",
+      "view": "month"
+    },
+    {
+      "file": "before-admin-small-day.png",
+      "width": 360,
+      "height": 640,
+      "role": "admin",
+      "view": "day"
+    },
+    {
+      "file": "before-admin-small-week.png",
+      "width": 360,
+      "height": 640,
+      "role": "admin",
+      "view": "week"
+    },
+    {
+      "file": "before-admin-small-month.png",
+      "width": 360,
+      "height": 640,
+      "role": "admin",
+      "view": "month"
+    },
+    {
+      "file": "before-teacher-desktop-day.png",
+      "width": 1920,
+      "height": 1080,
+      "role": "teacher",
+      "view": "day"
+    },
+    {
+      "file": "before-teacher-desktop-week.png",
+      "width": 1920,
+      "height": 1080,
+      "role": "teacher",
+      "view": "week"
+    },
+    {
+      "file": "before-teacher-desktop-month.png",
+      "width": 1920,
+      "height": 1080,
+      "role": "teacher",
+      "view": "month"
+    },
+    {
+      "file": "before-teacher-notebook-day.png",
+      "width": 1366,
+      "height": 768,
+      "role": "teacher",
+      "view": "day"
+    },
+    {
+      "file": "before-teacher-notebook-week.png",
+      "width": 1366,
+      "height": 768,
+      "role": "teacher",
+      "view": "week"
+    },
+    {
+      "file": "before-teacher-notebook-month.png",
+      "width": 1366,
+      "height": 768,
+      "role": "teacher",
+      "view": "month"
+    },
+    {
+      "file": "before-teacher-tablet-day.png",
+      "width": 768,
+      "height": 1024,
+      "role": "teacher",
+      "view": "day"
+    },
+    {
+      "file": "before-teacher-tablet-week.png",
+      "width": 768,
+      "height": 1024,
+      "role": "teacher",
+      "view": "week"
+    },
+    {
+      "file": "before-teacher-tablet-month.png",
+      "width": 768,
+      "height": 1024,
+      "role": "teacher",
+      "view": "month"
+    },
+    {
+      "file": "before-teacher-mobile-day.png",
+      "width": 390,
+      "height": 844,
+      "role": "teacher",
+      "view": "day"
+    },
+    {
+      "file": "before-teacher-mobile-week.png",
+      "width": 390,
+      "height": 844,
+      "role": "teacher",
+      "view": "week"
+    },
+    {
+      "file": "before-teacher-mobile-month.png",
+      "width": 390,
+      "height": 844,
+      "role": "teacher",
+      "view": "month"
+    },
+    {
+      "file": "before-teacher-small-day.png",
+      "width": 360,
+      "height": 640,
+      "role": "teacher",
+      "view": "day"
+    },
+    {
+      "file": "before-teacher-small-week.png",
+      "width": 360,
+      "height": 640,
+      "role": "teacher",
+      "view": "week"
+    },
+    {
+      "file": "before-teacher-small-month.png",
+      "width": 360,
+      "height": 640,
+      "role": "teacher",
+      "view": "month"
+    }
+  ],
+  "focus": [
+    {
+      "role": "admin",
+      "lessonFocusRestored": false
+    },
+    {
+      "role": "teacher",
+      "lessonFocusRestored": false
+    }
+  ]
+}

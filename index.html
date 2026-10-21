@@ -4349,7 +4349,7 @@ let lastModalFocus=null;
 function modal(title,body,saveLabel=null,onSave=null){
   const m=$("#modal");lastModalFocus=document.activeElement;m.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-head"><h3 id="modalTitle">${esc(title)}</h3><button class="icon-btn" data-close-modal aria-label="Fechar janela">×</button></div><div class="modal-body">${body}</div><div class="modal-foot"><button class="btn ghost" data-close-modal>Fechar</button>${saveLabel?`<button class="btn gold" id="modalSave">${esc(saveLabel)}</button>`:""}</div></div>`;m.classList.remove("hidden");m.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");$$("[data-close-modal]").forEach(b=>b.onclick=closeModal);m.onclick=e=>{if(e.target===m)closeModal()};if(saveLabel&&onSave){$("#modalSave").onclick=()=>onSave($("#modalSave"));}m.onkeydown=e=>{if(e.key==="Escape"){e.preventDefault();e.stopPropagation();closeModal();return}if(e.key!=="Tab")return;const focusable=[...m.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href]')].filter(x=>x.offsetParent!==null);if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}};requestAnimationFrame(()=>m.querySelector(".modal-body input:not([type=hidden]),.modal-body select,.modal-body textarea,.modal-body button,.modal-body a[href]")?.focus()||m.querySelector("[data-close-modal]")?.focus());
 }
-function closeModal(){const m=$("#modal");m.classList.add("hidden");m.setAttribute("aria-hidden","true");m.innerHTML="";document.body.classList.remove("modal-open");const restore=lastModalFocus;lastModalFocus=null;if(restore?.isConnected&&restore?.focus)requestAnimationFrame(()=>restore.focus())}
+function closeModal(){const m=$("#modal");m.classList.add("hidden");m.setAttribute("aria-hidden","true");m.innerHTML="";document.body.classList.remove("modal-open");const restore=window.forjaAgenda2ReturnFocus?.(lastModalFocus)||lastModalFocus;lastModalFocus=null;if(restore?.isConnected&&restore?.focus)requestAnimationFrame(()=>restore.focus())}
 function formField(label,html,full=false){return `<div class="${full?'full':''}"><label>${esc(label)}</label>${html}</div>`}
 function selectOptions(items,valueKey="id",labelKey="nome"){return items.map(x=>`<option value="${esc(x[valueKey])}">${esc(x[labelKey]||x[valueKey])}</option>`).join("")}
 
@@ -4392,10 +4392,16 @@ function newLessonModal(){
 
 
 async function openLesson(id){
+  const agendaScope=state.page==='agenda'&&['admin','teacher'].includes(state.role)?forjaCaptureSession():null;
   modal("Aula",loading("Carregando aula..."));
+  const agendaReturnFocus=lastModalFocus;
+  const agendaDialog=document.querySelector('#modal .modal');
+  const agendaCurrent=()=>!agendaScope||(forjaSessionCurrent(agendaScope)&&state.page==='agenda'&&document.querySelector('#modal .modal')===agendaDialog);
   try{
     const [a,h,m]=await Promise.all([api(`/aulas/${id}`),api(`/aulas/${id}/historico`),api(`/aulas/${id}/materiais`)]);
+    if(!agendaCurrent())return;
     const l=a.item,history=h.items||[],materials=m.items||[];let actions="";
+    if(agendaScope)state.lessons=[...(state.lessons||[]).filter(x=>x.id!==id),l];
     const lessonCancelled=/cancelad/i.test(l.status||"");
     const lessonCompleted=/conclu/i.test(l.status||"")||!!l.finalizadoEm;
     const lessonStarted=!!l.iniciadoEm||String(l.status||"").toLowerCase()==="em_andamento";
@@ -4425,9 +4431,9 @@ async function openLesson(id){
       const open=url?`<a class="small-btn" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Abrir</a>`:`<span class="small-btn" aria-disabled="true">Link inválido</span>`;
       return row(x.titulo,x.tipo,"Disponível",`${open}${manage}`);
     }).join(""):empty("Nenhum material");
-    const body=`<div class="summary-box"><div><span>Aluno</span><strong>${esc(l.nomeAluno||"—")}</strong></div><div><span>Professor</span><strong>${esc(l.nomeProfessor||"—")}</strong></div><div><span>Disciplina</span><strong>${esc(lessonTitle(l))}</strong></div><div><span>Data</span><strong>${esc(`${fmtDate(l.dataAula)} · ${l.horaAula||"—"}${l.horaFim?`–${l.horaFim}`:""}`)}</strong></div><div><span>Modalidade</span><strong>${esc(l.modalidade||"—")}</strong></div><div><span>${l.modalidade==="presencial"?"Local":"Acesso online"}</span><strong>${esc(locationValue)}</strong></div><div><span>Status</span><strong>${esc(statusLabel(l.status||"—"))}</strong></div><div><span>Confirmação</span><strong>${esc(gStatusMeta(l).label)}</strong></div><div><span>Início real</span><strong>${esc(fmtDateTime(l.iniciadoEm))}</strong></div><div><span>Término real</span><strong>${esc(fmtDateTime(l.finalizadoEm))}</strong></div><div><span>Duração</span><strong>${l.finalizadoEm&&l.duracaoMinutos!=null?esc(l.duracaoMinutos+" min"):"—"}</strong></div><div><span>Presença</span><strong>${esc(l.presencaAluno?statusLabel(l.presencaAluno):"Não registrada")}</strong></div><div><span>Remarcação</span><strong>${esc(l.remarcacaoStatus?statusLabel(l.remarcacaoStatus):"—")}</strong></div>${l.cancelamentoMotivo?`<div><span>Motivo do cancelamento</span><strong>${esc(l.cancelamentoMotivo)}</strong></div>`:""}${l.avaliacaoAlunoNota!=null?`<div><span>Avaliação do aluno</span><strong>${esc(l.avaliacaoAlunoNota+"/5")}</strong></div>`:""}</div><div class="quick-row">${actions}</div><div class="grid2" style="margin-top:14px">${panel("Materiais",materialHtml)}${panel("Histórico",history.length?history.map(x=>row(x.evento||"Evento",`${fmtDateTime(x.createdAt)} · ${x.descricao||""}`,x.autorTipo||"registro")).join(""):empty("Nenhum evento"))}</div>`;
-    modal("Central da Aula",body);bindModalActions();
-  }catch(e){modal("Aula",empty("Não foi possível carregar",e.message))}
+    const body=`<div class="summary-box"><div><span>Aluno</span><strong>${esc(l.nomeAluno||"—")}</strong></div><div><span>Professor</span><strong>${esc(l.nomeProfessor||"—")}</strong></div><div><span>Disciplina</span><strong>${esc(lessonTitle(l))}</strong></div><div><span>Data</span><strong>${esc(`${fmtDate(l.dataAula)} · ${l.horaAula||"—"}${l.horaFim?`–${l.horaFim}`:""}`)}</strong></div><div><span>Modalidade</span><strong>${esc(l.modalidade||"—")}</strong></div><div><span>${l.modalidade==="presencial"?"Local":"Acesso online"}</span><strong>${esc(locationValue)}</strong></div><div><span>Status</span><strong>${esc(statusLabel(l.status||"—"))}</strong></div><div><span>Confirmação</span><strong>${esc(gStatusMeta(l).label)}</strong></div><div><span>Início real</span><strong>${esc(fmtDateTime(l.iniciadoEm))}</strong></div><div><span>Término real</span><strong>${esc(fmtDateTime(l.finalizadoEm))}</strong></div><div><span>Duração</span><strong>${l.finalizadoEm&&l.duracaoMinutos!=null?esc(l.duracaoMinutos+" min"):agendaScope?esc(window.forjaAgenda2PlannedDuration(l)):"—"}</strong></div><div><span>Presença</span><strong>${esc(l.presencaAluno?statusLabel(l.presencaAluno):"Não registrada")}</strong></div><div><span>Remarcação</span><strong>${esc(l.remarcacaoStatus?statusLabel(l.remarcacaoStatus):"—")}</strong></div>${l.cancelamentoMotivo?`<div><span>Motivo do cancelamento</span><strong>${esc(l.cancelamentoMotivo)}</strong></div>`:""}${l.avaliacaoAlunoNota!=null?`<div><span>Avaliação do aluno</span><strong>${esc(l.avaliacaoAlunoNota+"/5")}</strong></div>`:""}</div><div class="quick-row">${actions}</div><div class="grid2" style="margin-top:14px">${panel("Materiais",materialHtml)}${panel("Histórico",history.length?history.map(x=>row(x.evento||"Evento",`${fmtDateTime(x.createdAt)} · ${x.descricao||""}`,x.autorTipo||"registro")).join(""):empty("Nenhum evento"))}</div>`;
+    modal("Central da Aula",body);if(agendaScope)lastModalFocus=agendaReturnFocus;bindModalActions();
+  }catch(e){if(agendaCurrent()){modal("Aula",empty("Não foi possível carregar",e.message));if(agendaScope)lastModalFocus=agendaReturnFocus;}}
 }
 
 function bindModalActions(){
@@ -7058,7 +7064,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   function v621MonthCalendar(role,uid){
     const date=v621Date(role),d=gDateObj(date),month=d.getUTCMonth(),days=v621RangeDays(role);let cells='';
     const filters=state.v624Filters||{lesson:true,availability:true,busy:true};
-    for(const day of days){const obj=gDateObj(day),inside=obj.getUTCMonth()===month,lessons=v621Lessons(uid,day),googleBusy=v621GoogleBusy(uid,day),manualBusy=v623ManualBusy(uid,day),cuts=[...googleBusy,...manualBusy,...(window.forjaAgenda2School?.(uid,day)||[]),...lessons.filter(x=>!/cancel/i.test(String(x.status||''))).map(l=>({start:l.horaAula,end:l.horaFim||addMinutesTime(l.horaAula,60)}))],availability=v623CutAvailability(v621AvailabilityForDay(role,uid,day),cuts),busy=[...googleBusy,...manualBusy,...(window.forjaAgenda2School?.(uid,day)||[])],tags=[];if(filters.lesson!==false)for(const l of lessons.slice(0,2))tags.push(`<button class="v621-month-tag lesson" data-lesson="${esc(l.id)}">${esc(`${l.horaAula||'—'} · ${l.nomeAluno||'Aluno'}`)}</button>`);if(filters.availability!==false&&availability.length)tags.push(`<div class="v621-month-tag availability">Disponível · ${availability.length}</div>`);if(filters.busy!==false&&busy.length)tags.push(`<div class="v621-month-tag busy">Ocupado</div>`);const visibleCount=(filters.lesson!==false?lessons.length:0)+(filters.availability!==false&&availability.length?1:0)+(filters.busy!==false&&busy.length?1:0),extra=Math.max(0,visibleCount-tags.length);cells+=`<div class="v621-month-cell ${inside?'':'outside'} ${day===todayKey()?'today':''}" ${inside&&role==='teacher'?`data-v625-month-day="${esc(day)}"`:``}><div class="v621-month-num">${obj.getUTCDate()}</div><div class="v621-month-tags">${inside?tags.join(''):''}${inside&&extra?`<div class="v621-month-tag">+${extra}</div>`:''}</div></div>`}
+    for(const day of days){const obj=gDateObj(day),inside=obj.getUTCMonth()===month,lessons=v621Lessons(uid,day),googleBusy=v621GoogleBusy(uid,day),manualBusy=v623ManualBusy(uid,day),cuts=[...googleBusy,...manualBusy,...(window.forjaAgenda2School?.(uid,day)||[]),...lessons.filter(x=>!/cancel/i.test(String(x.status||''))).map(l=>({start:l.horaAula,end:l.horaFim||addMinutesTime(l.horaAula,60)}))],availability=v623CutAvailability(v621AvailabilityForDay(role,uid,day),cuts),busy=[...googleBusy,...manualBusy,...(window.forjaAgenda2School?.(uid,day)||[])],tags=[];if(filters.lesson!==false)for(const l of lessons.slice(0,2))tags.push(`<button class="v621-month-tag lesson" data-lesson="${esc(l.id)}">${esc(`${l.horaAula||'—'} · ${l.nomeAluno||'Aluno'}`)}</button>`);if(filters.availability!==false&&availability.length)tags.push(`<div class="v621-month-tag availability">Disponível · ${availability.length}</div>`);if(filters.busy!==false&&busy.length)tags.push(`<div class="v621-month-tag busy">Ocupado</div>`);const visibleCount=(filters.lesson!==false?lessons.length:0)+(filters.availability!==false&&availability.length?1:0)+(filters.busy!==false&&busy.length?1:0),extra=Math.max(0,visibleCount-tags.length);cells+=`<div class="v621-month-cell ${inside?'':'outside'} ${day===todayKey()?'today':''}" ${inside&&role==='teacher'?`data-v625-month-day="${esc(day)}"`:``}><button type="button" class="v621-month-num" data-forja2-date="${esc(day)}" aria-label="Ver dia ${esc(fmtDate(day))}">${obj.getUTCDate()}</button><div class="v621-month-tags">${inside?tags.join(''):''}${inside&&extra?`<div class="v621-month-tag">+${extra}</div>`:''}</div></div>`}
     return `<div class="v621-week-wrap"><div class="v621-month-head">${['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(x=>`<div>${x}</div>`).join('')}</div><div class="v621-month-grid">${cells}</div></div>`;
   }
   function v621CalendarToolbar(role){
@@ -7072,7 +7078,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   function v621CalendarSidebar(role,uid){
     const teacher=role==='teacher',filters=state.v624Filters||{lesson:true,availability:true,busy:true};
     const actions=teacher?`<div class="v626-create-panel"><span class="v626-create-kicker">ADICIONAR HORÁRIO</span><button type="button" class="available" data-v625-new-slot="available"><i></i><span><b>Disponível</b><small>Liberar para novas aulas</small></span><strong>+</strong></button><button type="button" class="busy" data-v625-new-slot="busy"><i></i><span><b>Ocupado</b><small>Bloquear este período</small></span><strong>+</strong></button></div>`:`<button class="v622-create" data-action="newLesson"><span class="v623-plus">+</span>Marcar aula</button>`;
-    return `<aside class="v622-left">${actions}${v621MiniMonth(role)}<div class="v622-cal-list"><h4>Exibir na agenda</h4><button type="button" class="v622-filter ${filters.lesson!==false?'on':''}" data-v624-filter="lesson"><span class="v623-check lesson">${filters.lesson!==false?'✓':''}</span>Aulas FORJA</button><button type="button" class="v622-filter ${filters.availability!==false?'on':''}" data-v624-filter="availability"><span class="v623-check availability">${filters.availability!==false?'✓':''}</span>Disponível</button><button type="button" class="v622-filter ${filters.busy!==false?'on':''}" data-v624-filter="busy"><span class="v623-check busy">${filters.busy!==false?'✓':''}</span>Ocupado</button></div>${teacher?`<div class="v625-slot-help"><b>Dica</b><span>Você também pode clicar em um horário vazio da grade para adicionar um período.</span></div>`:''}<div class="v622-left-note"><b>Privacidade Google</b><br>${teacher?'Compromissos pessoais continuam privados e aparecem aqui somente como “Ocupado”.':'Use os horários verdes para marcar aulas. Vermelho significa que o professor não pode receber agendamento.'}</div></aside>`;
+    return `<aside class="v622-left">${actions}<details class="forja2-filters forja2-teacher-filters" ${state.v625AgendaFiltersOpen??!matchMedia("(max-width:900px)").matches?"open":""}><summary>Filtros, calendário e disponibilidade</summary><div class="forja2-filter-content">${v621MiniMonth(role)}<div class="v622-cal-list"><h4>Exibir na agenda</h4><button type="button" class="v622-filter ${filters.lesson!==false?'on':''}" data-v624-filter="lesson"><span class="v623-check lesson">${filters.lesson!==false?'✓':''}</span>Aulas FORJA</button><button type="button" class="v622-filter ${filters.availability!==false?'on':''}" data-v624-filter="availability"><span class="v623-check availability">${filters.availability!==false?'✓':''}</span>Disponível</button><button type="button" class="v622-filter ${filters.busy!==false?'on':''}" data-v624-filter="busy"><span class="v623-check busy">${filters.busy!==false?'✓':''}</span>Ocupado</button></div>${teacher?`<div class="v625-slot-help"><b>Dica</b><span>Você também pode clicar em um horário vazio da grade para adicionar um período.</span></div>`:''}<div class="v622-left-note"><b>Privacidade Google</b><br>${teacher?'Compromissos pessoais continuam privados e aparecem aqui somente como “Ocupado”.':'Use os horários verdes para marcar aulas. Vermelho significa que o professor não pode receber agendamento.'}</div></div></details></aside>`;
   }
 
   function v621TeacherTopbar(){
@@ -7207,7 +7213,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     $$('[data-v625-new-slot]').forEach(b=>{if(b.dataset.bound625)return;b.dataset.bound625='1';b.onclick=e=>{e.preventDefault();e.stopPropagation();v625OpenSlotModal({mode:b.dataset.v625NewSlot||'available',day:v621Date('teacher')})}});
     $$('[data-v625-availability]').forEach(b=>{if(b.dataset.bound625)return;b.dataset.bound625='1';b.onclick=e=>{e.preventDefault();e.stopPropagation();v625OpenAvailabilityInfo(b)}});
     $$('[data-v625-busy]').forEach(b=>{if(b.dataset.bound625)return;b.dataset.bound625='1';b.onclick=e=>{e.preventDefault();e.stopPropagation();v625OpenBusyInfo(b)}});
-    $$('[data-v625-month-day]').forEach(b=>{if(b.dataset.bound625)return;b.dataset.bound625='1';b.onclick=e=>{if(e.target.closest('.v621-month-tag'))return;const day=b.dataset.v625MonthDay;if(!day)return;v621SetDate('teacher',day);v621SetView('teacher','day');renderPage();v621EnsureVisibleWeeks('teacher').then(()=>{if(state.page==='agenda'&&v621Date('teacher')===day&&v621View('teacher')==='day')renderPage()}).catch(e=>console.warn('FORJA_626_MONTH_DAY',e?.message||e))}});
+    $$('[data-v625-month-day]').forEach(b=>{if(b.dataset.bound625)return;b.dataset.bound625='1';b.onclick=e=>{if(e.target.closest('button[data-lesson]'))return;const day=b.dataset.v625MonthDay;if(!day)return;v621SetDate('teacher',day);v621SetView('teacher','day');renderPage();v621EnsureVisibleWeeks('teacher').then(()=>{if(state.page==='agenda'&&v621Date('teacher')===day&&v621View('teacher')==='day')renderPage()}).catch(e=>console.warn('FORJA_626_MONTH_DAY',e?.message||e))}});
     $$('[data-v621-edit-availability]').forEach(b=>{if(b.dataset.bound621)return;b.dataset.bound621='1';b.onclick=e=>{e.preventDefault();v625OpenSlotModal({mode:'available',day:v621Date('teacher')})}});
     $$('[data-v621-cancel-availability]').forEach(b=>{if(b.dataset.bound621)return;b.dataset.bound621='1';b.onclick=()=>v621CancelAvailability()});
     $$('[data-v623-mode]').forEach(b=>{if(b.dataset.bound623)return;b.dataset.bound623='1';b.onclick=()=>{state.v623MarkMode=b.dataset.v623Mode||'available';renderPage()}});
@@ -7334,7 +7340,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
         }
       }
       const shown=tags.slice(0,5),extra=Math.max(0,tags.length-shown.length);
-      cells+=`<div class="v621-month-cell ${inside?'':'outside'} ${day===todayKey()?'today':''}" ${inside?`data-v629-month-day="${esc(day)}"`:''}><div class="v621-month-num">${obj.getUTCDate()}</div><div class="v621-month-tags">${shown.join('')}${extra?`<div class="v621-month-tag">+${extra}</div>`:''}</div></div>`;
+      cells+=`<div class="v621-month-cell ${inside?'':'outside'} ${day===todayKey()?'today':''}" ${inside?`data-v629-month-day="${esc(day)}"`:''}><button type="button" class="v621-month-num" data-forja2-date="${esc(day)}" aria-label="Ver dia ${esc(fmtDate(day))}">${obj.getUTCDate()}</button><div class="v621-month-tags">${shown.join('')}${extra?`<div class="v621-month-tag">+${extra}</div>`:''}</div></div>`;
     }
     return `<div class="v621-week-wrap"><div class="v621-month-head">${['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(x=>`<div>${x}</div>`).join('')}</div><div class="v621-month-grid">${cells}</div></div>`;
   }
@@ -7350,7 +7356,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     const teachers=v629Teachers(),selected=new Set(v629EnsureTeacherSelection()),filters=state.v629SecretaryFilters||{lesson:true,availability:true,busy:true};
     const rows=teachers.map(t=>{const connected=googleProfessionalConnected(t.uid),search=`${t.fullName||''} ${t.forjaId||''}`.toLowerCase();return `<label class="v629-teacher-row" data-v629-teacher-row data-search="${esc(search)}"><input type="checkbox" data-v629-teacher="${esc(t.uid)}" ${selected.has(t.uid)?'checked':''}><span class="v629-teacher-avatar">${esc((t.fullName||'P').charAt(0).toUpperCase())}</span><span class="v629-teacher-copy"><b>${esc(t.fullName||'Professor')}</b><small>${esc(t.forjaId||'Sem Registro FORJA')}</small></span><span class="v629-google-state ${connected?'on':''}" title="${connected?'Google conectado':'Google não conectado'}"></span></label>`}).join('');
     const filter=(key,label)=>`<button type="button" class="v629-filter ${filters[key]===false?'off':''}" data-v629-filter="${key}"><span class="v629-check ${key}">${filters[key]===false?'':'✓'}</span>${label}</button>`;
-    return `<aside class="v629-sidebar">${v629MiniMonth()}<div class="v629-section"><div class="v629-section-title"><h4>Professores</h4><small>${selected.size}/${teachers.length} selecionado(s)</small></div><input class="v629-teacher-search" id="v629TeacherSearch" value="${esc(state.v629SecretaryTeacherSearch||'')}" placeholder="Buscar professor..."><div class="v629-teacher-actions"><button type="button" data-v629-select-all>Selecionar todos</button><button type="button" data-v629-clear>Limpar seleção</button></div><div class="v629-teacher-list" id="v629TeacherList">${rows||'<div class="v629-note">Nenhum professor ativo.</div>'}</div></div><div class="v629-section"><div class="v629-section-title"><h4>Mostrar na agenda</h4></div><div class="v629-filter-list">${filter('lesson','Aulas FORJA')}${filter('availability','Disponível')}${filter('busy','Ocupado')}</div></div><div class="v629-note"><b>Google ⇄ FORJA</b><br>O professor continua usando o Google Calendar. Eventos pessoais aparecem aqui somente como “Ocupado”. Horários verdes vêm da disponibilidade publicada pelo professor.</div><div class="v629-note"><b>Atalho</b><br>Clique em um horário verde para iniciar o agendamento com aquele professor, data e horário já preenchidos.</div></aside>`;
+    return `<aside class="v629-sidebar"><details class="forja2-filters" ${state.v629AgendaFiltersOpen??!matchMedia("(max-width:900px)").matches?"open":""}><summary>Professores, filtros e calendário</summary><div class="forja2-filter-content">${v629MiniMonth()}<div class="v629-section"><div class="v629-section-title"><h4>Professores</h4><small>${selected.size}/${teachers.length} selecionado(s)</small></div><input class="v629-teacher-search" id="v629TeacherSearch" value="${esc(state.v629SecretaryTeacherSearch||'')}" placeholder="Buscar professor..."><div class="v629-teacher-actions"><button type="button" data-v629-select-all>Selecionar todos</button><button type="button" data-v629-clear>Limpar seleção</button></div><div class="v629-teacher-list" id="v629TeacherList">${rows||'<div class="v629-note">Nenhum professor ativo.</div>'}</div></div><div class="v629-section"><div class="v629-section-title"><h4>Mostrar na agenda</h4></div><div class="v629-filter-list">${filter('lesson','Aulas FORJA')}${filter('availability','Disponível')}${filter('busy','Ocupado')}</div></div><div class="v629-note"><b>Privacidade Google</b><br>A consulta automática verifica ocupações, sem escrever eventos. Eventos pessoais aparecem aqui somente como “Ocupado”. Horários verdes vêm da disponibilidade publicada pelo professor.</div><div class="v629-note"><b>Atalho</b><br>Clique em um horário verde para iniciar o agendamento com aquele professor, data e horário já preenchidos.</div></div></details></aside>`;
   }
   function v629VisibleStats(){
     const selected=v629SelectedTeachers(),days=v621View('admin')==='month'?v621RangeDays('admin'):v621View('admin')==='day'?[v621Date('admin')]:Array.from({length:7},(_,i)=>gAddDays(gWeekStart(v621Date('admin')),i));let available=0,busy=0,lessons=0;
@@ -7364,7 +7370,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
   }
   function v629SecretaryAvailabilityPage(){
     v629EnsureTeacherSelection();const s=v629VisibleStats();
-    const head=`<div class="v629-secretary-head"><div class="v629-secretary-title"><small>SECRETARIA · DISPONIBILIDADE</small><h2>Disponibilidade dos professores</h2><p>Selecione um ou vários professores como no Google Calendar. Verde é horário disponível, vermelho é ocupado e azul é aula FORJA.</p></div><div class="v629-secretary-sync"><span class="google-dot">G</span><div class="copy"><b>Consulta da agenda</b><span>${s.connected}/${s.total||0} selecionado(s) conectado(s) · última atualização ${esc(v629LastGoogleSync())} · auto 5 min</span></div><button class="small-btn" data-v629-refresh>Atualizar agora</button></div></div>`;
+    const head=`<div class="v629-secretary-head"><div class="v629-secretary-title"><small>SECRETARIA · DISPONIBILIDADE</small><h2>Disponibilidade dos professores</h2><p>Selecione os professores e consulte aulas e horários. A legenda indica o estado de cada intervalo.</p></div><div class="v629-secretary-sync"><span class="google-dot">G</span><div class="copy"><b>Consulta da agenda</b><span>${s.connected}/${s.total||0} selecionado(s) conectado(s) · última atualização ${esc(v629LastGoogleSync())} · auto 5 min</span></div><button class="small-btn" data-v629-refresh>Atualizar agora</button></div></div>`;
     const summary=`<div class="v629-secretary-summary"><span class="blue">${s.total} professor(es) selecionado(s)</span><span class="ok">${s.available} período(s) disponível(is)</span><span class="busy">${s.busy} ocupado(s)</span><span>${s.lessons} aula(s)</span></div>`;
     return `<div class="v629-secretary-agenda">${!window.forjaAgenda2Enabled&&v629SelectedTeachers().some(t=>!v631CentralKnown(t.uid,v621Date('admin')))?'<div class="system-note" role="status">Consulta Google central ainda não confirmada para um ou mais professores. Horários desconhecidos não são apresentados como disponíveis; tente atualizar a Agenda.</div>':''}${head}${summary}<div class="v629-calendar-app">${v629Sidebar()}<main class="v629-main">${v629Calendar()}</main></div></div>`;
   }
@@ -7393,6 +7399,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
 
   function v629FilterTeacherRows(value){state.v629SecretaryTeacherSearch=String(value||'');const q=state.v629SecretaryTeacherSearch.trim().toLowerCase();$$('[data-v629-teacher-row]').forEach(row=>row.classList.toggle('hidden',!!q&&!String(row.dataset.search||'').includes(q)))}
   function v629Bind(){
+    const details=document.querySelector('.forja2-filters');if(details&&!details.dataset.boundFine){details.dataset.boundFine='1';details.ontoggle=()=>{state.v629AgendaFiltersOpen=details.open};}
     const search=$('#v629TeacherSearch');if(search&&!search.dataset.bound629){search.dataset.bound629='1';search.oninput=()=>v629FilterTeacherRows(search.value);if(search.value)v629FilterTeacherRows(search.value)}
     $$('[data-v629-teacher]').forEach(el=>{if(el.dataset.bound629)return;el.dataset.bound629='1';el.onchange=()=>{const id=el.dataset.v629Teacher,ids=new Set(state.v629SecretarySelectedTeacherIds||[]);state.v629SecretarySelectionTouched=true;el.checked?ids.add(id):ids.delete(id);state.v629SecretarySelectedTeacherIds=[...ids];state.v621AdminProfessionalId=state.v629SecretarySelectedTeacherIds[0]||'';renderPage()}});
     $$('[data-v629-select-all]').forEach(b=>{if(b.dataset.bound629)return;b.dataset.bound629='1';b.onclick=()=>{state.v629SecretarySelectionTouched=true;state.v629SecretarySelectedTeacherIds=v629Teachers().map(x=>x.uid);state.v621AdminProfessionalId=state.v629SecretarySelectedTeacherIds[0]||'';renderPage()}});
@@ -7443,6 +7450,7 @@ polishPortalBlockE=function(){polishPortalBlockEBeforeV619();document.documentEl
     if(admin)document.querySelector('.v629-secretary-summary')?.remove();
     v621Bind();if(admin){v629Bind();window.forjaAgenda2BindBooking?.();}for(const b of document.querySelectorAll('[data-lesson]')){b.onclick=()=>openLesson(b.dataset.lesson);window.forjaAgenda2DecorateLesson?.(b);}
     for(const block of document.querySelectorAll('.v621-lane .v621-block'))block.classList.toggle('forja2-compact',parseFloat(block.style.height)<34);
+    window.forjaAgenda2Polish?.(admin?v629SelectedTeachers().map(x=>x.uid):[state.user.uid]);
     if(focusKey&&!focus.isConnected){const target=[...document.querySelectorAll('.v621-lane button,.v621-month-grid button')].find(el=>JSON.stringify({...el.dataset})===focusKey);if(target)target.focus({preventScroll:true});else if(card){card.tabIndex=-1;card.focus({preventScroll:true});}}
   };
   const polishPortalBlockEBeforeV629=polishPortalBlockE;
@@ -8588,7 +8596,30 @@ body:has(#workspaceContent .forja2-agenda) .v630-edge-tab{display:none!important
 #workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag).outside{background:#eef0f3!important;color:#63717c!important}
 #workspaceContent .forja2-agenda .v621-month-tags{max-height:180px;overflow:auto}
 #workspaceContent .forja2-agenda :is(button,a):focus-visible{outline:2px solid #a9773b!important;outline-offset:1px}
-@media(min-width:901px){#workspaceContent .forja2-agenda .v626-toolbar-actions{display:none!important}}
+.forja2-filters>summary{display:none}
+#workspaceContent .forja2-agenda .forja2-filter-content{min-width:0}
+#workspaceContent .forja2-agenda button.v621-month-num{border:0;background:transparent;cursor:pointer;padding:0}
+#workspaceContent .forja2-agenda.v629-secretary-agenda .v621-week-wrap:is(.v626-day-mode,.v626-week-mode) :is(.v621-week,.v621-all-day){grid-template-columns:52px repeat(var(--v621-days,7),minmax(var(--forja2-lane-min,112px),1fr))!important;min-width:calc(52px + var(--v621-days,7)*var(--forja2-lane-min,112px))!important}
+#workspaceContent .forja2-agenda .v621-month-cell.today button.v621-month-num{background:#1a73e8;color:white}
+#workspaceContent .forja2-agenda .v621-lane button[data-lesson] b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body:has(#workspaceContent .forja2-agenda) #modal{padding:12px!important;place-items:center!important}
+body:has(#workspaceContent .forja2-agenda) #modal .modal{max-height:calc(100dvh - 24px)!important;height:auto!important;min-height:0!important;min-width:0;display:flex;flex-direction:column}
+body:has(#workspaceContent .forja2-agenda) #modal .modal-body{min-height:0;overflow:auto;overflow-wrap:anywhere;overscroll-behavior:contain}
+body:has(#workspaceContent .forja2-agenda) #modal .modal-head,body:has(#workspaceContent .forja2-agenda) #modal .modal-foot{flex-shrink:0;flex-wrap:wrap}
+body:has(#workspaceContent .forja2-agenda) #forjaFixedEntry{padding:10px 12px;border:1px solid #e1e7eb;border-radius:12px;background:white;align-items:center;gap:8px;margin-bottom:12px}
+body:has(#workspaceContent .forja2-agenda) #forjaFixedEntry label{display:flex;align-items:center;gap:8px;font-size:12px;min-width:0}
+body:has(#workspaceContent .forja2-agenda) #forjaFixedEntry select{max-width:240px;min-width:0;border:1px solid #d8dfe4;border-radius:7px;padding:7px;background:#fff;font:inherit}
+body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font-size:11px;line-height:16px;color:#586976}
+@media(max-width:900px){
+ #workspaceContent .forja2-agenda [data-forja2-label]:not([data-forja2-label=""]):before{content:attr(data-forja2-label);display:block;font-weight:700;line-height:12px;color:inherit}
+ #workspaceContent .forja2-agenda .v629-sidebar{padding:10px!important}
+ .forja2-filters>summary{display:list-item;cursor:pointer;font-size:12px;font-weight:700;color:#153b50;padding:8px}
+ .forja2-filters[open]>summary{margin-bottom:8px}
+ #workspaceContent .forja2-agenda .forja2-teacher-filters{padding:8px 12px}
+ #workspaceContent .forja2-agenda .forja2-teacher-filters :is(.v622-mini,.v622-cal-list,.v622-left-note,.v625-slot-help){display:block!important}
+ #workspaceContent .forja2-agenda .v629-sidebar .v621-mini-grid button{height:28px!important;min-height:28px!important}
+}
+@media(min-width:901px){#workspaceContent .forja2-agenda .v626-toolbar-actions{display:none!important}.forja2-filters:not([open])>.forja2-filter-content{display:block}}
 @media(max-width:600px){
  .forja2-legend{font-size:10px;padding:8px;gap:6px 10px}.forja2-status{max-width:100%;overflow-wrap:anywhere}
  #workspaceContent .forja2-agenda .v622-sync .small-btn{min-height:34px!important}
@@ -8598,6 +8629,11 @@ body:has(#workspaceContent .forja2-agenda) .v630-edge-tab{display:none!important
  #workspaceContent .forja2-agenda .v621-month-cell{min-height:96px!important}
  #workspaceContent .forja2-agenda:is(.v625-professor-agenda,.v629-secretary-agenda) .v621-cal-toolbar strong{display:block!important;order:3!important;flex:0 0 100%;width:100%!important;height:auto!important;max-height:none!important;font-size:13px!important;margin:0!important}
  #workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag){font-size:8.5px!important;line-height:12px!important;padding:3px 1px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+ body:has(#workspaceContent .forja2-agenda) #forjaFixedEntry label{flex-basis:100%}
+ body:has(#workspaceContent .forja2-agenda) #modal .summary-box{grid-template-columns:1fr 1fr;gap:8px}
+ body:has(#workspaceContent .forja2-agenda) #modal .summary-box>div{min-width:0}
+ body:has(#workspaceContent .forja2-agenda) #modal .quick-row{gap:6px}
+ body:has(#workspaceContent .forja2-agenda) #modal .btn{min-height:38px;padding:8px 10px}
 }
 
 </style>
@@ -8671,6 +8707,49 @@ body:has(#workspaceContent .forja2-agenda) .v630-edge-tab{display:none!important
  };
  window.forjaAgenda2Cancelled=(uid,day,name='')=>(row(uid,day)?.lessons||[]).filter(l=>String(l.dataAula).slice(0,10)===day&&/cancel/i.test(l.status||'')).map(l=>`<button type="button" class="forja2-cancelled" data-lesson="${escape(l.id)}" title="Aula cancelada · Não ocupa o horário">${escape([name,'Cancelada',l.horaAula+'–'+l.horaFim,l.nomeAluno||'Aula FORJA'].filter(Boolean).join(' · '))}</button>`).join('');
  window.forjaAgenda2LessonCounts=(uid,day)=>{const all=(row(uid,day)?.lessons||[]).filter(l=>String(l.dataAula).slice(0,10)===day),cancelled=all.filter(l=>/cancel/i.test(l.status||'')).length;return {active:all.length-cancelled,cancelled};};
+ window.forjaAgenda2PlannedDuration=l=>{const duration=minutes(l.horaFim||'00:00')-minutes(l.horaAula||'00:00');return duration>0?duration+' min (prevista)':'—';};
+ window.forjaAgenda2ReturnFocus=previous=>{
+  if(previous?.isConnected||state.page!=='agenda'||!['admin','teacher'].includes(state.role))return previous;
+  const id=previous?.dataset?.lesson;
+  return id?document.querySelector('.forja2-agenda [data-lesson="'+CSS.escape(id)+'"]'):previous;
+ };
+ // Layout only: partition connected overlap groups per professional. Reservation
+ // cuts remain the full original intervals; no event is hidden or shortened.
+ window.forjaAgenda2Polish=orderedIds=>{
+  const calendar=document.querySelector('.v629-calendar-card');
+  if(calendar)calendar.style.setProperty('--forja2-lane-min',Math.max(112,(orderedIds?.length||1)*112)+'px');
+  // Move the existing control node (and its handlers) beside the calendar's
+  // filters, once per render. Do not recreate an edited select on each poll.
+  const entry=document.getElementById('forjaFixedEntry'),target=document.querySelector(state.role==='admin'?'.v629-sidebar .forja2-filter-content':'.forja2-teacher-filters .forja2-filter-content');
+  if(entry&&target&&entry.parentElement!==target)target.append(entry);
+  const teacherFilters=document.querySelector('.forja2-teacher-filters');
+  if(teacherFilters&&!teacherFilters.dataset.boundFine){teacherFilters.dataset.boundFine='1';teacherFilters.ontoggle=()=>{state.v625AgendaFiltersOpen=teacherFilters.open};}
+  for(const lane of document.querySelectorAll('.forja2-agenda .v621-lane')){
+   const day=lane.dataset.date||lane.dataset.v629Day,ids=orderedIds||context?.ids||[];
+   for(const [index,uid] of ids.entries()){
+    const lessons=row(uid,day)?.lessons||[],cards=[...lane.querySelectorAll('button[data-lesson]')].flatMap(button=>{
+     const l=lessons.find(x=>x.id===button.dataset.lesson);if(!l)return [];
+     const text=[l.nomeAluno||'Aluno',typeof lessonTitle==='function'?lessonTitle(l):'Aula FORJA',l.horaAula+'–'+l.horaFim,l.nomeProfessor||state.users?.find(x=>x.uid===uid)?.fullName||'Professor'].join(' · '),origin=window.forjaAgenda2LessonOrigin(uid,day,l.horaAula,l.horaFim);
+     button.title=text+(origin?' · Também ocupado · '+origin:'');button.setAttribute('aria-label',button.title);
+     if(state.role==='admin')button.querySelector('b').textContent=l.nomeAluno||'Aluno';
+     return [{button,start:minutes(l.horaAula),end:minutes(l.horaFim)}];
+    }).sort((a,b)=>a.start-b.start||b.end-a.end||a.button.dataset.lesson.localeCompare(b.button.dataset.lesson));
+    let group=[],until=-1;
+    const layout=()=>{const ends=[];for(const item of group){let column=ends.findIndex(end=>end<=item.start);if(column<0)column=ends.length;ends[column]=item.end;item.column=column;}
+     for(const item of group){const count=Math.max(1,ids.length),columns=ends.length,left=(index+item.column/columns)*100/count,width=100/count/columns;
+      item.button.style.setProperty('left',`calc(${left.toFixed(5)}% + 4px)`,'important');item.button.style.setProperty('width',`calc(${width.toFixed(5)}% - 8px)`,'important');item.button.style.setProperty('right','auto','important');item.button.dataset.forja2Column=String(item.column);
+     }
+    };
+    for(const item of cards){if(item.start>=until&&group.length){layout();group=[];until=-1;}group.push(item);until=Math.max(until,item.end);}if(group.length)layout();
+   }
+  }
+  // Preserve an explicit state word even when a monthly professional name is
+  // ellipsized. Full text remains in the accessible name and native tooltip.
+  for(const tag of document.querySelectorAll('.forja2-agenda .v621-month-tag,.forja2-agenda .v629-month-tag')){
+   const text=tag.textContent.trim();tag.title=text;tag.setAttribute('aria-label',text);
+   tag.dataset.forja2Label=tag.classList.contains('lesson')?'Aula':tag.classList.contains('availability')?'Livre':tag.classList.contains('busy')?'Ocupado':tag.classList.contains('unknown')?'Verificar':tag.classList.contains('outside')?'Fora':tag.classList.contains('cancelled')?'Cancelada':'';
+  }
+ };
  window.forjaAgenda2Bands=(uid,day,style)=>{
   const r=row(uid,day),known=fresh()&&r?.status==='success',native=r?.nativeStatus==='success'&&timely(),published=native?(r?.days?.[day]||[]):[],occupied=native?cuts(r,day):[],points=new Set([420,1320]);
   for(const p of published)for(const t of [p.inicio,p.fim])points.add(Math.max(420,Math.min(1320,minutes(t))));
