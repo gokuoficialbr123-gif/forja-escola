@@ -4,6 +4,10 @@
  const POLICY='agenda-readonly-v1',INTERVAL=20000,MAX_AGE=25000;
  let context=null,record=null,flight=null,timer=null,sequence=0,failures=0,nextAt=0,lastSuccess=null,channel=null;
  window.forjaAgenda2Enabled=true;
+ window.forjaAgenda2RescheduleFeedback=result=>{
+  const status=result?.item?.googleSyncStatus,pending=['erro','conflito','pendente','cancelamento_pendente'].includes(status);
+  toast(pending?'Aula reagendada no FORJA; sincronização Google pendente.':status==='sincronizado'?'Aula reagendada e sincronização Google confirmada.':'Aula reagendada no FORJA.',pending?'warn':'ok');
+ };
  const active=()=>!document.hidden&&state.page==='agenda'&&['admin','teacher'].includes(state.role)&&state.profile?.active===true&&state.profile.role===state.role;
  const capture=()=>{if(!active())return null;const range=window.forjaAgenda2Context?.();if(!range)return null;const scope=forjaCaptureSession();return {...range,scope,key:JSON.stringify([scope.uid,scope.generation,state.role,range])};};
  const current=c=>!!c&&active()&&forjaSessionCurrent(c.scope)&&capture()?.key===c.key;
@@ -14,6 +18,9 @@
  const time=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
  const part=x=>Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(x)).map(p=>[p.type,p.value]));
  const dayKey=p=>p.year+'-'+p.month+'-'+p.day;
+ const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const sourceLabel=source=>source==='google-central'?'Google central':'Google pessoal';
+ const position=(style,a,b)=>style(time(a),time(b)).replace(/height:[\d.]+px/,'height:'+((b-a)*48/60).toFixed(1)+'px');
  function busyFor(r,day){return (r?.busy||[]).flatMap(x=>{const a=part(x.startAt),b=part(x.endAt),ad=dayKey(a),bd=dayKey(b);if(day<ad||day>bd)return [];const start=day===ad?a.hour+':'+a.minute:'00:00',end=day===bd?b.hour+':'+b.minute:'24:00';return end>start?[{start,end,source:x.source}]:[];});}
  function cuts(r,day){return [...busyFor(r,day),...(r?.blocks||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})),...(r?.school||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})),...(r?.lessons||[]).filter(x=>String(x.dataAula).slice(0,10)===day&&!/cancel/i.test(x.status||'')).map(x=>({start:x.horaAula,end:x.horaFim}))];}
  window.forjaAgenda2Periods=(uid,day)=>{const r=row(uid,day);return fresh()&&r?.status==='success'?(r.days[day]||[]):[];};
@@ -22,12 +29,55 @@
  window.forjaAgenda2School=(uid,day)=>{const r=row(uid,day);return r?.nativeStatus==='success'&&timely()?r.school.filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})):[];};
  window.forjaAgenda2SchoolCards=(uid,day,style)=>window.forjaAgenda2School(uid,day).map(x=>`<div class="v621-block busy school" style="${style(x.start,x.end)}" title="Calendário escolar bloqueia este período"><b>Bloqueio escolar</b><small>${x.start}–${x.end}</small></div>`).join('');
  window.forjaAgenda2Blocks=(uid,day)=>{const r=row(uid,day);return r?.nativeStatus==='success'&&timely()?r.blocks.filter(x=>String(x.data).slice(0,10)===day).map(x=>({id:x.id,start:x.horaInicio,end:x.horaFim,source:x})):[];};
+ function occupiedSources(r,day){return [
+  ...busyFor(r,day).map(x=>({...x,label:sourceLabel(x.source)})),
+  ...(r?.blocks||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim,label:'Bloqueio FORJA',manual:x})),
+  ...(r?.school||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim,label:'Calendário escolar'}))
+ ];}
+ // Presentation only: union overlapping busy sources and leave native lesson
+ // cards visible. This NEVER removes an interval from cuts(), booking or Google.
+ window.forjaAgenda2BusyCards=(uid,day,style,role,filters={},name='')=>{
+  const r=row(uid,day);if(filters.busy===false||r?.nativeStatus!=='success'||!timely())return '';
+  const sources=occupiedSources(r,day),lessons=r.lessons.filter(x=>String(x.dataAula).slice(0,10)===day&&!/cancel/i.test(x.status||'')),points=new Set([420,1320]);
+  for(const x of [...sources,...lessons.map(x=>({start:x.horaAula,end:x.horaFim}))])for(const t of [x.start,x.end])points.add(Math.max(420,Math.min(1320,minutes(t))));
+  const bounds=[...points].sort((a,b)=>a-b),parts=[];
+  for(let i=0;i<bounds.length-1;i++){
+   const a=bounds[i],b=bounds[i+1],active=sources.filter(x=>minutes(x.start)<b&&minutes(x.end)>a);
+   if(!active.length||filters.lesson!==false&&lessons.some(x=>minutes(x.horaAula)<b&&minutes(x.horaFim)>a))continue;
+   const labels=[...new Set(active.map(x=>x.label))].sort(),manual=[...new Map(active.filter(x=>x.manual).map(x=>[x.manual.id,x.manual])).values()],key=JSON.stringify([labels,manual.map(x=>x.id).sort()]),last=parts.at(-1);
+   if(last?.b===a&&last.key===key)last.b=b;else parts.push({a,b,labels,manual,key});
+  }
+  return parts.map(({a,b,labels,manual})=>{
+   const editable=role==='teacher'&&manual.length===1,m=manual[0],tag=editable?'button':'div',origin=labels.join(' · '),attrs=editable?`type="button" data-v625-busy="${escape(m.id)}" data-date="${escape(day)}" data-start="${escape(m.horaInicio)}" data-end="${escape(m.horaFim)}"`:'',extra=role==='teacher'&&manual.length>1?manual.map(x=>`<button type="button" data-v625-busy="${escape(x.id)}" data-date="${escape(day)}" data-start="${escape(x.horaInicio)}" data-end="${escape(x.horaFim)}">Ver bloqueio FORJA</button>`).join(''):'';
+   return `<${tag} ${attrs} class="v621-block ${role==='admin'?'v629-block':''} busy forja2-band forja2-busy ${labels.includes('Calendário escolar')?'school':''} ${labels.some(x=>x.startsWith('Google'))?'google':''}" style="${position(style,a,b)}" data-forja2-origin="${escape(origin)}" data-forja2-start="${time(a)}" data-forja2-end="${time(b)}" aria-label="${escape([name,'Ocupado',origin,time(a)+'–'+time(b)].filter(Boolean).join(' · '))}" title="${escape(origin)} · ${time(a)}–${time(b)}"><b>${escape(role==='admin'?name:'Ocupado')}</b><small>${time(a)}–${time(b)}</small><span class="forja2-origin">${escape(origin)}</span>${extra}</${tag}>`;
+  }).join('');
+ };
+ window.forjaAgenda2LessonOrigin=(uid,day,start,end)=>{
+  const r=row(uid,day);return timely()&&r?.nativeStatus==='success'?[...new Set(occupiedSources(r,day).filter(x=>minutes(x.start)<minutes(end)&&minutes(x.end)>minutes(start)).map(x=>x.label))].join(' · '):'';
+ };
+ window.forjaAgenda2DecorateLesson=button=>{
+  const parent=button.closest('.v621-lane,.v621-month-cell'),day=parent?.dataset.date||parent?.dataset.v629Day||parent?.dataset.v625MonthDay||parent?.dataset.v629MonthDay;
+  for(const uid of context?.ids||[]){const l=row(uid,day)?.lessons.find(x=>x.id===button.dataset.lesson);if(!l)continue;
+   if(/cancel/i.test(l.status||'')){button.classList.add('cancelled');button.textContent='Cancelada · '+l.horaAula+' · '+(l.nomeAluno||'Aula FORJA');button.title=button.textContent+' · Não ocupa o horário';return;}
+   if(!button.classList.contains('v621-block'))return;
+   const origin=window.forjaAgenda2LessonOrigin(uid,day,l.horaAula,l.horaFim);if(!origin)return;
+   button.querySelector('.forja2-lesson-origin')?.remove();const text='Também ocupado · '+origin;button.title=button.textContent.trim()+' · '+text;
+   const note=document.createElement('span');note.className='forja2-lesson-origin';note.textContent=text;button.append(note);return;
+  }
+ };
+ window.forjaAgenda2Cancelled=(uid,day,name='')=>(row(uid,day)?.lessons||[]).filter(l=>String(l.dataAula).slice(0,10)===day&&/cancel/i.test(l.status||'')).map(l=>`<button type="button" class="forja2-cancelled" data-lesson="${escape(l.id)}" title="Aula cancelada · Não ocupa o horário">${escape([name,'Cancelada',l.horaAula+'–'+l.horaFim,l.nomeAluno||'Aula FORJA'].filter(Boolean).join(' · '))}</button>`).join('');
+ window.forjaAgenda2LessonCounts=(uid,day)=>{const all=(row(uid,day)?.lessons||[]).filter(l=>String(l.dataAula).slice(0,10)===day),cancelled=all.filter(l=>/cancel/i.test(l.status||'')).length;return {active:all.length-cancelled,cancelled};};
  window.forjaAgenda2Bands=(uid,day,style)=>{
-  const r=row(uid,day),known=fresh()&&r?.status==='success',native=r?.nativeStatus==='success'&&timely(),published=r?.days?.[day]||[],occupied=native?cuts(r,day):[],points=new Set([420,1320]);
+  const r=row(uid,day),known=fresh()&&r?.status==='success',native=r?.nativeStatus==='success'&&timely(),published=native?(r?.days?.[day]||[]):[],occupied=native?cuts(r,day):[],points=new Set([420,1320]);
   for(const p of published)for(const t of [p.inicio,p.fim])points.add(Math.max(420,Math.min(1320,minutes(t))));
   for(const p of occupied)for(const t of [p.start,p.end])points.add(Math.max(420,Math.min(1320,minutes(t))));
   const bounds=[...points].sort((a,b)=>a-b);let html='';
-  for(let i=0;i<bounds.length-1;i++){const a=bounds[i],b=bounds[i+1];if(b<=a)continue;const inside=published.some(p=>minutes(p.inicio)<=a&&minutes(p.fim)>=b),blocked=occupied.some(p=>minutes(p.start)<b&&minutes(p.end)>a),kind=blocked?'busy':!native?'unknown':inside?(known?'available':'unknown'):'outside',label={busy:'Ocupado ou bloqueado',unknown:'Disponibilidade não confirmada',available:'Disponível confirmado',outside:'Fora da disponibilidade publicada'}[kind],position=style(time(a),time(b)).replace(/height:[\d.]+px/,'height:'+((b-a)*48/60).toFixed(1)+'px');html+=`<div class="forja2-band ${kind}" style="${position}" role="img" aria-label="${label} ${time(a)}–${time(b)}" title="${label}"></div>`;}
+  for(let i=0;i<bounds.length-1;i++){const a=bounds[i],b=bounds[i+1];if(b<=a)continue;const inside=published.some(p=>minutes(p.inicio)<=a&&minutes(p.fim)>=b),blocked=occupied.some(p=>minutes(p.start)<b&&minutes(p.end)>a),kind=blocked?'busy':!native?'unknown':inside?(known?'available':'unknown'):'outside';
+   // Available/busy/lessons already have one native card with its official action.
+   // Only unrepresented neutral/unknown intervals need a background band.
+   if(kind==='busy'||kind==='available')continue;
+   const label=kind==='unknown'?'Disponibilidade não confirmada':'Fora da publicação';html+=`<div class="forja2-band forja2-state ${kind}" style="${position(style,a,b)};--forja2-grid-offset:${(-((a-420)*48/60)).toFixed(1)}px" role="img" aria-label="${label} ${time(a)}–${time(b)}" title="${label}"><span>${label}</span></div>`;
+  }
   return html;
  };
  window.forjaAgenda2DayKind=(uid,day)=>{

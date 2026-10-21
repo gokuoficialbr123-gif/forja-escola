@@ -1,3 +1,13 @@
+## 20/10/2026 — Revisão visual e sincronização da Agenda, somente Draft
+
+- Base publicada: main `390cda1`; nova correção em `codex/agenda-visual-sync-review`.
+- Uma representação por intervalo, origens privadas sanitizadas, escala comum,
+  mês por profissional e cabeçalho/celular sem sobreposição ou ações repetidas.
+- Drawer e formulários preservados; canceladas mantêm acesso sem cobrir verde.
+- Reagendamento distingue aula salva de erro Google. Relatório e evidências em
+  `AGENDA_VISUAL_SYNC_2026-10.md`; correção backend pareada de cache/snapshot.
+- Sem merge, deploy, Preview ou dado real nesta revisão. Aguardar autorização.
+
 ## 20/10/2026 — Drawer após polling: correção local, sem push
 
 - Horários verdes reutilizam o binding oficial para `v630Open` após a repintura.

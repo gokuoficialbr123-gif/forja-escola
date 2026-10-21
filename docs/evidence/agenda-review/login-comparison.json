@@ -1,0 +1,161 @@
+{
+  "baseline": "390cda1ae73d9f9c6b710beb096105d9aeff01bf",
+  "environment": "synthetic Auth/API/Google only; interleaved before/after; new context each sample; not production or Render cold start",
+  "model": {
+    "authMs": 400,
+    "tokenMs": 100,
+    "meMs": 350,
+    "apiMs": 250,
+    "secondaryMs": 2500,
+    "mobileCpu": 4,
+    "mobileMbps": 1.6
+  },
+  "summary": [
+    {
+      "mobile": false,
+      "variant": "before",
+      "n": 3,
+      "portalMedianMs": 1168.6000000238419,
+      "agendaMedianMs": 625,
+      "loginGetCounts": [
+        14,
+        14,
+        14
+      ]
+    },
+    {
+      "mobile": false,
+      "variant": "after",
+      "n": 3,
+      "portalMedianMs": 1173.5,
+      "agendaMedianMs": 624.3000000119209,
+      "loginGetCounts": [
+        14,
+        14,
+        14
+      ]
+    },
+    {
+      "mobile": true,
+      "variant": "before",
+      "n": 3,
+      "portalMedianMs": 1328.5,
+      "agendaMedianMs": 1193.5,
+      "loginGetCounts": [
+        14,
+        14,
+        14
+      ]
+    },
+    {
+      "mobile": true,
+      "variant": "after",
+      "n": 3,
+      "portalMedianMs": 1335.199999988079,
+      "agendaMedianMs": 1240.7999999523163,
+      "loginGetCounts": [
+        14,
+        14,
+        14
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "variant": "before",
+      "mobile": false,
+      "run": 0,
+      "portalMs": 1166.8999999761581,
+      "agendaMs": 625,
+      "loginGets": 14
+    },
+    {
+      "variant": "after",
+      "mobile": false,
+      "run": 0,
+      "portalMs": 1201.699999988079,
+      "agendaMs": 672.2999999523163,
+      "loginGets": 14
+    },
+    {
+      "variant": "before",
+      "mobile": false,
+      "run": 1,
+      "portalMs": 1181.4000000357628,
+      "agendaMs": 673.5,
+      "loginGets": 14
+    },
+    {
+      "variant": "after",
+      "mobile": false,
+      "run": 1,
+      "portalMs": 1173.5,
+      "agendaMs": 617.0999999642372,
+      "loginGets": 14
+    },
+    {
+      "variant": "before",
+      "mobile": false,
+      "run": 2,
+      "portalMs": 1168.6000000238419,
+      "agendaMs": 619.6999999880791,
+      "loginGets": 14
+    },
+    {
+      "variant": "after",
+      "mobile": false,
+      "run": 2,
+      "portalMs": 1172.8999999761581,
+      "agendaMs": 624.3000000119209,
+      "loginGets": 14
+    },
+    {
+      "variant": "before",
+      "mobile": true,
+      "run": 0,
+      "portalMs": 1313.3999999761581,
+      "agendaMs": 1188.300000011921,
+      "loginGets": 14
+    },
+    {
+      "variant": "after",
+      "mobile": true,
+      "run": 0,
+      "portalMs": 1319.0999999642372,
+      "agendaMs": 1278.300000011921,
+      "loginGets": 14
+    },
+    {
+      "variant": "before",
+      "mobile": true,
+      "run": 1,
+      "portalMs": 1328.5,
+      "agendaMs": 1193.5,
+      "loginGets": 14
+    },
+    {
+      "variant": "after",
+      "mobile": true,
+      "run": 1,
+      "portalMs": 1336.0999999642372,
+      "agendaMs": 1175.5,
+      "loginGets": 14
+    },
+    {
+      "variant": "before",
+      "mobile": true,
+      "run": 2,
+      "portalMs": 1353.9000000357628,
+      "agendaMs": 1389.199999988079,
+      "loginGets": 14
+    },
+    {
+      "variant": "after",
+      "mobile": true,
+      "run": 2,
+      "portalMs": 1335.199999988079,
+      "agendaMs": 1240.7999999523163,
+      "loginGets": 14
+    }
+  ]
+}
