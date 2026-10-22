@@ -183,7 +183,14 @@
   channel=new BroadcastChannel('forja-agenda-readonly-v1:'+c.key);
   channel.addEventListener('message',event=>{const m=event.data,age=Date.now()-m?.sentAt;if(m?.kind==='snapshot'&&m.key===c.key&&!flight&&current(c)&&Number.isFinite(m.ttlMs)&&m.ttlMs>0&&age>=0&&age<MAX_AGE){try{accept(m.value,c,m.ttlMs-age);paint();schedule();}catch{}}});
  }
- function schedule(){clearTimeout(timer);if(!context||!current(context))return;const now=performance.now(),expiry=record&&!record.error&&record.expires>now?record.expires:Infinity;timer=setTimeout(()=>{paint();if(performance.now()>=nextAt)void refresh();else schedule();},Math.max(20,Math.min(nextAt,expiry)-now));}
+ function schedule(){
+  clearTimeout(timer);if(!context||!current(context))return;
+  const now=performance.now(),expiry=record&&!record.error&&record.expires>now?record.expires:Infinity,due=Math.min(flight?Infinity:nextAt,expiry);
+  // Keep the original expiry armed during renewal. Do not spin or launch a
+  // second GET while the existing request owns the refresh slot.
+  if(!Number.isFinite(due))return;
+  timer=setTimeout(()=>{paint();if(!flight&&performance.now()>=nextAt)void refresh();else schedule();},Math.max(20,due-now));
+ }
  async function collect(c,request){
   const query=new URLSearchParams({from:c.from,to:c.to});for(const id of c.ids)query.append('professionalId',id);
   let aborted;const cancel=new Promise((_,reject)=>{aborted=()=>reject(Error('AGENDA_ABORTED'));request.controller.signal.addEventListener('abort',aborted,{once:true});});
@@ -192,7 +199,7 @@
  }
  async function refresh({manual=false}={}){
   lifecycle(false);const c=context;if(!c||!current(c)||!c.ids.length||c.ids.length>50)return false;if(flight)return flight.promise;
-  const request={controller:new AbortController(),promise:null,shared:false,startedAt:performance.now()},id=++sequence;flight=request;paint();
+  const request={controller:new AbortController(),promise:null,shared:false,startedAt:performance.now()},id=++sequence;flight=request;paint();schedule();
   const deadline=setTimeout(()=>request.controller.abort(),15000);
   request.promise=(async()=>{try{
     let result;
@@ -203,12 +210,7 @@
   })();return request.promise;
  }
  function reset(){sequence++;clearTimeout(timer);flight?.controller.abort();channel?.close();channel=null;flight=null;context=null;record=null;lastSuccess=null;failures=0;nextAt=0;}
- function lifecycle(start=true){const c=capture();if(!c){
-    // A temporary calendar DOM unmount inside the same active Agenda must not
-    // discard its valid snapshot. A real navigation/logout still resets it.
-    if(context&&(!active()||!forjaSessionCurrent(context.scope)))reset();
-    return;
-   }if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start)paint();if(start&&!flight&&performance.now()>=nextAt)void refresh();}
+ function lifecycle(start=true){const c=capture();if(!c){if(context)reset();return;}if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start)paint();if(start&&!flight&&performance.now()>=nextAt)void refresh();}
  window.forjaAgenda2Refresh=refresh;
  window.forjaAgenda2Mutation=path=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;reset();lifecycle();};
  const previousBind=bindPage;bindPage=function(){previousBind();lifecycle();};
