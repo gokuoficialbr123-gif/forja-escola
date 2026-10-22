@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-22",
+  "environment": "Local Windows; Node 22.23.3; Playwright 1.56.1 with Chromium engine; Auth/Firestore demo-forja emulators; simulated Google HTTP boundary",
+  "sourceSha256": "84e20a07ecdbc0eab2ca99f331b94e381f93fb57653462dee8761d3730b9205e",
+  "preparedArtifactSha256": "9974d5a6decaa474baff69798f3a5265095611390c9cd45a235bac9d5135582a",
+  "backendCommitUnchanged": "d1483037be294428ab1af7788311f42389790c1a",
+  "frontend": {
+    "newTests": {"tests": 30, "pass": 30, "fail": 0, "cancelled": 0, "skipped": 0},
+    "allRemainingFiles": {"tests": 411, "pass": 411, "fail": 0, "cancelled": 0, "skipped": 0},
+    "total": 441
+  },
+  "pairedIntegration": {"tests": 275, "pass": 275, "fail": 0, "cancelled": 0, "skipped": 0, "emulatorsShutDown": true},
+  "backendUnitUnchanged": {"tests": 311, "pass": 311, "fail": 0, "cancelled": 0, "skipped": 0},
+  "focusedConcurrency": {"repetitions": 2, "testsPerRepetition": 6, "pass": 12, "fail": 0},
+  "strengthenedLateDecoratorBeforeFix": {"profiles": ["admin", "teacher"], "tests": 2, "reproducedFailures": 2},
+  "dialogAndDrawerGeometry": {"checks": 10, "pass": 10, "widths": [1920, 1366, 768, 390, 360]},
+  "screenshots": {"matchedBeforeViews": 30, "matchedAfterViews": 30, "roles": ["admin", "teacher"], "views": ["day", "week", "month"], "data": "synthetic only"},
+  "publication": "Not proven by local QA; exact-SHA CI, production job success and served artifact hash must be confirmed in the PR",
+  "limits": ["No real-account Google token, consent or webhook delivery validation", "No real school data or test writes in production", "20-second UI reads do not guarantee Google propagation within 20 seconds"]
+}

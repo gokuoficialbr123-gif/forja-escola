@@ -60,16 +60,25 @@ ${bookingSlotBinding}
 // Agenda-only detail lifecycle: the canonical GET supplies actions on newly
 // polled lessons; a closed/replaced dialog or changed session cannot reopen it.
 replace('async function openLesson(id){\n  modal("Aula",loading("Carregando aula..."));',`async function openLesson(id){
-  const agendaScope=state.page==='agenda'&&['admin','teacher'].includes(state.role)?forjaCaptureSession():null;
+  const agendaScope=state.page==='agenda'&&['admin','teacher'].includes(state.role)?{...forjaCaptureSession(),role:state.role}:null;
   modal("Aula",loading("Carregando aula..."));
   const agendaReturnFocus=lastModalFocus;
   const agendaDialog=document.querySelector('#modal .modal');
-  const agendaCurrent=()=>!agendaScope||(forjaSessionCurrent(agendaScope)&&state.page==='agenda'&&document.querySelector('#modal .modal')===agendaDialog);`);
+  const agendaCurrent=()=>!agendaScope||(forjaSessionCurrent(agendaScope)&&state.page==='agenda'&&state.role===agendaScope.role&&document.querySelector('#modal .modal')===agendaDialog);`);
 replace('    const l=a.item,history=h.items||[],materials=m.items||[];let actions="";',`    if(!agendaCurrent())return;
     const l=a.item,history=h.items||[],materials=m.items||[];let actions="";
     if(agendaScope)state.lessons=[...(state.lessons||[]).filter(x=>x.id!==id),l];`);
 replace('}catch(e){modal("Aula",empty("Não foi possível carregar",e.message))}', '}catch(e){if(agendaCurrent()){modal("Aula",empty("Não foi possível carregar",e.message));if(agendaScope)lastModalFocus=agendaReturnFocus;}}');
-replace('    modal("Central da Aula",body);bindModalActions();', '    modal("Central da Aula",body);if(agendaScope)lastModalFocus=agendaReturnFocus;bindModalActions();');
+replace('    modal("Central da Aula",body);bindModalActions();', '    modal("Central da Aula",body);if(agendaScope)lastModalFocus=agendaReturnFocus;bindModalActions();return agendaScope?document.querySelector("#modal .modal"):undefined;');
+// The existing P1/P2/v616 decorators await the canonical detail. Carry its DOM
+// owner through that same chain; never decorate a superseding dialog.
+for(const previous of ['openLessonP1','openLessonP2A']){
+ const start=html.indexOf('openLesson=async function(id){await '+previous+'(id);'),end=html.indexOf('\n',start),body=html.slice(start,end);assert.ok(start>0&&end>start);
+ const updated=body.replace('await '+previous+'(id);','const agendaScope=window.forjaAgenda2DetailScope?.(),agendaDialog=await '+previous+'(id);if(agendaScope&&!window.forjaAgenda2DetailCurrent(agendaDialog,agendaScope))return;').replace(/\};?$/,';return agendaDialog;};');
+ assert.notEqual(updated,body);replace(body,updated);
+}
+replace('  await openLessonBeforeV616(id);','  const agendaScope=window.forjaAgenda2DetailScope?.(),agendaDialog=await openLessonBeforeV616(id);\n  if(agendaScope&&!window.forjaAgenda2DetailCurrent(agendaDialog,agendaScope))return;');
+replace('const fresh=await api(`/aulas/${encodeURIComponent(id)}`),l=fresh.item||{},s=gStatusMeta(l)', 'const fresh=await api(`/aulas/${encodeURIComponent(id)}`);if(agendaScope&&!window.forjaAgenda2DetailCurrent(agendaDialog,agendaScope))return;const l=fresh.item||{},s=gStatusMeta(l)');
 replace('esc(l.duracaoMinutos+" min"):"—"}', 'esc(l.duracaoMinutos+" min"):agendaScope?esc(window.forjaAgenda2PlannedDuration(l)):"—"}');
 replace('const restore=lastModalFocus;lastModalFocus=null;', 'const restore=window.forjaAgenda2ReturnFocus?.(lastModalFocus)||lastModalFocus;lastModalFocus=null;');
 replace("if(e.target.closest('.v621-month-tag'))return;", "if(e.target.closest('button[data-lesson]'))return;");

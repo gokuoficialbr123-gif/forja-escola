@@ -4392,11 +4392,11 @@ function newLessonModal(){
 
 
 async function openLesson(id){
-  const agendaScope=state.page==='agenda'&&['admin','teacher'].includes(state.role)?forjaCaptureSession():null;
+  const agendaScope=state.page==='agenda'&&['admin','teacher'].includes(state.role)?{...forjaCaptureSession(),role:state.role}:null;
   modal("Aula",loading("Carregando aula..."));
   const agendaReturnFocus=lastModalFocus;
   const agendaDialog=document.querySelector('#modal .modal');
-  const agendaCurrent=()=>!agendaScope||(forjaSessionCurrent(agendaScope)&&state.page==='agenda'&&document.querySelector('#modal .modal')===agendaDialog);
+  const agendaCurrent=()=>!agendaScope||(forjaSessionCurrent(agendaScope)&&state.page==='agenda'&&state.role===agendaScope.role&&document.querySelector('#modal .modal')===agendaDialog);
   try{
     const [a,h,m]=await Promise.all([api(`/aulas/${id}`),api(`/aulas/${id}/historico`),api(`/aulas/${id}/materiais`)]);
     if(!agendaCurrent())return;
@@ -4432,7 +4432,7 @@ async function openLesson(id){
       return row(x.titulo,x.tipo,"Disponível",`${open}${manage}`);
     }).join(""):empty("Nenhum material");
     const body=`<div class="summary-box"><div><span>Aluno</span><strong>${esc(l.nomeAluno||"—")}</strong></div><div><span>Professor</span><strong>${esc(l.nomeProfessor||"—")}</strong></div><div><span>Disciplina</span><strong>${esc(lessonTitle(l))}</strong></div><div><span>Data</span><strong>${esc(`${fmtDate(l.dataAula)} · ${l.horaAula||"—"}${l.horaFim?`–${l.horaFim}`:""}`)}</strong></div><div><span>Modalidade</span><strong>${esc(l.modalidade||"—")}</strong></div><div><span>${l.modalidade==="presencial"?"Local":"Acesso online"}</span><strong>${esc(locationValue)}</strong></div><div><span>Status</span><strong>${esc(statusLabel(l.status||"—"))}</strong></div><div><span>Confirmação</span><strong>${esc(gStatusMeta(l).label)}</strong></div><div><span>Início real</span><strong>${esc(fmtDateTime(l.iniciadoEm))}</strong></div><div><span>Término real</span><strong>${esc(fmtDateTime(l.finalizadoEm))}</strong></div><div><span>Duração</span><strong>${l.finalizadoEm&&l.duracaoMinutos!=null?esc(l.duracaoMinutos+" min"):agendaScope?esc(window.forjaAgenda2PlannedDuration(l)):"—"}</strong></div><div><span>Presença</span><strong>${esc(l.presencaAluno?statusLabel(l.presencaAluno):"Não registrada")}</strong></div><div><span>Remarcação</span><strong>${esc(l.remarcacaoStatus?statusLabel(l.remarcacaoStatus):"—")}</strong></div>${l.cancelamentoMotivo?`<div><span>Motivo do cancelamento</span><strong>${esc(l.cancelamentoMotivo)}</strong></div>`:""}${l.avaliacaoAlunoNota!=null?`<div><span>Avaliação do aluno</span><strong>${esc(l.avaliacaoAlunoNota+"/5")}</strong></div>`:""}</div><div class="quick-row">${actions}</div><div class="grid2" style="margin-top:14px">${panel("Materiais",materialHtml)}${panel("Histórico",history.length?history.map(x=>row(x.evento||"Evento",`${fmtDateTime(x.createdAt)} · ${x.descricao||""}`,x.autorTipo||"registro")).join(""):empty("Nenhum evento"))}</div>`;
-    modal("Central da Aula",body);if(agendaScope)lastModalFocus=agendaReturnFocus;bindModalActions();
+    modal("Central da Aula",body);if(agendaScope)lastModalFocus=agendaReturnFocus;bindModalActions();return agendaScope?document.querySelector("#modal .modal"):undefined;
   }catch(e){if(agendaCurrent()){modal("Aula",empty("Não foi possível carregar",e.message));if(agendaScope)lastModalFocus=agendaReturnFocus;}}
 }
 
@@ -4978,7 +4978,7 @@ accountPage=function(){const base=accountPageP1();return ["teacher","psychologis
 const settingsPageP1=settingsPage;
 settingsPage=function(){return `${settingsPageP1()}${googleAdminConnectionsPanel()}`};
 const openLessonP1=openLesson;
-openLesson=async function(id){await openLessonP1(id);if(!["admin","teacher"].includes(state.role))return;const l=state.lessons.find(x=>x.id===id);if(!l||$("#modal")?.classList.contains("hidden"))return;const box=$("#modal .summary-box");if(box)box.insertAdjacentHTML("beforeend",`<div><span>Google Agenda</span><strong>${esc(googleSyncLabel(l.googleSyncStatus))}</strong></div>${l.googleSyncErro?`<div><span>Erro de sincronização</span><strong>${esc(l.googleSyncErro)}</strong></div>`:""}`)};
+openLesson=async function(id){const agendaScope=window.forjaAgenda2DetailScope?.(),agendaDialog=await openLessonP1(id);if(agendaScope&&!window.forjaAgenda2DetailCurrent(agendaDialog,agendaScope))return;if(!["admin","teacher"].includes(state.role))return;const l=state.lessons.find(x=>x.id===id);if(!l||$("#modal")?.classList.contains("hidden"))return;const box=$("#modal .summary-box");if(box)box.insertAdjacentHTML("beforeend",`<div><span>Google Agenda</span><strong>${esc(googleSyncLabel(l.googleSyncStatus))}</strong></div>${l.googleSyncErro?`<div><span>Erro de sincronização</span><strong>${esc(l.googleSyncErro)}</strong></div>`:""}`);return agendaDialog;};
 const openSessionP1=openSession;
 openSession=async function(id){await openSessionP1(id);if(!["admin","psychologist"].includes(state.role))return;const s=state.sessions.find(x=>x.id===id),box=$("#modal .summary-box");if(s&&box)box.insertAdjacentHTML("beforeend",`<div><span>Google Agenda</span><strong>${esc(googleSyncLabel(s.googleSyncStatus))}</strong></div>${s.googleSyncErro?`<div><span>Erro de sincronização</span><strong>${esc(s.googleSyncErro)}</strong></div>`:""}`)};
 function bindPart2AInteractive(){$$('[data-google-action]').forEach(b=>b.onclick=()=>googleAction(b.dataset.googleAction,b))}
@@ -5074,7 +5074,7 @@ const parentPageP2A=parentPage;parentPage=function(p){if(p==="treinamento"){cons
 const pendingPageP2A=pendingPage;pendingPage=function(){const base=pendingPageP2A(),pend=state.registrationPendencies||[];return `${base}${panel("Registros pedagógicos pendentes",pend.length?pend.slice(0,30).map(x=>row(x.nomeAluno,`${fmtDate(x.dataAula)} · ${subjectLabel(x.disciplinaId)} · ${x.nomeProfessor}`,"Pendente",`<button class="small-btn" data-lesson="${esc(x.id)}">Abrir aula</button>`)).join(""):empty("Nenhum registro pedagógico pendente"))}`};
 
 const openLessonP2A=openLesson;
-openLesson=async function(id){await openLessonP2A(id);if(!["admin","teacher"].includes(state.role))return;const l=state.lessons.find(x=>x.id===id);if(!l||$("#modal")?.classList.contains("hidden"))return;const box=$("#modal .summary-box"),actions=$("#modal .quick-row"),record=trainingRecordForLesson(id);if(box)box.insertAdjacentHTML("beforeend",`<div><span>Treinamento</span><strong>${record?"Registrado":"Pendente"}</strong></div>`);if(actions&&state.role==="teacher"&&!/cancel/i.test(l.status||"")&&!/conclu/i.test(l.status||"")&&!l.finalizadoEm&&String(l.remarcacaoStatus||"")!=="solicitada")actions.insertAdjacentHTML("beforeend",`<button class="btn soft" data-request-reschedule="${esc(id)}">Solicitar reagendamento</button>`);if(actions&&(/conclu/i.test(l.status||"")||l.finalizadoEm))actions.insertAdjacentHTML("beforeend",`<button class="btn gold" data-training-lesson="${esc(id)}">${record?"Editar treinamento":"Registrar treinamento"}</button>`);bindModalActions();bindPart2BInteractive()};
+openLesson=async function(id){const agendaScope=window.forjaAgenda2DetailScope?.(),agendaDialog=await openLessonP2A(id);if(agendaScope&&!window.forjaAgenda2DetailCurrent(agendaDialog,agendaScope))return;if(!["admin","teacher"].includes(state.role))return;const l=state.lessons.find(x=>x.id===id);if(!l||$("#modal")?.classList.contains("hidden"))return;const box=$("#modal .summary-box"),actions=$("#modal .quick-row"),record=trainingRecordForLesson(id);if(box)box.insertAdjacentHTML("beforeend",`<div><span>Treinamento</span><strong>${record?"Registrado":"Pendente"}</strong></div>`);if(actions&&state.role==="teacher"&&!/cancel/i.test(l.status||"")&&!/conclu/i.test(l.status||"")&&!l.finalizadoEm&&String(l.remarcacaoStatus||"")!=="solicitada")actions.insertAdjacentHTML("beforeend",`<button class="btn soft" data-request-reschedule="${esc(id)}">Solicitar reagendamento</button>`);if(actions&&(/conclu/i.test(l.status||"")||l.finalizadoEm))actions.insertAdjacentHTML("beforeend",`<button class="btn gold" data-training-lesson="${esc(id)}">${record?"Editar treinamento":"Registrar treinamento"}</button>`);bindModalActions();bindPart2BInteractive();return agendaDialog;};
 
 function bindPart2BInteractive(){
   $$('[data-training-lesson]').forEach(b=>b.onclick=()=>trainingRecordModal(b.dataset.trainingLesson));
@@ -6348,10 +6348,11 @@ studentPriorityB=function(){
 function v616SetSummaryValue(box,label,value){for(const row of box?.children||[]){const span=row.querySelector?.('span'),strong=row.querySelector?.('strong');if(span&&strong&&span.textContent.trim()===label){strong.textContent=value;return true}}return false}
 const openLessonBeforeV616=openLesson;
 openLesson=async function(id){
-  await openLessonBeforeV616(id);
+  const agendaScope=window.forjaAgenda2DetailScope?.(),agendaDialog=await openLessonBeforeV616(id);
+  if(agendaScope&&!window.forjaAgenda2DetailCurrent(agendaDialog,agendaScope))return;
   if($("#modal")?.classList.contains("hidden"))return;
   try{
-    const fresh=await api(`/aulas/${encodeURIComponent(id)}`),l=fresh.item||{},s=gStatusMeta(l),j=v616JustificationMeta(l),ped=v616PedagogicalMeta(l),body=$("#modal .modal-body"),box=body?.querySelector('.summary-box');
+    const fresh=await api(`/aulas/${encodeURIComponent(id)}`);if(agendaScope&&!window.forjaAgenda2DetailCurrent(agendaDialog,agendaScope))return;const l=fresh.item||{},s=gStatusMeta(l),j=v616JustificationMeta(l),ped=v616PedagogicalMeta(l),body=$("#modal .modal-body"),box=body?.querySelector('.summary-box');
     if(!body||!box)return;
     v616SetSummaryValue(box,"Status",s.label);
     v616SetSummaryValue(box,"Confirmação",gStatusMeta(l).label);
@@ -8708,6 +8709,8 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  window.forjaAgenda2Cancelled=(uid,day,name='')=>(row(uid,day)?.lessons||[]).filter(l=>String(l.dataAula).slice(0,10)===day&&/cancel/i.test(l.status||'')).map(l=>`<button type="button" class="forja2-cancelled" data-lesson="${escape(l.id)}" title="Aula cancelada · Não ocupa o horário">${escape([name,'Cancelada',l.horaAula+'–'+l.horaFim,l.nomeAluno||'Aula FORJA'].filter(Boolean).join(' · '))}</button>`).join('');
  window.forjaAgenda2LessonCounts=(uid,day)=>{const all=(row(uid,day)?.lessons||[]).filter(l=>String(l.dataAula).slice(0,10)===day),cancelled=all.filter(l=>/cancel/i.test(l.status||'')).length;return {active:all.length-cancelled,cancelled};};
  window.forjaAgenda2PlannedDuration=l=>{const duration=minutes(l.horaFim||'00:00')-minutes(l.horaAula||'00:00');return duration>0?duration+' min (prevista)':'—';};
+ window.forjaAgenda2DetailScope=()=>state.page==='agenda'&&['admin','teacher'].includes(state.role)?{...forjaCaptureSession(),role:state.role}:null;
+ window.forjaAgenda2DetailCurrent=(dialog,scope)=>!!dialog&&forjaSessionCurrent(scope)&&state.page==='agenda'&&state.role===scope.role&&document.querySelector('#modal .modal')===dialog;
  window.forjaAgenda2ReturnFocus=previous=>{
   if(previous?.isConnected||state.page!=='agenda'||!['admin','teacher'].includes(state.role))return previous;
   const id=previous?.dataset?.lesson;

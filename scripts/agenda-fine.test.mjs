@@ -12,11 +12,14 @@ const dense=uid=>[['A','10:00','11:00'],['B','10:30','11:30'],['C','11:30','11:4
 const transform=x=>({...x,busy:[],blocks:[],school:[],lessons:dense(x.professionalId)});
 const lane=(p,role)=>p.locator(role==='admin'?`[data-v629-day="${reviewDay}"]`:`[data-v621-lane="teacher"][data-date="${reviewDay}"]`);
 async function fixture(t,options={}){const f=await agendaPresentationFixture(browser,options);t.after(()=>f.close());return f;}
-async function detailRoutes(f,{hold}={}){await f.page.route('**/aulas/FINE_*',async route=>{
+async function detailRoutes(f,{hold}={}){
+ await f.page.evaluate(()=>{const official=openLesson;openLesson=function(...args){const completion=official(...args);window.fineDetailCompletion=completion;return completion;};});
+ await f.page.route('**/aulas/FINE_*',async route=>{
  if(hold)await hold;
  const id=new URL(route.request().url()).pathname.split('/').at(-1),uid=await f.page.evaluate(()=>state.role==='teacher'?state.user.uid:'PERF_TEACHER');
  await route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':f.origin},body:JSON.stringify({item:dense(uid).find(l=>l.id===id)})});
 });}
+async function detailReady(page){await page.evaluate(()=>window.fineDetailCompletion);await page.waitForFunction(()=>document.querySelector('#modalTitle')?.textContent==='Central da Aula');assert.equal(await page.locator('#modal .v616-lesson-detail').count(),1,'official decoration completes before preservation checks');}
 async function noOverlaps(locator){const data=await locator.evaluate(el=>{
  const cards=[...el.querySelectorAll('.v621-block,.forja2-state')].map(e=>({id:e.dataset.lesson||e.className,...e.getBoundingClientRect().toJSON()}));
  const overlaps=[];for(let i=0;i<cards.length;i++)for(let j=i+1;j<cards.length;j++){const a=cards[i],b=cards[j];if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>1&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1)overlaps.push([a.id,b.id]);}return {cards,overlaps};
@@ -36,7 +39,7 @@ for(const role of ['admin','teacher'])for(const [width,height,label] of sizes)te
   }
   if(process.env.FORJA_CAPTURE_AGENDA==='1'){mkdirSync(evidence,{recursive:true});await p.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));await p.screenshot({path:resolve(evidence,`after-${role}-${label}-${view}.png`),fullPage:true,animations:'disabled'});}
  }
- await setView(f,role,'day');await lane(p,role).locator('[data-lesson="FINE_A"]').click();await p.waitForFunction(()=>document.querySelector('#modalTitle')?.textContent==='Central da Aula');
+ await setView(f,role,'day');await lane(p,role).locator('[data-lesson="FINE_A"]').click();await detailReady(p);
  const bounds=await p.locator('#modal .modal').boundingBox();assert.ok(bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=width+1&&bounds.y+bounds.height<=height+1,'entire Agenda detail stays within viewport, including small mobile');
  assert.equal(await p.locator('#modal .modal-body').evaluate(el=>el.scrollWidth<=el.clientWidth+1),true);await p.locator('[data-cancel-lesson="FINE_A"]').scrollIntoViewIfNeeded();
  assert.equal(await p.locator('[data-cancel-lesson="FINE_A"]').evaluate(el=>{const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}),true,'detail actions remain reachable above the fixed footer');
@@ -50,7 +53,9 @@ for(const role of ['admin','teacher'])for(const mobile of [false,true])test(`new
  const f=await fixture(t,{role,mobile,transformItem:x=>{const item=transform(x);if(cancelled)item.lessons[0].status='cancelada_admin';return item;}}),p=f.page;
  await detailRoutes(f);await setView(f,role,'day');const reads=f.reads();for(let i=0;i<5;i++)await automaticCycle(p);assert.equal(f.reads()-reads,5);
  assert.equal(await p.evaluate(()=>state.lessons.some(l=>l.id==='FINE_A')),false,'lesson is first discovered by snapshot, not initial list');
- await lane(p,role).locator('[data-lesson="FINE_A"]').click();await p.waitForFunction(()=>document.querySelector('#modalTitle')?.textContent==='Central da Aula');
+ await lane(p,role).locator('[data-lesson="FINE_A"]').click();await detailReady(p);
+ // The official chain also fetches/decorates its status after the title is
+ // visible. Await that actual promise before the unchanged-HTML assertion.
  assert.match(await p.locator('#modal').textContent(),/60 min \(prevista\)/);assert.equal(await p.evaluate(()=>state.lessons.some(l=>l.id==='FINE_A')),true,'canonical authorized detail supports existing actions');
  if(process.env.FORJA_CAPTURE_AGENDA==='1')await p.screenshot({path:resolve(evidence,`after-${role}-${mobile?'mobile':'desktop'}-detail.png`),animations:'disabled'});
  const before=await p.locator('#modal').innerHTML();await automaticCycle(p);assert.equal(await p.locator('#modal').innerHTML(),before,'polling preserves the open detail');
@@ -68,10 +73,15 @@ for(const role of ['admin','teacher'])for(const mobile of [false,true])test(`new
 for(const role of ['admin','teacher'])test(`late Agenda detail cannot reopen, replace a form, or cross a session ${role}`,async t=>{
  const f=await fixture(t,{role,transformItem:transform}),p=f.page;await setView(f,role,'day');let release;const gate=new Promise(r=>release=r);t.after(()=>release());await detailRoutes(f,{hold:gate});
  const request=p.waitForRequest(r=>new URL(r.url()).pathname==='/aulas/FINE_A');await lane(p,role).locator('[data-lesson="FINE_A"]').click();await request;
- await p.locator('#modal [data-close-modal]').first().click();await p.evaluate(()=>modal('Rascunho preservado','<input id="fineDraft" value="Texto sintético">'));
- release();await p.waitForResponse(r=>new URL(r.url()).pathname==='/aulas/FINE_A');await new Promise(r=>setTimeout(r,100));
+ await p.locator('#modal [data-close-modal]').first().click();await p.evaluate(()=>modal('Rascunho preservado','<input id="fineDraft" value="Texto sintético"><div class="summary-box"><div><span>Status</span><strong>Rascunho</strong></div><div><span>Treinamento</span><strong>Texto digitado</strong></div></div>'));
+ const preserved=await p.locator('#modal').innerHTML();release();await p.evaluate(()=>window.fineDetailCompletion);
+ assert.equal(await p.locator('#modal').innerHTML(),preserved,'no later official decorator may alter another open form');
  assert.equal(await p.locator('#modalTitle').textContent(),'Rascunho preservado');assert.equal(await p.locator('#fineDraft').inputValue(),'Texto sintético');
- assert.equal(await p.evaluate(()=>state.lessons.some(l=>l.id==='FINE_A')),false,'discarded detail cannot seed new actions');await p.locator('#fineDraft').press('Escape');assert.equal(await p.locator('#modal').isVisible(),false);assert.equal(await p.locator('#portalApp').isVisible(),true);assert.deepEqual(f.errors,[]);
+ assert.equal(await p.evaluate(()=>state.lessons.some(l=>l.id==='FINE_A')),false,'discarded detail cannot seed new actions');await p.locator('#fineDraft').press('Escape');assert.equal(await p.locator('#modal').isVisible(),false);assert.equal(await p.locator('#portalApp').isVisible(),true);
+ // Also close after canonical rendering, while the native final GET is held.
+ await p.unroute('**/aulas/FINE_*');let count=0,started,finish;const secondStarted=new Promise(r=>started=r),secondGate=new Promise(r=>finish=r);t.after(()=>finish());
+ await p.route('**/aulas/FINE_B',async route=>{if(++count===2){started();await secondGate;}const uid=await p.evaluate(()=>state.role==='teacher'?state.user.uid:'PERF_TEACHER');await route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':f.origin},body:JSON.stringify({item:dense(uid)[1]})});});
+ await lane(p,role).locator('[data-lesson="FINE_B"]').click();await secondStarted;await p.locator('#modal [data-close-modal]').first().click();await p.evaluate(()=>modal('Segundo rascunho','<input id="fineSecondDraft" value="Outro texto"><div class="summary-box"><div><span>Status</span><strong>Outro rascunho</strong></div></div>'));const secondHtml=await p.locator('#modal').innerHTML();finish();await p.evaluate(()=>window.fineDetailCompletion);assert.equal(await p.locator('#modal').innerHTML(),secondHtml,'final GET cannot decorate a different dialog');assert.equal(await p.locator('#fineSecondDraft').inputValue(),'Outro texto');assert.deepEqual(f.errors,[]);
 });
 
 for(const mobile of [false,true])test(`teacher month indicators and extra lessons open the official day ${mobile}`,async t=>{
@@ -80,7 +90,7 @@ for(const mobile of [false,true])test(`teacher month indicators and extra lesson
 });
 
 for(const role of ['admin','teacher'])test(`detail Escape returns focus to the repainted lesson ${role}`,async t=>{
- const f=await fixture(t,{role,transformItem:transform}),p=f.page;await detailRoutes(f);await setView(f,role,'day');await lane(p,role).locator('[data-lesson="FINE_A"]').click();await p.waitForFunction(()=>document.querySelector('#modalTitle')?.textContent==='Central da Aula');
+ const f=await fixture(t,{role,transformItem:transform}),p=f.page;await detailRoutes(f);await setView(f,role,'day');await lane(p,role).locator('[data-lesson="FINE_A"]').click();await detailReady(p);
  for(let i=0;i<5;i++)await automaticCycle(p);await p.locator('#modal [data-close-modal]').first().press('Escape');
  await p.waitForFunction(()=>document.activeElement?.dataset.lesson==='FINE_A');assert.equal(await p.locator('#modal').isVisible(),false);assert.deepEqual(f.errors,[]);
 });

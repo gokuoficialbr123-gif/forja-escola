@@ -30,7 +30,7 @@ simulado na borda HTTP.
 | Ambos | Aulas 10:00–11:00 e 10:30–11:30 usam a mesma largura; o segundo cartão intercepta o clique no centro do primeiro. | Grupos de sobreposição ganham colunas por profissional. Aulas consecutivas voltam à largura completa; horários e cortes não mudam. |
 | Secretaria | Cartão azul identifica só o professor, repetido em várias aulas. | Aluno no título visível; nome completo, professor, disciplina e horário no nome acessível/tooltip. Detalhe oficial preservado. |
 | Ambos | Uma aula descoberta pelo snapshot não está em `state.lessons`; Cancelar abre nada porque a ação nativa procura nessa lista. | O GET autorizado dos detalhes atualiza o registro local antes de habilitar as ações existentes. Testes de cancelamento único, inclusive clique duplo, após cinco ciclos. |
-| Ambos | Fechar o carregamento não impede o GET atrasado de reabrir a janela ou substituir outro formulário. | Resposta exige mesma sessão, página e nó de diálogo. Resposta descartada não atualiza o registro local. |
+| Ambos | Fechar o carregamento não impede o GET atrasado de reabrir a janela ou substituir outro formulário; os decoradores P1/P2/v616 também podiam alterar o resumo de outra janela. | O nó autorizado retorna pela cadeia oficial; cada camada confere sessão, papel, página e nó antes de decorar, inclusive após o GET final. Resposta descartada não atualiza o registro local ou outro formulário. |
 | Ambos | Aula agendada mostra duração “—”, pois o renderizador só considera término real. | Horário inicial/final gera duração **prevista**; duração realizada continua usando o contrato anterior. |
 | Ambos | Carregamento → detalhe troca a referência de foco; polling substitui o cartão original. Escape deixa o foco perdido. | Preservação do acionador e procura do cartão atual ao fechar, somente na Agenda. Regresso após cinco consultas exatas. |
 | Professor | Handler mensal ignora qualquer `.v621-month-tag`, inclusive disponibilidade e “+N”. | Só o botão de aula intercepta a abertura dos detalhes; demais indicadores abrem o dia oficial. Números dos dias são botões com rótulo e foco preservado. |
@@ -89,8 +89,8 @@ infraestrutura, páginas públicas, dados pedagógicos ou demais perfis.
   O workflow de Hosting e seus gates de publicação permanecem intactos.
 
 Regeneração repetida produz o mesmo hash, com todos os guards anteriores ativos.
-Fonte SHA256: `fc0250d76f1d89dc6d8bdb573db7099065928870093e9d747040f3a1508eccb6`.
-Artefato Hosting preparado: `83ed7ffc1233136161288293a05e4c1fa7332927f70550c436fb6d6d0f40d693`.
+Fonte SHA256: `84e20a07ecdbc0eab2ca99f331b94e381f93fb57653462dee8761d3730b9205e`.
+Artefato Hosting preparado: `9974d5a6decaa474baff69798f3a5265095611390c9cd45a235bac9d5135582a`.
 Preparar `.firebase-public` não executa deploy. Documentação, screenshots e
 ferramentas de QA não entram no artefato público.
 
@@ -123,6 +123,14 @@ o adaptador de navegação publicado permanece literalmente idêntico.
 
 ## Validação e limites
 
+Validação local final em 22/10/2026: **441/441 frontend** (30 regressões novas +
+411 testes existentes), **275/275 integração pareada** e **311/311 unitários
+backend**, sem falhas, cancelamentos ou testes ignorados. Backend e sua suíte
+unitária não foram modificados. As dez verificações de geometria de janelas e
+drawer passaram, assim como duas repetições de seis cenários de concorrência.
+O caso fortalecido dos decoradores falhava nos dois perfis antes da proteção.
+[Resumo verificável](evidence/agenda-fine/validation-summary.json).
+
 O parecer final dos testes completos e da CI, com SHA e links, será registrado
 no PR antes de qualquer merge. Os comandos finais cobrem todos os arquivos
 `scripts/*.test.mjs` (30 novos testes mais a suíte anterior), backend unitário
@@ -132,6 +140,13 @@ distribuída entre o arquivo novo e os demais arquivos; nenhum teste foi excluí
 As verificações intermediárias interrompidas após encontrar defeitos adicionais
 não contam como aprovação. As asserções de cinco ciclos continuam exatas;
 reservas/cancelamentos usam apenas simulação e os fluxos oficiais.
+
+A CI também reproduziu uma corrida na própria verificação: o título surgia
+antes de a cadeia nativa P1/P2/v616 terminar seu GET e acabamento. A fixture
+agora aguarda a promessa real de `openLesson`, exige o banner oficial e mantém
+a comparação integral de HTML após polling. A regressão de resposta atrasada
+foi fortalecida com outro formulário que tem resumo e com o GET final retido;
+antes do reparo, os dois perfis tiveram esse formulário alterado indevidamente.
 
 Limites mantidos: muitas seleções usam rolagem interna; o mês é resumo e o dia
 abre os detalhes completos. Intervalos de 15 minutos conservam 12px na escala

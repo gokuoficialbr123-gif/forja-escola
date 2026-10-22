@@ -68,6 +68,8 @@
  window.forjaAgenda2Cancelled=(uid,day,name='')=>(row(uid,day)?.lessons||[]).filter(l=>String(l.dataAula).slice(0,10)===day&&/cancel/i.test(l.status||'')).map(l=>`<button type="button" class="forja2-cancelled" data-lesson="${escape(l.id)}" title="Aula cancelada · Não ocupa o horário">${escape([name,'Cancelada',l.horaAula+'–'+l.horaFim,l.nomeAluno||'Aula FORJA'].filter(Boolean).join(' · '))}</button>`).join('');
  window.forjaAgenda2LessonCounts=(uid,day)=>{const all=(row(uid,day)?.lessons||[]).filter(l=>String(l.dataAula).slice(0,10)===day),cancelled=all.filter(l=>/cancel/i.test(l.status||'')).length;return {active:all.length-cancelled,cancelled};};
  window.forjaAgenda2PlannedDuration=l=>{const duration=minutes(l.horaFim||'00:00')-minutes(l.horaAula||'00:00');return duration>0?duration+' min (prevista)':'—';};
+ window.forjaAgenda2DetailScope=()=>state.page==='agenda'&&['admin','teacher'].includes(state.role)?{...forjaCaptureSession(),role:state.role}:null;
+ window.forjaAgenda2DetailCurrent=(dialog,scope)=>!!dialog&&forjaSessionCurrent(scope)&&state.page==='agenda'&&state.role===scope.role&&document.querySelector('#modal .modal')===dialog;
  window.forjaAgenda2ReturnFocus=previous=>{
   if(previous?.isConnected||state.page!=='agenda'||!['admin','teacher'].includes(state.role))return previous;
   const id=previous?.dataset?.lesson;
