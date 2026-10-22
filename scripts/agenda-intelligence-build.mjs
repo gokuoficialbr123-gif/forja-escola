@@ -104,7 +104,9 @@ for(const name of ['v621MonthCalendar(role,uid)','v629MonthCalendar()']){
 }
 const hooks=`
   // Scoped rendering hooks: replace grid contents, never forms, toolbar or scroll containers.
-  window.forjaAgenda2Context=()=>{const role=state.role;if(state.page!=='agenda'||!['admin','teacher'].includes(role)||!document.querySelector(role==='admin'?'.v629-calendar-card':'.v621-calendar-card'))return null;const days=v621RangeDays(role);return {from:days[0],to:days.at(-1),ids:role==='admin'?v629SelectedTeachers().map(t=>t.uid).sort():[state.user.uid],view:v621View(role)};};
+  // Logical ownership does not depend on a transiently detached calendar node.
+  // Session, profile, date range and selected professionals still fence reads.
+  window.forjaAgenda2Context=()=>{const role=state.role;if(state.page!=='agenda'||!['admin','teacher'].includes(role))return null;const days=v621RangeDays(role);return {from:days[0],to:days.at(-1),ids:role==='admin'?v629SelectedTeachers().map(t=>t.uid).sort():[state.user.uid],view:v621View(role)};};
   window.forjaAgenda2Paint=()=>{
     if(state.page!=='agenda'||!['admin','teacher'].includes(state.role))return;
     const admin=state.role==='admin',role=state.role;

@@ -1,3 +1,14 @@
+## 22/10/2026 — PR #30: renovação, expiração e remontagem da Agenda
+
+Autorização expressa do proprietário inclui revisar, corrigir e publicar o PR30
+existente após testes, checks do SHA exato e reconciliação com main. Branch
+fix/agenda-snapshot-yellow-flicker, base frontend eb977f5 / backend d148303.
+Ler AGENDA_SNAPSHOT_FLICKER_2026-10-22.md: TTL original de 25s durante renovação,
+expiração visível mesmo com GET pendente e contexto lógico independente do DOM.
+Consentimento/fonte ausente continuam desconhecidos; nenhum contorno OAuth.
+Backend/Rules/DNS/Google real intactos. QA somente Node22, demo-forja e Google
+simulado. Código preparado não comprova deploy; prova final deve constar no PR.
+
 ## 21/10/2026 — Pente-fino das Agendas (publicação condicionada aos checks)
 
 Autorização específica do proprietário inclui corrigir, testar, PR, merge e

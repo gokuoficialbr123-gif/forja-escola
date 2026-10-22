@@ -20,7 +20,7 @@ async function fixture(t,{role='admin',mobile=false,mode='free',clock=false}={})
   const at=Date.now(),days={};for(let d=from;d<=to;){days[d]=[{inicio:'09:00',fim:chosen==='short'?'09:30':'18:00'}];const date=new Date(d+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+1);d=date.toISOString().slice(0,10);}
   const exclusiveEnd=new Date(Date.parse(to+'T12:00:00Z')+86400000).toISOString().slice(0,10);
   const body={ok:true,policy:'agenda-readonly-v1',from,to,professionalIds:ids,complete:!['partial','mixed','consent'].includes(chosen),checkedAt:new Date(at).toISOString(),servedAt:new Date(at).toISOString(),expiresAt:new Date(at+(chosen==='expired'?-1:25000)).toISOString(),items:ids.map((professionalId,index)=>({professionalId,status:chosen==='partial'||chosen==='consent'||chosen==='mixed'&&index===0?'unavailable':'success',nativeStatus:chosen==='consent'?'unavailable':'success',...(chosen==='consent'?{availabilityReason:'personal_consent_required'}:{}),days,lessons:[],blocks:[],school:chosen==='school'?[{data:from,horaInicio:'00:00',horaFim:'23:59'}]:chosen==='mixed'&&index===1?Object.keys(days).map(data=>({data,horaInicio:'10:00',horaFim:'11:00'})):[],busy:chosen==='all-day'?[{professionalId,startAt:from+'T00:00:00-03:00',endAt:exclusiveEnd+'T00:00:00-03:00',source:'google'}]:[],personal:{status:chosen==='partial'||chosen==='consent'||chosen==='mixed'&&index===0?'unavailable':'success',checkedAt:new Date(at).toISOString()},central:{status:'success',checkedAt:new Date(at).toISOString()}}))};
-  if(chosen==='network')return route.abort();if(chosen==='quota')return route.fulfill({status:429,headers:{'Access-Control-Allow-Origin':f.origin},contentType:'application/json',body:'{"error":"Limite simulado"}'});
+  if(chosen==='network')return route.abort();if(['quota','forbidden'].includes(chosen))return route.fulfill({status:chosen==='quota'?429:403,headers:{'Access-Control-Allow-Origin':f.origin},contentType:'application/json',body:'{"error":"Consulta simulada indisponível"}'});
   return route.fulfill({headers:{'Access-Control-Allow-Origin':f.origin},contentType:'application/json',body:JSON.stringify(body)}).catch(()=>{});
  });
  t.after(()=>f.close());if(clock)await p.clock.install();await p.evaluate(()=>{const Native=BroadcastChannel;window.fixtureBroadcastNames=[];window.fixtureBroadcastClosed=0;window.BroadcastChannel=class extends Native{constructor(name){super(name);fixtureBroadcastNames.push(name)}close(){fixtureBroadcastClosed++;return super.close()}};});await f.login();await p.waitForFunction(()=>state.profile&&!state.loading);const request=nextSnapshot(p);await p.evaluate(()=>navigate('agenda'));await ready(p,{request});
@@ -48,7 +48,7 @@ test('20-second reads pause while hidden/closed, resume immediately and never in
  await p.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});await p.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));assert.equal(f.count(),initial+2);
  await p.evaluate(()=>navigate('inicio'));await p.clock.fastForward(60000);assert.equal(f.count(),initial+2);assert.equal(f.calls.filter(x=>x.path.endsWith('/sync')).length,0);
 });
-for(const mode of ['quota','network','partial'])test(`${mode}: manual feedback is honest, green disappears and retries back off`,async t=>{
+for(const mode of ['quota','network','partial','consent','forbidden'])test(`${mode}: manual feedback is honest, green disappears and retries back off`,async t=>{
  const f=await fixture(t,{clock:true}),p=f.page;f.setMode(mode);await p.locator('[data-v629-refresh]').click();await p.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.includes('incompleta'));assert.equal(await p.locator('.v621-block.availability').count(),0);const count=f.count();await p.clock.fastForward(20010);assert.equal(f.count(),count);await p.clock.fastForward(20010);await delay(50);assert.equal(f.count(),count+1);assert.ok(!(await p.locator('#toast').textContent()).includes('Disponibilidade e Google atualizados.'));
 });
 test('new period cancels late replies; logout cannot receive previous agenda data',async t=>{
@@ -179,4 +179,84 @@ for(const mobile of [false,true])for(const view of ['day','week','month'])test(`
  assert.equal(posts[0].localAula,'Local presencial em edição');assert.match(posts[0].bookingRequestId,/^[a-f0-9-]{36}$/);
  releasePost();await p.waitForFunction(()=>state.v630Booking.open===false);
  assert.equal(f.calls.filter(x=>x.path.endsWith('/sync')).length,0);assert.deepEqual(f.errors,[]);
+});
+
+
+test('a pending refresh retains a previously confirmed and unexpired snapshot',async t=>{
+ const f=await fixture(t,{role:'teacher'}),p=f.page;t.after(()=>f.release());
+ assert.match(await p.locator('[data-forja2-status]').textContent(),/Última consulta completa/);
+ assert.ok(await p.locator('.v621-block.availability').count()>0);
+ f.holdNext();
+ const req=nextSnapshot(p);await p.evaluate(()=>{void forjaAgenda2Refresh();});const pending=await req;
+ // The new query is held by a synthetic HTTP route. Only the previous,
+ // still-valid and complete snapshot may remain visible.
+ assert.match(await p.locator('[data-forja2-status]').textContent(),/Consultando.*Última consulta completa/);
+ assert.ok(await p.locator('.v621-block.availability').count()>0,'no yellow flicker during a renewal inside the 25s TTL');
+ f.release();await ready(p,{request:Promise.resolve(pending)});
+ assert.match(await p.locator('[data-forja2-status]').textContent(),/Consulta confirmada/);
+ assert.deepEqual(f.errors,[]);
+});
+test('temporary Agenda DOM remount retains confirmed state but never crosses session/route fences',async t=>{
+ const f=await fixture(t,{role:'admin'}),p=f.page;
+ assert.match(await p.locator('[data-forja2-status]').textContent(),/Última consulta completa/);
+ await p.evaluate(()=>{
+  const card=document.querySelector('.v629-calendar-card');
+  card.classList.remove('v629-calendar-card');
+  window.domRemountRead=forjaAgenda2Refresh(); // lifecycle observes a transient missing host.
+  card.classList.add('v629-calendar-card');
+  bindPage(); // same active role, date, teacher selection and session.
+ });
+ assert.equal(await p.evaluate(()=>domRemountRead),true,'same-context read completes across a transient remount');
+ assert.match(await p.locator('[data-forja2-status]').textContent(),/Consulta confirmada.*Última consulta completa/);
+ assert.ok(await p.locator('.v621-block.availability').count()>0);
+ await p.evaluate(()=>navigate('inicio'));
+ assert.equal(await p.locator('[data-forja2-status]').count(),0);
+ assert.deepEqual(f.errors,[]);
+});
+
+for(const role of ['admin','teacher'])for(const mobile of [false,true])test(`renewal must repaint unknown at the original expiry ${role} ${mobile}`,async t=>{
+ const f=await fixture(t,{role,mobile,clock:true,mode:'school'}),p=f.page,before=f.count();
+ f.holdNext();const request=nextSnapshot(p);await p.clock.fastForward(20010);await request;
+ try{
+  assert.ok(await p.locator('.v621-block.availability').count()>0,'retain confirmation during renewal before expiry');
+  assert.ok(await p.locator('.forja2-band.busy').count()>0,'confirmed red blocking also remains during renewal');
+  await p.clock.fastForward(5500);
+  assert.equal(await p.locator('.v621-block.availability').count(),0,'expired DOM must not stay green while the next GET is pending');
+  assert.equal(await p.locator('.forja2-band.busy').count(),0,'expired blocking is unknown, not a fresh red confirmation');
+  assert.ok(await p.locator('.forja2-band.unknown').count()>0);
+  assert.equal(f.count(),before+1,'expiry repaint never starts a duplicate request');
+ }finally{f.release();}
+ assert.deepEqual(f.errors,[]);
+});
+
+for(const role of ['admin','teacher'])for(const mobile of [false,true])test(`a completed read survives a real detached calendar ${role} ${mobile}`,async t=>{
+ const f=await fixture(t,{role,mobile,clock:true}),p=f.page;
+ f.setMode('school');f.holdNext();const request=nextSnapshot(p);await p.evaluate(()=>{window.pendingSnapshot=forjaAgenda2Refresh();});const pending=await request;
+ await p.evaluate(role=>{const card=document.querySelector(role==='admin'?'.v629-calendar-card':'.v621-calendar-card');window.detachedAgenda={card,parent:card.parentNode,next:card.nextSibling};card.remove();bindPage();},role);
+ f.release();const response=await pending.response();assert.ok(response);assert.equal(await response.finished(),null);
+ assert.equal(await p.evaluate(()=>pendingSnapshot),true,'complete current-context response is accepted even before the calendar remounts');
+ const before=f.count();await p.evaluate(()=>{const {card,parent,next}=detachedAgenda;parent.insertBefore(card,next);bindPage();});
+ assert.equal(f.count(),before,'remount does not issue a duplicate query');
+ assert.match(await p.locator('[data-forja2-status]').textContent(),/Consulta confirmada.*Última consulta completa/);
+ const from=await p.evaluate(()=>forjaAgenda2Context().from),blocked=p.locator(role==='admin'?`[data-v629-day="${from}"]`:`[data-v621-lane="teacher"][data-date="${from}"]`);
+ assert.equal(await blocked.locator('.v621-block.availability').count(),0);
+ assert.ok(await blocked.locator('.forja2-band.busy').count()>0,'new blocking snapshot was retained for the blocked date');
+ for(let i=0;i<5;i++)await automaticCycle(p);assert.equal(f.count()-before,5,'five completed automatic cycles, without remount duplicates');assert.deepEqual(f.errors,[]);
+});
+
+for(const role of ['admin','teacher'])for(const change of (role==='admin'?['period','professional','profile','account','route']:['period','profile','account','route']))test(`detached calendar rejects a previous ${change} context ${role}`,async t=>{
+ const f=await fixture(t,{role,clock:true}),p=f.page,old=await p.evaluate(()=>forjaAgenda2Context());
+ f.holdNext();const request=nextSnapshot(p);await p.evaluate(()=>{window.pendingSnapshot=forjaAgenda2Refresh();});await request;
+ await p.evaluate(({role,change})=>{
+  document.querySelector(role==='admin'?'.v629-calendar-card':'.v621-calendar-card').remove();
+  if(change==='period'){const key=role==='admin'?'adminLessonAgendaDateG':'teacherLessonAgendaDateG';state[key]=gAddDays(state[key]||todayKey(),7);}
+  if(change==='professional'){state.users.push({uid:'QA_OTHER_PROFESSIONAL',role:'teacher',active:true,fullName:'Outro professor sintético'});state.v629SecretarySelectionTouched=true;state.v629SecretarySelectedTeacherIds=['QA_OTHER_PROFESSIONAL'];}
+  if(change==='profile'){state.role=role==='admin'?'teacher':'admin';state.profile={...state.profile,role:state.role};}
+  if(change==='account')forjaChangeSession('QA_DIFFERENT_ACCOUNT');
+  if(change==='route')navigate('inicio');
+  bindPage();
+ },{role,change});
+ f.release();assert.equal(await p.evaluate(()=>pendingSnapshot),false,'late request from previous logical owner is discarded');
+ assert.equal(await p.evaluate(({uid,day})=>forjaAgenda2Periods(uid,day).length,{uid:old.ids[0],day:old.from}),0,'old availability cannot cross the logical context fence');
+ assert.deepEqual(f.errors,[]);
 });

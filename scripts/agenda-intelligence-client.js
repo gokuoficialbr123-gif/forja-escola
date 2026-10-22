@@ -13,7 +13,10 @@
  const current=c=>!!c&&active()&&forjaSessionCurrent(c.scope)&&capture()?.key===c.key;
  const row=(uid,day)=>context&&current(context)&&record?.key===context.key&&day>=record.value.from&&day<=record.value.to?record.value.items.find(x=>x.professionalId===uid):null;
  const timely=()=>record&&!record.error&&performance.now()<record.expires;
- const fresh=()=>timely()&&(!flight||flight.shared);
+ // Keep the last COMPLETE snapshot only while its original TTL remains valid.
+  // A new GET does not revoke already-confirmed intervals; failed or partial
+  // responses still invalidate them through record.error or replacement.
+  const fresh=()=>timely();
  const minutes=s=>Number(s.slice(0,2))*60+Number(s.slice(3));
  const time=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
  const part=x=>Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(x)).map(p=>[p.type,p.value]));
@@ -180,7 +183,14 @@
   channel=new BroadcastChannel('forja-agenda-readonly-v1:'+c.key);
   channel.addEventListener('message',event=>{const m=event.data,age=Date.now()-m?.sentAt;if(m?.kind==='snapshot'&&m.key===c.key&&!flight&&current(c)&&Number.isFinite(m.ttlMs)&&m.ttlMs>0&&age>=0&&age<MAX_AGE){try{accept(m.value,c,m.ttlMs-age);paint();schedule();}catch{}}});
  }
- function schedule(){clearTimeout(timer);if(!context||!current(context))return;const now=performance.now(),expiry=record&&!record.error&&record.expires>now?record.expires:Infinity;timer=setTimeout(()=>{paint();if(performance.now()>=nextAt)void refresh();else schedule();},Math.max(20,Math.min(nextAt,expiry)-now));}
+ function schedule(){
+  clearTimeout(timer);if(!context||!current(context))return;
+  const now=performance.now(),expiry=record&&!record.error&&record.expires>now?record.expires:Infinity,due=Math.min(flight?Infinity:nextAt,expiry);
+  // Keep the original expiry armed during renewal. Do not spin or launch a
+  // second GET while the existing request owns the refresh slot.
+  if(!Number.isFinite(due))return;
+  timer=setTimeout(()=>{paint();if(!flight&&performance.now()>=nextAt)void refresh();else schedule();},Math.max(20,due-now));
+ }
  async function collect(c,request){
   const query=new URLSearchParams({from:c.from,to:c.to});for(const id of c.ids)query.append('professionalId',id);
   let aborted;const cancel=new Promise((_,reject)=>{aborted=()=>reject(Error('AGENDA_ABORTED'));request.controller.signal.addEventListener('abort',aborted,{once:true});});
@@ -189,7 +199,7 @@
  }
  async function refresh({manual=false}={}){
   lifecycle(false);const c=context;if(!c||!current(c)||!c.ids.length||c.ids.length>50)return false;if(flight)return flight.promise;
-  const request={controller:new AbortController(),promise:null,shared:false,startedAt:performance.now()},id=++sequence;flight=request;paint();
+  const request={controller:new AbortController(),promise:null,shared:false,startedAt:performance.now()},id=++sequence;flight=request;paint();schedule();
   const deadline=setTimeout(()=>request.controller.abort(),15000);
   request.promise=(async()=>{try{
     let result;

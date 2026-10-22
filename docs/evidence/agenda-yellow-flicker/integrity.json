@@ -1,0 +1,21 @@
+{
+  "base": "eb977f5482ba47d687046f8b49801dbe13876667",
+  "sourceSha256": "658a3a4f28baff5edb03379c94d2abbd394c162ad2186016748e43c34c23d511",
+  "artifactSha256": "7a7726639908ba650daa4830055dae3a641cd5b8285d83940939c3090d1403da",
+  "backendCommit": "d1483037be294428ab1af7788311f42389790c1a",
+  "backendClean": true,
+  "controllerOnlyFreshnessAndScheduling": true,
+  "generatorOnlyLogicalContext": true,
+  "cssUnchanged": true,
+  "restoredBaseline": "9643749053f34ab0213512a724fb3949fabc5ae33b6bfdc33056f8f2a3d9234a",
+  "unchanged": [
+    {
+      "id": "forja-v630-script",
+      "sha256": "a7b79f60eec645462cbf34f50f3faaf75f92c57ad26ab8c06d8bc7879f3b3295"
+    },
+    {
+      "id": "forja-navigation-script",
+      "sha256": "649153b12ac5b54649bc469d4bb3f6dfe5f33c461e7648b51e2fe1c321bc35f7"
+    }
+  ]
+}
