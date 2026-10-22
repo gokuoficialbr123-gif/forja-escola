@@ -180,3 +180,35 @@ for(const mobile of [false,true])for(const view of ['day','week','month'])test(`
  releasePost();await p.waitForFunction(()=>state.v630Booking.open===false);
  assert.equal(f.calls.filter(x=>x.path.endsWith('/sync')).length,0);assert.deepEqual(f.errors,[]);
 });
+
+
+test('a pending refresh retains a previously confirmed and unexpired snapshot',async t=>{
+ const f=await fixture(t,{role:'teacher'}),p=f.page;t.after(()=>f.release());
+ assert.match(await p.locator('[data-forja2-status]').textContent(),/Última consulta completa/);
+ assert.ok(await p.locator('.v621-block.availability').count()>0);
+ f.holdNext();
+ const req=nextSnapshot(p);await p.evaluate(()=>{void forjaAgenda2Refresh();});const pending=await req;
+ // The new query is held by a synthetic HTTP route. Only the previous,
+ // still-valid and complete snapshot may remain visible.
+ assert.match(await p.locator('[data-forja2-status]').textContent(),/Consultando.*Última consulta completa/);
+ assert.ok(await p.locator('.v621-block.availability').count()>0,'no yellow flicker during a renewal inside the 25s TTL');
+ f.release();await ready(p,{request:Promise.resolve(pending)});
+ assert.match(await p.locator('[data-forja2-status]').textContent(),/Consulta confirmada/);
+ assert.deepEqual(f.errors,[]);
+});
+test('temporary Agenda DOM remount retains confirmed state but never crosses session/route fences',async t=>{
+ const f=await fixture(t,{role:'admin'}),p=f.page;
+ assert.match(await p.locator('[data-forja2-status]').textContent(),/Última consulta completa/);
+ await p.evaluate(()=>{
+  const card=document.querySelector('.v629-calendar-card');
+  card.classList.remove('v629-calendar-card');
+  void forjaAgenda2Refresh(); // lifecycle observes a transient missing host.
+  card.classList.add('v629-calendar-card');
+  bindPage(); // same active role, date, teacher selection and session.
+ });
+ assert.match(await p.locator('[data-forja2-status]').textContent(),/Consulta confirmada.*Última consulta completa/);
+ assert.ok(await p.locator('.v621-block.availability').count()>0);
+ await p.evaluate(()=>navigate('inicio'));
+ assert.equal(await p.locator('[data-forja2-status]').count(),0);
+ assert.deepEqual(f.errors,[]);
+});

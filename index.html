@@ -8654,7 +8654,10 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  const current=c=>!!c&&active()&&forjaSessionCurrent(c.scope)&&capture()?.key===c.key;
  const row=(uid,day)=>context&&current(context)&&record?.key===context.key&&day>=record.value.from&&day<=record.value.to?record.value.items.find(x=>x.professionalId===uid):null;
  const timely=()=>record&&!record.error&&performance.now()<record.expires;
- const fresh=()=>timely()&&(!flight||flight.shared);
+ // Keep the last COMPLETE snapshot only while its original TTL remains valid.
+  // A new GET does not revoke already-confirmed intervals; failed or partial
+  // responses still invalidate them through record.error or replacement.
+  const fresh=()=>timely();
  const minutes=s=>Number(s.slice(0,2))*60+Number(s.slice(3));
  const time=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
  const part=x=>Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(x)).map(p=>[p.type,p.value]));
@@ -8841,7 +8844,12 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   })();return request.promise;
  }
  function reset(){sequence++;clearTimeout(timer);flight?.controller.abort();channel?.close();channel=null;flight=null;context=null;record=null;lastSuccess=null;failures=0;nextAt=0;}
- function lifecycle(start=true){const c=capture();if(!c){if(context)reset();return;}if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start)paint();if(start&&!flight&&performance.now()>=nextAt)void refresh();}
+ function lifecycle(start=true){const c=capture();if(!c){
+    // A temporary calendar DOM unmount inside the same active Agenda must not
+    // discard its valid snapshot. A real navigation/logout still resets it.
+    if(context&&(!active()||!forjaSessionCurrent(context.scope)))reset();
+    return;
+   }if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start)paint();if(start&&!flight&&performance.now()>=nextAt)void refresh();}
  window.forjaAgenda2Refresh=refresh;
  window.forjaAgenda2Mutation=path=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;reset();lifecycle();};
  const previousBind=bindPage;bindPage=function(){previousBind();lifecycle();};

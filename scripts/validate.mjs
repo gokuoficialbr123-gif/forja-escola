@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const referenceVersion = '6.31.1-secretaria-drawer-fluido';
-export const referenceSha256 = '6b73c39bccd72d4c7e28ec15cd8443ff11393e7a6b551fc9ad66c74036f7fdb7';
+export const referenceSha256 = '123f18a0b63eca13d23c13e15eb98806ab22ea4c1861a8fdb117b448dafbe1ea';
 export const sha256 = data => createHash('sha256').update(data).digest('hex');
 // Public ownership proof: preserve the exact bytes, including no final newline.
 export const googleVerificationFile = 'googleaaf1dd5c13d03a74.html';
