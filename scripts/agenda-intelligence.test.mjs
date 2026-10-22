@@ -65,7 +65,7 @@ test('same browser tabs coalesce simultaneous reads through a lock and memory-on
  const release=f.hold('/agenda/snapshot');const before=f.calls.filter(x=>x.path==='/agenda/snapshot').length;await second.evaluate(()=>navigate('agenda'));await delay(50);await p.evaluate(()=>{void forjaAgenda2Refresh();});await delay(50);release();await second.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));await p.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));assert.ok(f.calls.filter(x=>x.path==='/agenda/snapshot').length-before<=1);assert.deepEqual(f.errors,[]);
 });
 for(const mobile of [false,true])test(`mixed professionals retain independent states and all four colors ${mobile?'mobile':'desktop'}`,async t=>{
- const f=await fixture(t,{mobile}),p=f.page;f.setMode('mixed');await p.evaluate(()=>{state.users.push({uid:'PERF_TEACHER_2',role:'teacher',active:true,fullName:'Segundo professor sintético',disciplinaIds:['MATH']});});await p.locator('[data-v629-select-all]').click();await p.locator('[data-v621-view="day"][data-role="admin"]').click();
+ const f=await fixture(t,{mobile}),p=f.page;f.setMode('mixed');await p.evaluate(()=>{state.users.push({uid:'PERF_TEACHER_2',role:'teacher',active:true,fullName:'Segundo professor sintético',disciplinaIds:['MATH']});});const filters=p.locator('.forja2-filters');if(!(await filters.evaluate(el=>el.open)))await filters.locator('summary').click();await p.locator('[data-v629-select-all]').click();await p.locator('[data-v621-view="day"][data-role="admin"]').click();
  await p.waitForFunction(()=>document.querySelector('.forja2-band.unknown')&&document.querySelector('.v621-block.availability')&&document.querySelector('.forja2-band.busy')&&document.querySelector('.forja2-band.outside'));await p.evaluate(()=>renderPage());await delay(50);assert.equal(await p.locator('[data-forja2-status]').count(),1);assert.equal(await p.locator('.forja2-legend').count(),1);assert.equal(await p.locator('[data-v629-refresh]').textContent(),'Atualizar consulta');assert.ok(await p.locator('.v621-block.school').count()>0);
  assert.ok(await p.locator('.v621-block.availability').count()>0);assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);const root=process.env.FORJA_AGENDA_EVIDENCE_DIR;if(root){mkdirSync(root,{recursive:true});await p.screenshot({path:resolve(root,`agenda2-four-colors-${mobile?'mobile':'desktop'}.png`),fullPage:true});}assert.deepEqual(f.errors,[]);
 });
@@ -117,6 +117,9 @@ for(const mobile of [false,true])for(const view of ['day','week','month'])test(`
  const date=await p.evaluate(()=>gAddDays(todayKey(),1));
  await p.locator('[data-v621-date="admin"]').evaluate((el,value)=>{el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));},date);await confirmedAgenda(p);
  await p.locator(`[data-v621-view="${view}"][data-role="admin"]`).click();await confirmedAgenda(p);
+ // The native filters now live in the responsive disclosure. Follow the same
+ // visible action as the user; keep every drawer/POST/five-cycle assertion.
+ const filters=p.locator('.forja2-filters');if(await filters.count()&&!(await filters.evaluate(el=>el.open)))await filters.locator('summary').click();
  await p.locator('[data-v629-filter="lesson"]').click();await confirmedAgenda(p);
  await p.evaluate(()=>{
   window.drawerOpenCalls=0;let value=state.v630Booking.open;

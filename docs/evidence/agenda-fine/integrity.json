@@ -1,0 +1,52 @@
+{
+  "base": "5a29e325cc938185ad02082b3e0d52dc4f479c5e",
+  "sourceSha256": "6b73c39bccd72d4c7e28ec15cd8443ff11393e7a6b551fc9ad66c74036f7fdb7",
+  "preparedArtifactSha256": "40049aaec459c76b4ef76a8cff228e60704845f0453aeca05b4816eeee8e8a1d",
+  "checks": [
+    {
+      "name": "Availability, occupancy and source helpers before presentation additions",
+      "sha256": "fbeb6b47a858f354516c574241164d4ad49ad9f56af329808e990b1f44397226",
+      "unchanged": true
+    },
+    {
+      "name": "State bands, fail-closed validation, 20s polling, expiry, quotas, session and cache lifecycle",
+      "sha256": "0913239d07dcfbcaeed5aa35b02a1192cf84b91a6994b25ce300dde07dbe506e",
+      "unchanged": true
+    },
+    {
+      "name": "  function v621Lane(",
+      "sha256": "72cbf37ac8d1884839d58f0bfe84bfa66e924540e404ec0e9ddb36530b41b585",
+      "unchanged": true
+    },
+    {
+      "name": "  function v629Lane(",
+      "sha256": "51903b3fedb6d0c074475b62a85d80511908a017aa7bf5fa06e63956d65a45af",
+      "unchanged": true
+    },
+    {
+      "name": "  function v623CutAvailability(",
+      "sha256": "63b6545dcc4074d2d49c8a430cb61cef64f65a99550ed88ade7b58c86c587403",
+      "unchanged": true
+    },
+    {
+      "name": "function forjaChangeSession(",
+      "sha256": "71917913fc7c3a374b4f6bec2486266f708dfdb7162b4daf0a7df875cdb6bc3d",
+      "unchanged": true
+    },
+    {
+      "name": "forja-v630-script",
+      "sha256": "a7b79f60eec645462cbf34f50f3faaf75f92c57ad26ab8c06d8bc7879f3b3295",
+      "unchanged": true
+    },
+    {
+      "name": "forja-navigation-script",
+      "sha256": "649153b12ac5b54649bc469d4bb3f6dfe5f33c461e7648b51e2fe1c321bc35f7",
+      "unchanged": true
+    },
+    {
+      "name": "All 15 navigation/student replacements, only offsets changed",
+      "sha256": "55190d766d9643cea2be25e6e7221dcdd08ad7b6400147bafb08b81bd35534c3",
+      "unchanged": true
+    }
+  ]
+}

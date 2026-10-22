@@ -1,0 +1,252 @@
+[
+  {
+    "role": "admin",
+    "label": "desktop",
+    "modal": {
+      "x": 580,
+      "y": 12,
+      "right": 1340,
+      "bottom": 1068,
+      "width": 760,
+      "height": 1056,
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "overflow": 0
+    },
+    "drawer": {
+      "x": 1480,
+      "y": 0,
+      "right": 1920,
+      "bottom": 1080,
+      "width": 440,
+      "height": 1080,
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "overflow": 0
+    },
+    "actionReachable": true,
+    "draftPreserved": true
+  },
+  {
+    "role": "admin",
+    "label": "notebook",
+    "modal": {
+      "x": 303,
+      "y": 12,
+      "right": 1063,
+      "bottom": 756,
+      "width": 760,
+      "height": 744,
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "overflow": 0
+    },
+    "drawer": {
+      "x": 926,
+      "y": 0,
+      "right": 1366,
+      "bottom": 768,
+      "width": 440,
+      "height": 768,
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "overflow": 0
+    },
+    "actionReachable": true,
+    "draftPreserved": true
+  },
+  {
+    "role": "admin",
+    "label": "tablet",
+    "modal": {
+      "x": 12,
+      "y": 12,
+      "right": 756,
+      "bottom": 1012,
+      "width": 744,
+      "height": 1000,
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "overflow": 0
+    },
+    "drawer": {
+      "x": 328,
+      "y": 0,
+      "right": 768,
+      "bottom": 1024,
+      "width": 440,
+      "height": 1024,
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "overflow": 0
+    },
+    "actionReachable": true,
+    "draftPreserved": true
+  },
+  {
+    "role": "admin",
+    "label": "mobile",
+    "modal": {
+      "x": 12,
+      "y": 12,
+      "right": 378,
+      "bottom": 832,
+      "width": 366,
+      "height": 820,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "overflow": 0
+    },
+    "drawer": {
+      "x": 0,
+      "y": 0,
+      "right": 390,
+      "bottom": 844,
+      "width": 390,
+      "height": 844,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "overflow": 0
+    },
+    "actionReachable": true,
+    "draftPreserved": true
+  },
+  {
+    "role": "admin",
+    "label": "small",
+    "modal": {
+      "x": 12,
+      "y": 12,
+      "right": 348,
+      "bottom": 628,
+      "width": 336,
+      "height": 616,
+      "viewport": {
+        "width": 360,
+        "height": 640
+      },
+      "overflow": 0
+    },
+    "drawer": {
+      "x": 0,
+      "y": 0,
+      "right": 360,
+      "bottom": 640,
+      "width": 360,
+      "height": 640,
+      "viewport": {
+        "width": 360,
+        "height": 640
+      },
+      "overflow": 0
+    },
+    "actionReachable": true,
+    "draftPreserved": true
+  },
+  {
+    "role": "teacher",
+    "label": "desktop",
+    "modal": {
+      "x": 580,
+      "y": 12,
+      "right": 1340,
+      "bottom": 1068,
+      "width": 760,
+      "height": 1056,
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "overflow": 0
+    },
+    "actionReachable": true
+  },
+  {
+    "role": "teacher",
+    "label": "notebook",
+    "modal": {
+      "x": 303,
+      "y": 12,
+      "right": 1063,
+      "bottom": 756,
+      "width": 760,
+      "height": 744,
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "overflow": 0
+    },
+    "actionReachable": true
+  },
+  {
+    "role": "teacher",
+    "label": "tablet",
+    "modal": {
+      "x": 12,
+      "y": 12,
+      "right": 756,
+      "bottom": 1012,
+      "width": 744,
+      "height": 1000,
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "overflow": 0
+    },
+    "actionReachable": true
+  },
+  {
+    "role": "teacher",
+    "label": "mobile",
+    "modal": {
+      "x": 12,
+      "y": 12,
+      "right": 378,
+      "bottom": 832,
+      "width": 366,
+      "height": 820,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "overflow": 0
+    },
+    "actionReachable": true
+  },
+  {
+    "role": "teacher",
+    "label": "small",
+    "modal": {
+      "x": 12,
+      "y": 12,
+      "right": 348,
+      "bottom": 628,
+      "width": 336,
+      "height": 616,
+      "viewport": {
+        "width": 360,
+        "height": 640
+      },
+      "overflow": 0
+    },
+    "actionReachable": true
+  }
+]

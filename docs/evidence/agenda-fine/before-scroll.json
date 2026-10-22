@@ -1,0 +1,40 @@
+[
+  {
+    "role": "admin",
+    "before": {
+      "top": 80,
+      "left": 45
+    },
+    "afterPoll": {
+      "top": 80,
+      "left": 45
+    },
+    "afterFilter": {
+      "top": 0,
+      "left": 0
+    },
+    "afterReturn": {
+      "top": 0,
+      "left": 0
+    }
+  },
+  {
+    "role": "teacher",
+    "before": {
+      "top": 80,
+      "left": 3
+    },
+    "afterPoll": {
+      "top": 80,
+      "left": 3
+    },
+    "afterFilter": {
+      "top": 0,
+      "left": 0
+    },
+    "afterReturn": {
+      "top": 0,
+      "left": 0
+    }
+  }
+]

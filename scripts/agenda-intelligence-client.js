@@ -67,6 +67,59 @@
  };
  window.forjaAgenda2Cancelled=(uid,day,name='')=>(row(uid,day)?.lessons||[]).filter(l=>String(l.dataAula).slice(0,10)===day&&/cancel/i.test(l.status||'')).map(l=>`<button type="button" class="forja2-cancelled" data-lesson="${escape(l.id)}" title="Aula cancelada · Não ocupa o horário">${escape([name,'Cancelada',l.horaAula+'–'+l.horaFim,l.nomeAluno||'Aula FORJA'].filter(Boolean).join(' · '))}</button>`).join('');
  window.forjaAgenda2LessonCounts=(uid,day)=>{const all=(row(uid,day)?.lessons||[]).filter(l=>String(l.dataAula).slice(0,10)===day),cancelled=all.filter(l=>/cancel/i.test(l.status||'')).length;return {active:all.length-cancelled,cancelled};};
+ window.forjaAgenda2PlannedDuration=l=>{const duration=minutes(l.horaFim||'00:00')-minutes(l.horaAula||'00:00');return duration>0?duration+' min (prevista)':'—';};
+ window.forjaAgenda2DetailScope=()=>state.page==='agenda'&&['admin','teacher'].includes(state.role)?{...forjaCaptureSession(),role:state.role}:null;
+ window.forjaAgenda2DetailCurrent=(dialog,scope)=>!!dialog&&forjaSessionCurrent(scope)&&state.page==='agenda'&&state.role===scope.role&&document.querySelector('#modal .modal')===dialog;
+ window.forjaAgenda2ReturnFocus=previous=>{
+  if(previous?.isConnected||state.page!=='agenda'||!['admin','teacher'].includes(state.role))return previous;
+  const id=previous?.dataset?.lesson;
+  return id?document.querySelector('.forja2-agenda [data-lesson="'+CSS.escape(id)+'"]'):previous;
+ };
+ // Layout only: partition connected overlap groups per professional. Reservation
+ // cuts remain the full original intervals; no event is hidden or shortened.
+ window.forjaAgenda2Polish=orderedIds=>{
+  const calendar=document.querySelector('.v629-calendar-card');
+  if(calendar)calendar.style.setProperty('--forja2-lane-min',Math.max(112,(orderedIds?.length||1)*112)+'px');
+  // Move the existing control node (and its handlers) beside the calendar's
+  // filters, once per render. Do not recreate an edited select on each poll.
+  const entry=document.getElementById('forjaFixedEntry'),target=state.role==='admin'?document.querySelector('.v629-sidebar .forja2-filter-content'):null;
+  if(entry&&target&&entry.parentElement!==target)target.append(entry);
+  const teacherFilters=document.querySelector('.forja2-teacher-filters');
+  if(teacherFilters&&!teacherFilters.dataset.boundFine){teacherFilters.dataset.boundFine='1';teacherFilters.ontoggle=()=>{state.v625AgendaFiltersOpen=teacherFilters.open};}
+  const viewport=document.querySelector('.forja2-agenda .v621-week-wrap'),c=context;
+  if(viewport&&current(c)&&viewport.dataset.forja2ScrollBound!==c.key){
+   viewport.dataset.forja2ScrollBound=c.key;
+   const saved=state.forjaAgenda2Scrolls?.[c.key];if(saved){viewport.scrollTop=saved.top;viewport.scrollLeft=saved.left;}
+   // This is view state only. Native session reset clears it; the context key
+   // also fences UID/generation, professional selection, range and view.
+   viewport.onscroll=()=>{if(!viewport.isConnected||!current(c))return;const positions=state.forjaAgenda2Scrolls||={};positions[c.key]={top:viewport.scrollTop,left:viewport.scrollLeft};for(const key of Object.keys(positions).slice(0,-8))delete positions[key];};
+  }
+  for(const lane of document.querySelectorAll('.forja2-agenda .v621-lane')){
+   const day=lane.dataset.date||lane.dataset.v629Day,ids=orderedIds||context?.ids||[];
+   for(const [index,uid] of ids.entries()){
+    const lessons=row(uid,day)?.lessons||[],cards=[...lane.querySelectorAll('button[data-lesson]')].flatMap(button=>{
+     const l=lessons.find(x=>x.id===button.dataset.lesson);if(!l)return [];
+     const text=[l.nomeAluno||'Aluno',typeof lessonTitle==='function'?lessonTitle(l):'Aula FORJA',l.horaAula+'–'+l.horaFim,l.nomeProfessor||state.users?.find(x=>x.uid===uid)?.fullName||'Professor'].join(' · '),origin=window.forjaAgenda2LessonOrigin(uid,day,l.horaAula,l.horaFim);
+     button.title=text+(origin?' · Também ocupado · '+origin:'');button.setAttribute('aria-label',button.title);
+     if(state.role==='admin')button.querySelector('b').textContent=l.nomeAluno||'Aluno';
+     return [{button,start:minutes(l.horaAula),end:minutes(l.horaFim)}];
+    }).sort((a,b)=>a.start-b.start||b.end-a.end||a.button.dataset.lesson.localeCompare(b.button.dataset.lesson));
+    let group=[],until=-1;
+    const layout=()=>{const ends=[];for(const item of group){let column=ends.findIndex(end=>end<=item.start);if(column<0)column=ends.length;ends[column]=item.end;item.column=column;}
+     for(const item of group){const count=Math.max(1,ids.length),columns=ends.length,left=(index+item.column/columns)*100/count,width=100/count/columns;
+      item.button.style.setProperty('left',`calc(${left.toFixed(5)}% + 4px)`,'important');item.button.style.setProperty('width',`calc(${width.toFixed(5)}% - 8px)`,'important');item.button.style.setProperty('right','auto','important');item.button.dataset.forja2Column=String(item.column);
+     }
+    };
+    for(const item of cards){if(item.start>=until&&group.length){layout();group=[];until=-1;}group.push(item);until=Math.max(until,item.end);}if(group.length)layout();
+   }
+  }
+  // Preserve an explicit state word even when a monthly professional name is
+  // ellipsized. Full text remains in the accessible name and native tooltip.
+  for(const tag of document.querySelectorAll('.forja2-agenda .v621-month-tag,.forja2-agenda .v629-month-tag')){
+   const text=tag.textContent.trim();tag.title=text;tag.setAttribute('aria-label',text);
+   tag.dataset.forja2Label=tag.classList.contains('lesson')?'Aula':tag.classList.contains('availability')?'Livre':tag.classList.contains('busy')?'Ocupado':tag.classList.contains('unknown')?'Verificar':tag.classList.contains('outside')?'Fora':tag.classList.contains('cancelled')?'Cancelada':'';
+  }
+ };
  window.forjaAgenda2Bands=(uid,day,style)=>{
   const r=row(uid,day),known=fresh()&&r?.status==='success',native=r?.nativeStatus==='success'&&timely(),published=native?(r?.days?.[day]||[]):[],occupied=native?cuts(r,day):[],points=new Set([420,1320]);
   for(const p of published)for(const t of [p.inicio,p.fim])points.add(Math.max(420,Math.min(1320,minutes(t))));

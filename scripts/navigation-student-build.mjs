@@ -4,9 +4,10 @@ import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 import {withoutNavigationStudent,navigationBaseline} from './navigation-student-scope.mjs';
 const hash=x=>createHash('sha256').update(x).digest('hex');
-let html=execFileSync('git',['show','c659f4fa0fcde823b8a7b84eac396c90294b8b11:index.html'],{encoding:'utf8',maxBuffer:4*1024*1024}).replace(/\r\n/g,'\n');
-assert.equal(hash(html),navigationBaseline);
-assert.equal(withoutNavigationStudent(readFileSync(new URL('../index.html',import.meta.url),'utf8')),html,'Refuse unrecorded source edits');
+// Restore the verified input, including legitimate earlier Agenda regeneration.
+// The exact baseline hash and every recorded boundary remain mandatory.
+let html=withoutNavigationStudent(readFileSync(new URL('../index.html',import.meta.url),'utf8'));
+assert.equal(hash(html),navigationBaseline,'Refuse unrecorded source edits');
 const changes=[];
 function replace(before,after){const positions=[];let at=0;while((at=html.indexOf(before,at))>=0){positions.push(at);at+=before.length}assert.equal(positions.length,1,'Unique boundary: '+before.slice(0,90));changes.push({before,after,positions});html=html.replace(before,()=>after)}
 replace('if(e.key==="Escape"){e.preventDefault();closeModal();return}','if(e.key==="Escape"){e.preventDefault();e.stopPropagation();closeModal();return}');

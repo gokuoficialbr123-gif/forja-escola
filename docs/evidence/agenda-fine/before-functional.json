@@ -1,0 +1,26 @@
+[
+  {
+    "role": "admin",
+    "cancelTitle": "Central da Aula",
+    "loaded": false,
+    "durationShowsDash": true
+  },
+  {
+    "role": "admin",
+    "closedLessonReopened": true
+  },
+  {
+    "role": "teacher",
+    "cancelTitle": "Central da Aula",
+    "loaded": false,
+    "durationShowsDash": true
+  },
+  {
+    "role": "teacher",
+    "closedLessonReopened": true
+  },
+  {
+    "role": "teacher",
+    "monthAvailableClickView": "month"
+  }
+]

@@ -57,6 +57,51 @@ ${bookingSlotBinding}
   }
   window.forjaAgenda2BindBooking=v630BindAgendaSlots;
   function v630Mount(){`);
+// Agenda-only detail lifecycle: the canonical GET supplies actions on newly
+// polled lessons; a closed/replaced dialog or changed session cannot reopen it.
+replace('async function openLesson(id){\n  modal("Aula",loading("Carregando aula..."));',`async function openLesson(id){
+  const agendaScope=state.page==='agenda'&&['admin','teacher'].includes(state.role)?{...forjaCaptureSession(),role:state.role}:null;
+  modal("Aula",loading("Carregando aula..."));
+  const agendaReturnFocus=lastModalFocus;
+  const agendaDialog=document.querySelector('#modal .modal');
+  const agendaCurrent=()=>!agendaScope||(forjaSessionCurrent(agendaScope)&&state.page==='agenda'&&state.role===agendaScope.role&&document.querySelector('#modal .modal')===agendaDialog);`);
+replace('    const l=a.item,history=h.items||[],materials=m.items||[];let actions="";',`    if(!agendaCurrent())return;
+    const l=a.item,history=h.items||[],materials=m.items||[];let actions="";
+    if(agendaScope)state.lessons=[...(state.lessons||[]).filter(x=>x.id!==id),l];`);
+replace('}catch(e){modal("Aula",empty("Não foi possível carregar",e.message))}', '}catch(e){if(agendaCurrent()){modal("Aula",empty("Não foi possível carregar",e.message));if(agendaScope)lastModalFocus=agendaReturnFocus;}}');
+replace('    modal("Central da Aula",body);bindModalActions();', '    modal("Central da Aula",body);if(agendaScope)lastModalFocus=agendaReturnFocus;bindModalActions();return agendaScope?document.querySelector("#modal .modal"):undefined;');
+// The existing P1/P2/v616 decorators await the canonical detail. Carry its DOM
+// owner through that same chain; never decorate a superseding dialog.
+for(const previous of ['openLessonP1','openLessonP2A']){
+ const start=html.indexOf('openLesson=async function(id){await '+previous+'(id);'),end=html.indexOf('\n',start),body=html.slice(start,end);assert.ok(start>0&&end>start);
+ const updated=body.replace('await '+previous+'(id);','const agendaScope=window.forjaAgenda2DetailScope?.(),agendaDialog=await '+previous+'(id);if(agendaScope&&!window.forjaAgenda2DetailCurrent(agendaDialog,agendaScope))return;').replace(/\};?$/,';return agendaDialog;};');
+ assert.notEqual(updated,body);replace(body,updated);
+}
+replace('  await openLessonBeforeV616(id);','  const agendaScope=window.forjaAgenda2DetailScope?.(),agendaDialog=await openLessonBeforeV616(id);\n  if(agendaScope&&!window.forjaAgenda2DetailCurrent(agendaDialog,agendaScope))return;');
+replace('const fresh=await api(`/aulas/${encodeURIComponent(id)}`),l=fresh.item||{},s=gStatusMeta(l)', 'const fresh=await api(`/aulas/${encodeURIComponent(id)}`);if(agendaScope&&!window.forjaAgenda2DetailCurrent(agendaDialog,agendaScope))return;const l=fresh.item||{},s=gStatusMeta(l)');
+replace('esc(l.duracaoMinutos+" min"):"—"}', 'esc(l.duracaoMinutos+" min"):agendaScope?esc(window.forjaAgenda2PlannedDuration(l)):"—"}');
+replace('const restore=lastModalFocus;lastModalFocus=null;', 'const restore=window.forjaAgenda2ReturnFocus?.(lastModalFocus)||lastModalFocus;lastModalFocus=null;');
+replace("if(e.target.closest('.v621-month-tag'))return;", "if(e.target.closest('button[data-lesson]'))return;");
+replace('Selecione um ou vários professores como no Google Calendar. Verde é horário disponível, vermelho é ocupado e azul é aula FORJA.', 'Selecione os professores e consulte aulas e horários. A legenda indica o estado de cada intervalo.');
+// Keep all filters and the mini-calendar available, with a real collapsible
+// control on narrow screens rather than pushing the calendar below the fold.
+replace('return `<aside class="v629-sidebar">${v629MiniMonth()}', 'return `<aside class="v629-sidebar"><details class="forja2-filters" ${state.v629AgendaFiltersOpen??!matchMedia("(max-width:900px)").matches?"open":""}><summary>Professores, filtros e calendário</summary><div class="forja2-filter-content">${v629MiniMonth()}');
+replace('já preenchidos.</div></aside>`;', 'já preenchidos.</div></div></details></aside>`;');
+{
+ const start=html.indexOf('  function v621CalendarSidebar(role,uid){'),end=html.indexOf('\n  function v621TeacherTopbar(',start),body=html.slice(start,end);
+ assert.ok(start>0&&end>start);
+ const updated=body.replace('${actions}${v621MiniMonth(role)}','${actions}<details class="forja2-filters forja2-teacher-filters" ${state.v625AgendaFiltersOpen??!matchMedia("(max-width:900px)").matches?"open":""}><summary>Filtros e calendário</summary><div class="forja2-filter-content">${v621MiniMonth(role)}').replace('</div></aside>`;','</div></div></details></aside>`;');
+ assert.notEqual(updated,body);replace(body,updated);
+}
+replace('<b>Google ⇄ FORJA</b><br>O professor continua usando o Google Calendar.', '<b>Privacidade Google</b><br>A consulta automática verifica ocupações, sem escrever eventos.');
+replace('    const search=$(\'#v629TeacherSearch\');', `    const details=document.querySelector('.forja2-filters');if(details&&!details.dataset.boundFine){details.dataset.boundFine='1';details.ontoggle=()=>{state.v629AgendaFiltersOpen=details.open};}
+    const search=$('#v629TeacherSearch');`);
+for(const name of ['v621MonthCalendar(role,uid)','v629MonthCalendar()']){
+ const start=html.indexOf('  function '+name+'{'),end=html.indexOf('\n  function ',start+1),body=html.slice(start,end);
+ const number='<div class="v621-month-num">${obj.getUTCDate()}</div>';
+ assert.equal(body.split(number).length,2,'One day number per month renderer');
+ replace(body,body.replace(number,'<button type="button" class="v621-month-num" data-forja2-date="${esc(day)}" aria-label="Ver dia ${esc(fmtDate(day))}">${obj.getUTCDate()}</button>'));
+}
 const hooks=`
   // Scoped rendering hooks: replace grid contents, never forms, toolbar or scroll containers.
   window.forjaAgenda2Context=()=>{const role=state.role;if(state.page!=='agenda'||!['admin','teacher'].includes(role)||!document.querySelector(role==='admin'?'.v629-calendar-card':'.v621-calendar-card'))return null;const days=v621RangeDays(role);return {from:days[0],to:days.at(-1),ids:role==='admin'?v629SelectedTeachers().map(t=>t.uid).sort():[state.user.uid],view:v621View(role)};};
@@ -89,6 +134,7 @@ const hooks=`
     if(admin)document.querySelector('.v629-secretary-summary')?.remove();
     v621Bind();if(admin){v629Bind();window.forjaAgenda2BindBooking?.();}for(const b of document.querySelectorAll('[data-lesson]')){b.onclick=()=>openLesson(b.dataset.lesson);window.forjaAgenda2DecorateLesson?.(b);}
     for(const block of document.querySelectorAll('.v621-lane .v621-block'))block.classList.toggle('forja2-compact',parseFloat(block.style.height)<34);
+    window.forjaAgenda2Polish?.(admin?v629SelectedTeachers().map(x=>x.uid):[state.user.uid]);
     if(focusKey&&!focus.isConnected){const target=[...document.querySelectorAll('.v621-lane button,.v621-month-grid button')].find(el=>JSON.stringify({...el.dataset})===focusKey);if(target)target.focus({preventScroll:true});else if(card){card.tabIndex=-1;card.focus({preventScroll:true});}}
   };
 `;
@@ -102,4 +148,8 @@ const validator=new URL('./validate.mjs',import.meta.url),digest=createHash('sha
 writeFileSync(validator,readFileSync(validator,'utf8').replace(/export const referenceSha256 = '[a-f0-9]{64}';/,"export const referenceSha256 = '"+digest+"';"));
 console.log(JSON.stringify({baseline,sha256:createHash('sha256').update(html).digest('hex'),changes:changes.length}));
 // Preserve the later scoped migration when regenerating this published Agenda layer.
-if(current.includes('<script id="forja-navigation-script">'))execFileSync(process.execPath,[new URL('./navigation-student-build.mjs',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1')],{stdio:'inherit'});
+if(current.includes('<script id="forja-navigation-script">')){
+ const scope=new URL('./navigation-student-scope.mjs',import.meta.url);
+ writeFileSync(scope,readFileSync(scope,'utf8').replace(/export const navigationBaseline='[a-f0-9]{64}';/,`export const navigationBaseline='${digest}';`));
+ execFileSync(process.execPath,[new URL('./navigation-student-build.mjs',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1')],{stdio:'inherit'});
+}
