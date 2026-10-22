@@ -76,7 +76,7 @@ test('tab channels are private to UID/context and close when the session changes
  const f=await fixture(t),p=f.page,names=await p.evaluate(()=>fixtureBroadcastNames);assert.ok(names.length>0);assert.ok(names.every(name=>name.includes('PERF_ADMIN')&&name.includes('"admin"')));await p.evaluate(()=>forjaEndSession());assert.ok(await p.evaluate(()=>fixtureBroadcastClosed>0));
 });
 test('transport delay cannot restart the twenty-five-second source validity',async t=>{
- const f=await fixture(t,{clock:true}),p=f.page;f.holdNext();await p.evaluate(()=>{void forjaAgenda2Refresh();});await delay(100);await p.clock.fastForward(10000);f.release();await p.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));const count=f.count();await p.clock.fastForward(15010);assert.equal(f.count(),count);assert.equal(await p.locator('.v621-block.availability').count(),0);assert.ok(await p.locator('.forja2-band.unknown').count()>0);
+ const f=await fixture(t,{clock:true}),p=f.page;t.after(()=>f.release());f.holdNext();await p.evaluate(()=>{void forjaAgenda2Refresh();});await delay(100);await p.clock.fastForward(10000);f.release();await p.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));const count=f.count(),renewal=nextSnapshot(p);f.holdNext();await p.clock.fastForward(15010);await renewal;await delay(50);assert.equal(f.count(),count+1,'renewal follows remaining source lifetime, not another fixed 20 seconds');assert.equal(await p.locator('.v621-block.availability').count(),0);assert.ok(await p.locator('.forja2-band.unknown').count()>0);
 });
 
 async function confirmedAgenda(page){

@@ -1,3 +1,13 @@
+## 22/10/2026 — Correção de quota e avisos da Agenda, somente Draft
+
+Bases frontend8d7c3cee / backendd1483037, branch codex/agenda-events-quota.
+Ler AGENDA_EVENTS_QUOTA_2026-10-22.md. Avisos nativos read-only no SDK existente;
+Google revalidado pela validade original, coalescimento de fontes e Retry-After.
+Limites preservados; nenhuma escrita em polling, cache de aulas entre perfis,
+alteração de locks, Rules, OAuth ou infraestrutura. QA somente Node22/demo-forja
+emulado/Google simulado. Nenhum merge, Ready for review, deploy ou Preview.
+A autorização histórica de publicar PR31 não publica esta nova correção.
+
 ## 22/10/2026 — Missão01: estabilidade da Agenda, somente Draft
 
 - Pausa de aba preserva confirmação apenas no prazo e contexto originais.

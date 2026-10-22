@@ -1,8 +1,9 @@
-/* Agenda 2.0: one visible-page read loop; no Google synchronization writes. */
+/* Agenda: native invalidations plus bounded Google revalidation; never sync writes. */
 (function(){
  'use strict';
- const POLICY='agenda-readonly-v1',INTERVAL=20000,MAX_AGE=25000;
+ const POLICY='agenda-readonly-v1',BACKOFF_BASE=20000,SOURCE_LEAD=5000,MAX_AGE=25000;
  let context=null,record=null,flight=null,timer=null,sequence=0,failures=0,nextAt=0,lastSuccess=null,channel=null,failureReason=null;
+ let stream=null,streamTimer=null,streamSeenAt=0,streamFailures=0,streamStatus='',revision=0,retryUntil=0,changeTimer=null,changeVersion=null,localDirty=false;
  window.forjaAgenda2Enabled=true;
  window.forjaAgenda2RescheduleFeedback=result=>{
   const status=result?.item?.googleSyncStatus,pending=['erro','conflito','pendente','cancelamento_pendente'].includes(status);
@@ -152,9 +153,11 @@
   const sync=unresolved.filter(x=>x.availabilityReason==='personal_sync_unavailable').length;
   const personal=unresolved.filter(x=>x.personal?.status==='unavailable'&&!x.availabilityReason).length;
   const central=unresolved.filter(x=>x.central?.status==='unavailable').length;
-  const details=[consent?`${consent} profissional(is) precisam autorizar a consulta Google pela Secretaria em Hoje ou Conta e perfil, na seção Google Calendar`:null,sync?`${sync} profissional(is) com sincronização Google pessoal indisponível; conferir a conexão do professor`:null,personal?'Google pessoal não confirmou todos os horários':null,central?'Google central não confirmou todos os horários; conferir vínculos e acesso':null].filter(Boolean);
-  const phase=failureReason||(!record?'Carregamento inicial; horários ainda não confirmados':!timely()?'Dados vencidos; aguardando nova confirmação':!record.value.complete?'Fontes incompletas; horários não confirmados':'');
-  host.classList.toggle('unavailable',!!unavailable);host.textContent=(flight?'Consultando… · ':unavailable?'Consulta incompleta ou vencida · ':'Consulta confirmada · ')+(lastSuccess?'Última consulta completa: '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Aguardando primeira consulta completa')+(phase?' · '+phase:'')+(details.length?' · '+details.join(' · '):'');
+  const centralConsent=(record?.value.items||[]).some(x=>x.central?.reason==='central_consent_required');
+  const details=[consent?`${consent} profissional(is) precisam autorizar a consulta Google pela Secretaria em Hoje ou Conta e perfil, na seção Google Calendar`:null,sync?`${sync} profissional(is) com sincronização Google pessoal indisponível; conferir a conexão do professor`:null,personal?'Google pessoal não confirmou todos os horários':null,centralConsent?'Google central precisa de autorização de consulta; conferir a conexão da Secretaria':central?'Google central não confirmou todos os horários; conferir vínculos e acesso':null].filter(Boolean);
+  const quota=(record?.value.items||[]).some(x=>[x.personal?.reason,x.central?.reason].some(r=>r==='personal_rate_limit'||r==='central_rate_limit'));
+  const phase=failureReason||(quota?'Limite temporário na fonte Google; aguardando prazo de nova consulta':!record?'Carregamento inicial; horários ainda não confirmados':!timely()?'Dados vencidos; aguardando nova confirmação':!record.value.complete?'Fontes incompletas; horários não confirmados':'');
+  host.classList.toggle('unavailable',!!unavailable);host.textContent=(flight?'Consultando… · ':unavailable?'Consulta incompleta ou vencida · ':'Consulta confirmada · ')+(lastSuccess?'Última consulta completa: '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Aguardando primeira consulta completa')+(phase?' · '+phase:'')+(details.length?' · '+details.join(' · '):'')+(streamStatus?' · '+streamStatus:'');
  }}
  const timeValid=x=>typeof x==='string'&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(x);
  function valid(value,c){
@@ -166,7 +169,7 @@
   });
  }
  function accept(value,c,transferredTtl=null){
-  if(!current(c)||!valid(value,c))throw Error('AGENDA_RESULT_INVALID');
+  if(!current(c)||!valid(value,c)||changeVersion&&value.changeVersion!==changeVersion)throw Error('AGENDA_RESULT_INVALID');
   // Deduct transport/Auth time as well as server-side source age. A transfer
   // between tabs carries the remaining lifetime, never a fresh full lifetime.
   const serviceTime=Number.isFinite(Date.parse(value.deliveryStartedAt))?Math.max(0,Date.parse(value.servedAt)-Date.parse(value.deliveryStartedAt)):0;
@@ -179,12 +182,59 @@
    if(state.role==='admin'){const old=(state.googleConnections||[]).find(x=>x.uid===item.professionalId)||{};state.googleConnections=[...(state.googleConnections||[]).filter(x=>x.uid!==item.professionalId),{...old,uid:item.professionalId,...metadata}];}
    else state.googleCalendar={...state.googleCalendar,item:{...state.googleCalendar?.item,...metadata}};
   }
-  if(value.complete){lastSuccess=value.checkedAt;failures=0;}else failures++;nextAt=performance.now()+(value.complete?INTERVAL:Math.min(120000,INTERVAL*2**Math.min(failures,3)));}
+  if(value.complete){lastSuccess=value.checkedAt;failures=0;retryUntil=0;}else failures++;
+  const retry=Math.min(86400000,Math.max(0,Number(value.retryAfterMs)||0));if(!value.complete&&retry>0)retryUntil=performance.now()+retry;
+  // Source cache age shortens the next deadline; it never grants another 25s.
+  // Native writes arrive independently through the authenticated change stream.
+  nextAt=Math.max(retryUntil,performance.now()+(value.complete?Math.max(1000,ttl-SOURCE_LEAD):retry>0?retry:Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3))));}
  function connectChannel(c){
   if(typeof BroadcastChannel!=='function')return;
   // Different UIDs, generations, roles and periods do not receive this payload.
   channel=new BroadcastChannel('forja-agenda-readonly-v1:'+c.key);
-  channel.addEventListener('message',event=>{const m=event.data,age=Date.now()-m?.sentAt;if(m?.kind==='snapshot'&&m.key===c.key&&!flight&&current(c)&&Number.isFinite(m.ttlMs)&&m.ttlMs>0&&age>=0&&age<MAX_AGE){try{accept(m.value,c,m.ttlMs-age);paint();schedule();}catch{}}});
+  channel.addEventListener('message',event=>{const m=event.data,age=Date.now()-m?.sentAt;if(m?.key!==c.key||!current(c)||!(age>=0&&age<MAX_AGE))return;
+   if(m.kind==='changes'){streamSeenAt=Date.now();handleChange(c,m.event);return;}
+   if(m.kind==='cooldown'&&Number.isFinite(m.wait)&&m.wait>age){retryUntil=Math.max(retryUntil,performance.now()+Math.min(86400000,m.wait-age));nextAt=Math.max(nextAt,retryUntil);failureReason='Limite temporário de consultas; nova tentativa automática';if(record)record.error=true;paint();schedule();return;}
+   if(m.kind==='snapshot'&&performance.now()>=retryUntil&&!localDirty&&!flight&&Number.isFinite(m.ttlMs)&&m.ttlMs>0){try{accept(m.value,c,m.ttlMs-age);paint();schedule();}catch{}}
+  });
+ }
+ const queryFor=c=>{const query=new URLSearchParams({from:c.from,to:c.to});for(const id of c.ids)query.append('professionalId',id);return query;};
+ function changed(c){
+  if(!current(c))return;revision++;if(record)record.error=true;failureReason='Alteração detectada; confirmando horários';paint();
+  clearTimeout(changeTimer);changeTimer=setTimeout(()=>{if(!current(c))return;nextAt=Math.max(retryUntil,performance.now());schedule();},250);
+ }
+ function handleChange(c,event){
+  if(!current(c))return;
+  if(typeof event.version==='string'&&/^[a-f0-9]{64}$/.test(event.version)){const previous=changeVersion;changeVersion=event.version;if(previous&&previous!==changeVersion&&event.kind==='heartbeat')changed(c);}
+  if(['ready','heartbeat'].includes(event.kind)){streamStatus='Alterações FORJA acompanhadas';if(event.kind==='ready'&&(record||flight))changed(c);}
+  else if(event.kind==='changed')changed(c);
+  else if(event.kind==='unauthorized'){revision++;if(record)record.error=true;failureReason='Consulta sem autorização; conferir acesso da conta';paint();}
+  else if(event.kind==='unavailable')streamStatus='Acompanhamento de alterações indisponível; recuperando consulta';
+ }
+ function startChanges(c){
+  clearTimeout(streamTimer);streamTimer=null;if(stream||!current(c)||!c.ids.length||c.ids.length>50||navigator.onLine===false)return;
+  const connection={controller:new AbortController(),last:Date.now()};stream=connection;
+  const run=async()=>{
+   const deadline=setTimeout(()=>connection.controller.abort(),12000);
+   try{
+    const user=auth?.currentUser;if(!user||!current(c))return;
+    let abortToken;const aborted=new Promise((_,reject)=>{abortToken=()=>reject(Error('AGENDA_STREAM_ABORTED'));connection.controller.signal.addEventListener('abort',abortToken,{once:true});});
+    let token;try{token=await Promise.race([user.getIdToken(),aborted]);}finally{connection.controller.signal.removeEventListener('abort',abortToken);}if(!current(c)||connection.controller.signal.aborted)return;
+    forjaSessionRequests.add(connection.controller);
+    const response=await fetch(FORJA_API_URL+'/agenda/changes?'+queryFor(c),{headers:{Authorization:'Bearer '+token},signal:connection.controller.signal,cache:'no-store'});
+    if(!current(c)){await response.body?.cancel();return;}
+    if(!response.ok){const raw=response.headers.get('Retry-After'),seconds=raw===null?NaN:Number(raw),wait=Number.isFinite(seconds)?seconds*1000:Date.parse(raw)-Date.now();if(Number.isFinite(wait)&&wait>0)connection.retry=Math.min(86400000,wait);throw Error('AGENDA_STREAM_UNAVAILABLE');}
+    if(!response.headers.get('Content-Type')?.startsWith('text/event-stream')||!response.body)throw Error('AGENDA_STREAM_UNAVAILABLE');
+    clearTimeout(deadline);const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
+    const watchdog=setInterval(()=>{if(Date.now()-connection.last>45000)connection.controller.abort();},15000);
+    try{for(;;){const part=await reader.read();if(part.done)break;if(!current(c))break;buffer+=decoder.decode(part.value,{stream:true});if(buffer.length>8192)throw Error('AGENDA_STREAM_INVALID');let boundary;
+     while((boundary=buffer.indexOf('\n\n'))>=0){const frame=buffer.slice(0,boundary);buffer=buffer.slice(boundary+2);if(!frame.startsWith('data: '))continue;const event=JSON.parse(frame.slice(6));if(!['ready','changed','heartbeat','unavailable','unauthorized','reconnect'].includes(event.kind))throw Error('AGENDA_STREAM_INVALID');connection.last=Date.now();streamSeenAt=Date.now();streamFailures=0;handleChange(c,event);channel?.postMessage({kind:'changes',key:c.key,event,sentAt:Date.now()});if(['reconnect','unauthorized','unavailable'].includes(event.kind))return;}
+    }}finally{clearInterval(watchdog);await reader.cancel().catch(()=>{});reader.releaseLock();}
+   }catch{if(current(c))streamStatus='Acompanhamento de alterações indisponível; recuperando consulta';}
+   finally{clearTimeout(deadline);forjaSessionRequests.delete(connection.controller);}
+  };
+  void(async()=>{try{if(navigator.locks)await navigator.locks.request('forja-agenda-events:'+c.key,{ifAvailable:true},async lock=>{if(lock)await run();});else await run();}
+   finally{if(stream===connection){stream=null;if(current(c)){streamFailures++;streamTimer=setTimeout(()=>startChanges(c),Math.max(connection.retry||0,streamSeenAt&&Date.now()-streamSeenAt<30000?5000:Math.min(60000,2000*2**Math.min(streamFailures,5))));}}}
+  })();
  }
  function schedule(){
   clearTimeout(timer);if(!context||!current(context))return;
@@ -195,32 +245,34 @@
   timer=setTimeout(()=>{paint();if(!flight&&performance.now()>=nextAt)void refresh();else schedule();},Math.max(20,due-now));
  }
  async function collect(c,request){
-  const query=new URLSearchParams({from:c.from,to:c.to});for(const id of c.ids)query.append('professionalId',id);
+  const query=queryFor(c);
   let aborted;const cancel=new Promise((_,reject)=>{aborted=()=>reject(Error('AGENDA_ABORTED'));request.controller.signal.addEventListener('abort',aborted,{once:true});});
   let value;try{value=await Promise.race([api('/agenda/snapshot?'+query,{session:c.scope,signal:request.controller.signal}),cancel]);}finally{request.controller.signal.removeEventListener('abort',aborted);}
-  if(flight!==request||!current(c))return;accept(value,c);channel?.postMessage({kind:'snapshot',key:c.key,value,ttlMs:record.expires-performance.now(),sentAt:Date.now()});return value.complete;
+  if(flight!==request||!current(c))return;if(request.revision!==revision){nextAt=Math.max(retryUntil,performance.now()+250);return false;}accept(value,c);localDirty=false;channel?.postMessage({kind:'snapshot',key:c.key,value,ttlMs:record.expires-performance.now(),sentAt:Date.now()});return value.complete;
  }
  async function refresh({manual=false}={}){
-  lifecycle(false);const c=context;if(!c||!current(c)||!c.ids.length||c.ids.length>50)return false;if(flight)return flight.promise;
-  const request={controller:new AbortController(),promise:null,shared:false,startedAt:performance.now()},id=++sequence;flight=request;paint();schedule();
+  lifecycle(false);const c=context;if(!c||!current(c)||!c.ids.length||c.ids.length>50||navigator.onLine===false)return false;if(flight)return flight.promise;if(performance.now()<retryUntil){nextAt=retryUntil;schedule();return false;}
+  const request={controller:new AbortController(),promise:null,shared:false,startedAt:performance.now(),revision},id=++sequence;flight=request;paint();schedule();
   const deadline=setTimeout(()=>request.controller.abort(),15000);
   request.promise=(async()=>{try{
     let result;
     if(navigator.locks){await navigator.locks.request('forja-agenda:'+c.key,{ifAvailable:true},async lock=>{if(!lock){request.shared=true;nextAt=performance.now()+1000;return;}result=await collect(c,request);});}else result=await collect(c,request);
     if(manual&&current(c))toast(result===true?'Consulta da Agenda confirmada.':'Consulta ainda não confirmada por todas as fontes.',result===true?'ok':'warn');return result===true;
-   }catch(e){if(id===sequence&&current(c)){failures++;if(record)record.error=true;failureReason=[401,403].includes(e.status)?'Consulta sem autorização; conferir acesso da conta':e.status===429?'Limite temporário de consultas; nova tentativa automática':request.controller.signal.aborted?'Tempo de consulta esgotado; nova tentativa automática':e.message==='AGENDA_RESULT_EXPIRED'?'Dados recebidos vencidos; aguardando nova confirmação':e.message==='AGENDA_RESULT_INVALID'?'Resposta inválida; horários não confirmados':'Falha de rede ou serviço; horários não confirmados';nextAt=performance.now()+Math.min(120000,INTERVAL*2**Math.min(failures,3));if(manual)toast('Não foi possível confirmar a atualização da Agenda.','warn');}return false;}
+   }catch(e){if(id===sequence&&current(c)){failures++;if(record)record.error=true;const changedDuringRead=e.status===409&&e.code==='AGENDA_QUERY_CHANGED';failureReason=changedDuringRead?'Alteração detectada durante a consulta; confirmando horários':[401,403].includes(e.status)?'Consulta sem autorização; conferir acesso da conta':e.status===429?'Limite temporário de consultas; nova tentativa automática':request.controller.signal.aborted?'Tempo de consulta esgotado; nova tentativa automática':e.message==='AGENDA_RESULT_EXPIRED'?'Dados recebidos vencidos; aguardando nova confirmação':e.message==='AGENDA_RESULT_INVALID'?'Resposta inválida; horários não confirmados':'Falha de rede ou serviço; horários não confirmados';const wait=e.status===429&&e.retryAfterMs>0?e.retryAfterMs:changedDuringRead||e.message==='AGENDA_RESULT_EXPIRED'?1000:Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3));nextAt=performance.now()+wait;if(e.status===429){retryUntil=nextAt;channel?.postMessage({kind:'cooldown',key:c.key,wait,sentAt:Date.now()});}if(manual)toast('Não foi possível confirmar a atualização da Agenda.','warn');}return false;}
    finally{clearTimeout(deadline);if(flight===request){flight=null;if(current(c)){paint();schedule();}}}
   })();return request.promise;
  }
  // Pause transport, never renew or extend the retained snapshot's expiry.
- function pause(){sequence++;clearTimeout(timer);flight?.controller.abort();channel?.close();channel=null;flight=null;}
- function reset(){pause();context=null;record=null;lastSuccess=null;failureReason=null;failures=0;nextAt=0;}
- function lifecycle(start=true){const c=capture(!document.hidden);if(!c){if(context)reset();return;}if(document.hidden){if(context?.key!==c.key)reset();else pause();return;}if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start){if(!channel)connectChannel(c);paint();}if(start&&!flight&&performance.now()>=nextAt)void refresh();}
+ function pause(){sequence++;clearTimeout(timer);clearTimeout(changeTimer);clearTimeout(streamTimer);streamTimer=null;stream?.controller.abort();stream=null;flight?.controller.abort();channel?.close();channel=null;flight=null;}
+ function reset(){pause();context=null;record=null;lastSuccess=null;failureReason=null;failures=0;nextAt=0;retryUntil=0;revision=0;streamSeenAt=0;streamFailures=0;streamStatus='';changeVersion=null;localDirty=false;}
+ function lifecycle(start=true){const c=capture(!document.hidden);if(!c){if(context)reset();return;}if(document.hidden){if(context?.key!==c.key)reset();else pause();return;}if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start){if(!channel)connectChannel(c);paint();}if(start){if(!stream&&!streamTimer)startChanges(c);if(!flight&&performance.now()>=nextAt)void refresh();}}
  window.forjaAgenda2Refresh=refresh;
- window.forjaAgenda2Mutation=path=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;reset();lifecycle();};
+ window.forjaAgenda2Mutation=path=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;if(context){localDirty=true;changed(context);}else lifecycle();};
  const previousBind=bindPage;bindPage=function(){previousBind();lifecycle();};
  const previousNavigate=navigate;navigate=function(...args){const result=previousNavigate(...args);lifecycle();return result;};
  const previousSession=forjaChangeSession;forjaChangeSession=function(...args){reset();return previousSession(...args);};
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)nextAt=performance.now();lifecycle();});
+ window.addEventListener('offline',()=>{pause();if(record)record.error=true;failureReason='Sem conexão; horários não confirmados';paint();});
+ window.addEventListener('online',()=>{nextAt=Math.max(retryUntil,performance.now());lifecycle();if(context)startChanges(context);});
  window.addEventListener('beforeunload',()=>{reset();channel?.close();},{once:true});
 })();
