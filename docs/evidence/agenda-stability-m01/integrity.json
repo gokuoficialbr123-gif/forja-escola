@@ -1,0 +1,62 @@
+{
+  "base": "612367c3f64cccb5a3cfd7f7cfafb286aef7533b",
+  "sourceSha256": "0d0cbf0cdaae8c156b01ddcbbde6d90ba6878670fe5f2d92b53062604e195689",
+  "artifactSha256": "172fe6d872a3752178828f121e801377767cb4bb1889d8930223336e2465d49e",
+  "backendCommit": "d1483037be294428ab1af7788311f42389790c1a",
+  "backendClean": true,
+  "cssUnchanged": true,
+  "restoredBaseline": "9643749053f34ab0213512a724fb3949fabc5ae33b6bfdc33056f8f2a3d9234a",
+  "unchanged": [
+    {
+      "id": "forja-v630-script",
+      "sha256": "a7b79f60eec645462cbf34f50f3faaf75f92c57ad26ab8c06d8bc7879f3b3295"
+    },
+    {
+      "id": "forja-navigation-script",
+      "sha256": "649153b12ac5b54649bc469d4bb3f6dfe5f33c461e7648b51e2fe1c321bc35f7"
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "mission01-admin-desktop-confirmed.png",
+      "bytes": 151688,
+      "sha256": "9f76459fb6ff1d388adb6cb74a8d6a4b75a5f20429e9a204d0cdbb9f26d89158"
+    },
+    {
+      "file": "mission01-admin-desktop-unknown.png",
+      "bytes": 149034,
+      "sha256": "8159b4ec3a365e65c58562c87c51b78699f7b61d8accb17e3d00d59fe9b86db4"
+    },
+    {
+      "file": "mission01-admin-mobile-confirmed.png",
+      "bytes": 58275,
+      "sha256": "fa96b3c87b082c6609587bd19cb8f2bf54b57a74cfdc0f66c42e2b3e53960577"
+    },
+    {
+      "file": "mission01-admin-mobile-unknown.png",
+      "bytes": 56175,
+      "sha256": "923b0a875f557b4fc80c9593ab5efa1028f60698383b3ac0250a0a2c2b98b832"
+    },
+    {
+      "file": "mission01-teacher-desktop-confirmed.png",
+      "bytes": 146554,
+      "sha256": "6a446ee97b15756be0288992838acc98b9fce61b1a2ac36d7675dea44a9332d2"
+    },
+    {
+      "file": "mission01-teacher-desktop-unknown.png",
+      "bytes": 142031,
+      "sha256": "38520e1b78fcd690ef7384dcfb464db1bb6319e963d467fc8c16bbac8964d962"
+    },
+    {
+      "file": "mission01-teacher-mobile-confirmed.png",
+      "bytes": 62696,
+      "sha256": "62afb77f7185e3a92248b1668898fc19290156f73cb7a44f0d64a727796c7177"
+    },
+    {
+      "file": "mission01-teacher-mobile-unknown.png",
+      "bytes": 60926,
+      "sha256": "d7414a03a6a9d9eea462307da25ee583638df38f12ced3275b2c29eae36f9f9e"
+    }
+  ],
+  "productionChanged": false
+}

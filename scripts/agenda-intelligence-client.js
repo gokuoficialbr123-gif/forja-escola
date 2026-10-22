@@ -2,17 +2,19 @@
 (function(){
  'use strict';
  const POLICY='agenda-readonly-v1',INTERVAL=20000,MAX_AGE=25000;
- let context=null,record=null,flight=null,timer=null,sequence=0,failures=0,nextAt=0,lastSuccess=null,channel=null;
+ let context=null,record=null,flight=null,timer=null,sequence=0,failures=0,nextAt=0,lastSuccess=null,channel=null,failureReason=null;
  window.forjaAgenda2Enabled=true;
  window.forjaAgenda2RescheduleFeedback=result=>{
   const status=result?.item?.googleSyncStatus,pending=['erro','conflito','pendente','cancelamento_pendente'].includes(status);
   toast(pending?'Aula reagendada no FORJA; sincronização Google pendente.':status==='sincronizado'?'Aula reagendada e sincronização Google confirmada.':'Aula reagendada no FORJA.',pending?'warn':'ok');
  };
- const active=()=>!document.hidden&&state.page==='agenda'&&['admin','teacher'].includes(state.role)&&state.profile?.active===true&&state.profile.role===state.role;
- const capture=()=>{if(!active())return null;const range=window.forjaAgenda2Context?.();if(!range)return null;const scope=forjaCaptureSession();return {...range,scope,key:JSON.stringify([scope.uid,scope.generation,state.role,range])};};
+ const active=(visible=true)=>(!visible||!document.hidden)&&state.page==='agenda'&&['admin','teacher'].includes(state.role)&&state.profile?.active===true&&state.profile.role===state.role;
+ const capture=(visible=true)=>{if(!active(visible))return null;const range=window.forjaAgenda2Context?.();if(!range)return null;const scope=forjaCaptureSession();return {...range,scope,key:JSON.stringify([scope.uid,scope.generation,state.role,range])};};
  const current=c=>!!c&&active()&&forjaSessionCurrent(c.scope)&&capture()?.key===c.key;
  const row=(uid,day)=>context&&current(context)&&record?.key===context.key&&day>=record.value.from&&day<=record.value.to?record.value.items.find(x=>x.professionalId===uid):null;
- const timely=()=>record&&!record.error&&performance.now()<record.expires;
+ // Some suspended mobile processes stop performance.now while wall time passes.
+ // Either clock expiring invalidates the result; neither can extend its TTL.
+ const timely=()=>record&&!record.error&&performance.now()<record.expires&&Date.now()<record.wallExpires;
  // Keep the last COMPLETE snapshot only while its original TTL remains valid.
   // A new GET does not revoke already-confirmed intervals; failed or partial
   // responses still invalidate them through record.error or replacement.
@@ -151,7 +153,8 @@
   const personal=unresolved.filter(x=>x.personal?.status==='unavailable'&&!x.availabilityReason).length;
   const central=unresolved.filter(x=>x.central?.status==='unavailable').length;
   const details=[consent?`${consent} profissional(is) precisam autorizar a consulta Google pela Secretaria em Hoje ou Conta e perfil, na seção Google Calendar`:null,sync?`${sync} profissional(is) com sincronização Google pessoal indisponível; conferir a conexão do professor`:null,personal?'Google pessoal não confirmou todos os horários':null,central?'Google central não confirmou todos os horários; conferir vínculos e acesso':null].filter(Boolean);
-  host.classList.toggle('unavailable',!!unavailable);host.textContent=(flight?'Consultando… · ':unavailable?'Consulta incompleta ou vencida · ':'Consulta confirmada · ')+(lastSuccess?'Última consulta completa: '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Aguardando primeira consulta completa')+(details.length?' · '+details.join(' · '):'');
+  const phase=failureReason||(!record?'Carregamento inicial; horários ainda não confirmados':!timely()?'Dados vencidos; aguardando nova confirmação':!record.value.complete?'Fontes incompletas; horários não confirmados':'');
+  host.classList.toggle('unavailable',!!unavailable);host.textContent=(flight?'Consultando… · ':unavailable?'Consulta incompleta ou vencida · ':'Consulta confirmada · ')+(lastSuccess?'Última consulta completa: '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Aguardando primeira consulta completa')+(phase?' · '+phase:'')+(details.length?' · '+details.join(' · '):'');
  }}
  const timeValid=x=>typeof x==='string'&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(x);
  function valid(value,c){
@@ -170,7 +173,7 @@
   const requestAge=flight&&!flight.shared?Math.max(0,performance.now()-flight.startedAt-serviceTime):0;
   const ttl=Math.min(MAX_AGE,Date.parse(value.expiresAt)-Date.parse(value.servedAt),transferredTtl??MAX_AGE)-requestAge;
   if(!Number.isFinite(ttl)||ttl<=0)throw Error('AGENDA_RESULT_EXPIRED');
-  record={key:c.key,value,expires:performance.now()+ttl,error:false};
+  record={key:c.key,value,expires:performance.now()+ttl,wallExpires:Date.now()+ttl,error:false};failureReason=null;
   for(const item of value.items)if(typeof item.personal.connected==='boolean'){
    const metadata={connected:item.personal.connected,lastSyncAt:item.personal.lastSyncAt||null};
    if(state.role==='admin'){const old=(state.googleConnections||[]).find(x=>x.uid===item.professionalId)||{};state.googleConnections=[...(state.googleConnections||[]).filter(x=>x.uid!==item.professionalId),{...old,uid:item.professionalId,...metadata}];}
@@ -205,17 +208,19 @@
     let result;
     if(navigator.locks){await navigator.locks.request('forja-agenda:'+c.key,{ifAvailable:true},async lock=>{if(!lock){request.shared=true;nextAt=performance.now()+1000;return;}result=await collect(c,request);});}else result=await collect(c,request);
     if(manual&&current(c))toast(result===true?'Consulta da Agenda confirmada.':'Consulta ainda não confirmada por todas as fontes.',result===true?'ok':'warn');return result===true;
-   }catch(e){if(id===sequence&&current(c)){failures++;if(record)record.error=true;nextAt=performance.now()+Math.min(120000,INTERVAL*2**Math.min(failures,3));if(manual)toast('Não foi possível confirmar a atualização da Agenda.','warn');}return false;}
+   }catch(e){if(id===sequence&&current(c)){failures++;if(record)record.error=true;failureReason=[401,403].includes(e.status)?'Consulta sem autorização; conferir acesso da conta':e.status===429?'Limite temporário de consultas; nova tentativa automática':request.controller.signal.aborted?'Tempo de consulta esgotado; nova tentativa automática':e.message==='AGENDA_RESULT_EXPIRED'?'Dados recebidos vencidos; aguardando nova confirmação':e.message==='AGENDA_RESULT_INVALID'?'Resposta inválida; horários não confirmados':'Falha de rede ou serviço; horários não confirmados';nextAt=performance.now()+Math.min(120000,INTERVAL*2**Math.min(failures,3));if(manual)toast('Não foi possível confirmar a atualização da Agenda.','warn');}return false;}
    finally{clearTimeout(deadline);if(flight===request){flight=null;if(current(c)){paint();schedule();}}}
   })();return request.promise;
  }
- function reset(){sequence++;clearTimeout(timer);flight?.controller.abort();channel?.close();channel=null;flight=null;context=null;record=null;lastSuccess=null;failures=0;nextAt=0;}
- function lifecycle(start=true){const c=capture();if(!c){if(context)reset();return;}if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start)paint();if(start&&!flight&&performance.now()>=nextAt)void refresh();}
+ // Pause transport, never renew or extend the retained snapshot's expiry.
+ function pause(){sequence++;clearTimeout(timer);flight?.controller.abort();channel?.close();channel=null;flight=null;}
+ function reset(){pause();context=null;record=null;lastSuccess=null;failureReason=null;failures=0;nextAt=0;}
+ function lifecycle(start=true){const c=capture(!document.hidden);if(!c){if(context)reset();return;}if(document.hidden){if(context?.key!==c.key)reset();else pause();return;}if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start){if(!channel)connectChannel(c);paint();}if(start&&!flight&&performance.now()>=nextAt)void refresh();}
  window.forjaAgenda2Refresh=refresh;
  window.forjaAgenda2Mutation=path=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;reset();lifecycle();};
  const previousBind=bindPage;bindPage=function(){previousBind();lifecycle();};
  const previousNavigate=navigate;navigate=function(...args){const result=previousNavigate(...args);lifecycle();return result;};
  const previousSession=forjaChangeSession;forjaChangeSession=function(...args){reset();return previousSession(...args);};
- document.addEventListener('visibilitychange',()=>{if(document.hidden)reset();else lifecycle();});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)nextAt=performance.now();lifecycle();});
  window.addEventListener('beforeunload',()=>{reset();channel?.close();},{once:true});
 })();

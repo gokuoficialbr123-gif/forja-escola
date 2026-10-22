@@ -82,6 +82,77 @@ test('transport delay cannot restart the twenty-five-second source validity',asy
 async function confirmedAgenda(page){
  await page.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));
 }
+
+for(const role of ['admin','teacher'])for(const mobile of [false,true])test(`mission01: brief hidden tab retains only the original valid snapshot ${role} ${mobile?'mobile':'desktop'}`,async t=>{
+ const f=await fixture(t,{role,mobile,clock:true,mode:'school'}),p=f.page;
+ const before=await p.locator('[data-forja2-status]').textContent(),reads=f.count();
+ await p.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
+ await p.clock.fastForward(2000);f.holdNext();const request=nextSnapshot(p);
+ await p.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});await request;
+ const observed={green:await p.locator('.v621-block.availability').count(),busy:await p.locator('.forja2-band.busy').count(),status:await p.locator('[data-forja2-status]').textContent(),reads:f.count()};
+ f.release();await confirmedAgenda(p);
+ assert.ok(observed.green>0,'valid green must survive brief hiding while renewed');
+ assert.ok(observed.busy>0,'valid blocking must survive brief hiding');
+ assert.ok(observed.status.includes(before.split('Última consulta completa: ')[1]),'last complete query must not reset');
+ assert.equal(observed.reads,reads+1);assert.deepEqual(f.errors,[]);
+ await p.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
+ await p.clock.fastForward(26000);f.holdNext();const resumed=nextSnapshot(p);
+ await p.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});await resumed;
+ const expiredGreen=await p.locator('.v621-block.availability').count(),expiredUnknown=await p.locator('.forja2-band.unknown').count();
+ f.release();await confirmedAgenda(p);assert.equal(expiredGreen,0,'hiding must never extend source validity');assert.ok(expiredUnknown>0);
+});
+for(const role of ['admin','teacher'])test(`mission01: initial load is explicit and never claims availability ${role}`,async t=>{
+ const f=await fixture(t,{role}),p=f.page;await p.evaluate(()=>navigate('inicio'));f.holdNext();const request=nextSnapshot(p);await p.evaluate(()=>navigate('agenda'));await request;
+ const observed={status:await p.locator('[data-forja2-status]').textContent(),green:await p.locator('.v621-block.availability').count(),unknown:await p.locator('.forja2-band.unknown').count()};f.release();await confirmedAgenda(p);
+ assert.match(observed.status,/Carregamento inicial/);assert.equal(observed.green,0);assert.ok(observed.unknown>0);assert.deepEqual(f.errors,[]);
+});
+for(const role of ['admin','teacher'])for(const [mode,message] of [['forbidden',/sem autorização/i],['quota',/Limite temporário/],['network',/Falha de rede/]])test(`mission01: query failure is distinguished from loading ${role} ${mode}`,async t=>{
+ const f=await fixture(t,{role}),p=f.page;f.setMode(mode);assert.equal(await p.evaluate(()=>forjaAgenda2Refresh()),false);
+ assert.match(await p.locator('[data-forja2-status]').textContent(),message);assert.equal(await p.locator('.v621-block.availability').count(),0);assert.ok(await p.locator('.forja2-band.unknown').count()>0);assert.deepEqual(f.errors,[]);
+});
+for(const role of ['admin','teacher'])for(const mobile of [false,true])for(const view of ['day','week','month'])test(`mission01: five unchanged renewals preserve grid nodes ${role} ${mobile?'mobile':'desktop'} ${view}`,async t=>{
+ const f=await fixture(t,{role,mobile,clock:true}),p=f.page;
+ if(view!=='week'){const request=nextSnapshot(p);await p.locator(`[data-v621-view="${view}"][data-role="${role}"]`).click();await ready(p,{request});}
+ const selector=view==='month'?'.v621-month-cell':'.v621-block.availability';
+ await p.evaluate(selector=>{window.mission01Node=document.querySelector(selector);},selector);const reads=f.count();
+ for(let i=0;i<5;i++){await automaticCycle(p);assert.equal(await p.evaluate(()=>mission01Node.isConnected),true,`cycle ${i+1} must not rebuild unchanged content`);assert.equal(f.count(),reads+i+1);}
+ assert.deepEqual(f.errors,[]);
+});
+for(const role of ['admin','teacher'])for(const mobile of [false,true])test(`mission01: changed sources repaint affected lanes and never leave false green ${role} ${mobile?'mobile':'desktop'}`,async t=>{
+ const f=await fixture(t,{role,mobile,clock:true}),p=f.page,lanes=p.locator(role==='admin'?'[data-v629-day]':'[data-v621-lane="teacher"]');
+ await lanes.nth(1).locator('.availability').first().evaluate(el=>window.mission01Unaffected=el);
+ f.setMode('school');assert.equal(await p.evaluate(()=>forjaAgenda2Refresh()),true);
+ assert.equal(await lanes.first().locator('.availability').count(),0);assert.ok(await lanes.first().locator('.busy').count()>0);
+ assert.equal(await p.evaluate(()=>mission01Unaffected.isConnected),true,'unaffected day must retain its actual buttons');
+ const root=process.env.FORJA_AGENDA_EVIDENCE_DIR;if(root){mkdirSync(root,{recursive:true});await p.screenshot({path:resolve(root,`mission01-${role}-${mobile?'mobile':'desktop'}-confirmed.png`),fullPage:true});}
+ f.setMode('partial');assert.equal(await p.evaluate(()=>forjaAgenda2Refresh()),false);assert.equal(await p.locator('.v621-block.availability').count(),0);assert.match(await p.locator('[data-forja2-status]').textContent(),/Fontes incompletas/);
+ if(root)await p.screenshot({path:resolve(root,`mission01-${role}-${mobile?'mobile':'desktop'}-unknown.png`),fullPage:true});assert.deepEqual(f.errors,[]);
+});
+for(const role of ['admin','teacher'])test(`mission01: hidden period change cannot resume previous availability ${role}`,async t=>{
+ const f=await fixture(t,{role,clock:true}),p=f.page;await p.evaluate(role=>{
+  Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));
+  const key=role==='admin'?'adminLessonAgendaDateG':'teacherLessonAgendaDateG';state[key]=gAddDays(state[key]||todayKey(),7);bindPage();
+ },role);const reads=f.count();await p.clock.fastForward(2000);assert.equal(f.count(),reads);
+ f.holdNext();const request=nextSnapshot(p);await p.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});await request;
+ const green=await p.locator('.v621-block.availability').count(),status=await p.locator('[data-forja2-status]').textContent();f.release();await confirmedAgenda(p);
+ assert.equal(green,0);assert.match(status,/Aguardando primeira consulta completa/);assert.deepEqual(f.errors,[]);
+});
+for(const role of ['admin','teacher'])test(`mission01: current-time indicator advances without replacing booking buttons ${role}`,async t=>{
+ const f=await fixture(t,{role,clock:true}),p=f.page,day=await p.evaluate(()=>todayKey());await p.clock.setSystemTime(new Date(day+'T10:15:00-03:00'));
+ await p.evaluate(()=>forjaAgenda2Paint());const top=await p.locator('.v623-now-line').first().getAttribute('style');await p.locator('.availability').first().evaluate(el=>window.mission01ClockButton=el);
+ for(let i=0;i<5;i++)await automaticCycle(p);
+ assert.notEqual(await p.locator('.v623-now-line').first().getAttribute('style'),top);assert.equal(await p.evaluate(()=>mission01ClockButton.isConnected),true);assert.deepEqual(f.errors,[]);
+});
+for(const role of ['admin','teacher'])for(const mobile of [false,true])test(`mission01: suspended monotonic clock cannot extend hidden validity ${role} ${mobile?'mobile':'desktop'}`,async t=>{
+ const f=await fixture(t,{role,mobile,clock:true}),p=f.page;
+ await p.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
+ // Emulate a suspended mobile process: wall time advances, performance.now
+ // and queued timers do not. Returning must never revive expired availability.
+ await p.clock.setSystemTime(new Date((await p.evaluate(()=>Date.now()))+30000));f.holdNext();const request=nextSnapshot(p);
+ await p.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});await request;
+ const green=await p.locator('.v621-block.availability').count(),status=await p.locator('[data-forja2-status]').textContent();f.release();await confirmedAgenda(p);
+ assert.equal(green,0,'suspension must not extend original source lifetime');assert.match(status,/Dados vencidos/);assert.deepEqual(f.errors,[]);
+});
 async function fiveAutomaticReads(f){
  const before=f.count();
  for(let i=0;i<5;i++){await automaticCycle(f.page);await confirmedAgenda(f.page);assert.equal(f.count()-before,i+1,'one completed read for each automatic cycle');}

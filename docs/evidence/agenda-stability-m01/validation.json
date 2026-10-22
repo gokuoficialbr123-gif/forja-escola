@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-22",
+  "base": "612367c3f64cccb5a3cfd7f7cfafb286aef7533b",
+  "backendUnchanged": "d1483037be294428ab1af7788311f42389790c1a",
+  "runtime": "Node22.23.3; Chromium/Playwright desktop and mobile viewports; Auth/Firestore demo-forja; Google simulated",
+  "sourceSha256": "0d0cbf0cdaae8c156b01ddcbbde6d90ba6878670fe5f2d92b53062604e195689",
+  "artifactSha256": "172fe6d872a3752178828f121e801377767cb4bb1889d8930223336e2465d49e",
+  "baselineStructure": {
+    "tests": 16,
+    "pass": 0,
+    "fail": 16,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "baselineFeedback": {
+    "tests": 8,
+    "pass": 0,
+    "fail": 8,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "suspensionOnIntermediateCandidate": {
+    "tests": 4,
+    "pass": 0,
+    "fail": 4,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "focusedAfter": {
+    "tests": 24,
+    "pass": 24,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "additionalEdges": {
+    "tests": 8,
+    "pass": 8,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "finalSuspensionAndCaptures": {
+    "tests": 8,
+    "pass": 8,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "frontendFinal": {
+    "tests": 498,
+    "pass": 498,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "pairedIntegrationFinal": {
+    "tests": 275,
+    "pass": 275,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "safety": {
+    "productionChanged": false,
+    "previewPublished": false,
+    "realDataUsed": false,
+    "backendModified": false,
+    "rulesOAuthDnsModified": false
+  },
+  "publicBaseline": {
+    "observedAt": "2026-10-22T09:32:13.087Z",
+    "publicFrontendSha256": "7a7726639908ba650daa4830055dae3a641cd5b8285d83940939c3090d1403da",
+    "backendReleaseCommit": "d1483037be294428ab1af7788311f42389790c1a",
+    "googleCalendarConfigured": true,
+    "googleCalendarWebhookConfigured": true,
+    "scope": "anonymous public HTML and health only; no authenticated school or Google data"
+  },
+  "limits": [
+    "Initial load remains unknown until required sources confirm",
+    "Unavailable consent/provider or expired source remains unknown",
+    "Original20s polling and25s max validity retained; event-driven Mission02 not started",
+    "Specific school accounts/videos not accessed"
+  ]
+}
