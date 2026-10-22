@@ -73,7 +73,7 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  #workspaceContent .forja2-agenda .forja2-teacher-filters :is(.v622-mini,.v622-cal-list,.v622-left-note,.v625-slot-help){display:block!important}
  #workspaceContent .forja2-agenda .v629-sidebar .v621-mini-grid button{height:28px!important;min-height:28px!important}
 }
-@media(min-width:901px){#workspaceContent .forja2-agenda .v626-toolbar-actions{display:none!important}.forja2-filters:not([open])>.forja2-filter-content{display:block}}
+@media(min-width:901px){#workspaceContent .forja2-agenda .v626-toolbar-actions{display:none!important}.forja2-filters:not([open])>summary{display:list-item;cursor:pointer;font-size:12px;font-weight:700;color:#153b50;padding:8px}}
 @media(max-width:600px){
  .forja2-legend{font-size:10px;padding:8px;gap:6px 10px}.forja2-status{max-width:100%;overflow-wrap:anywhere}
  #workspaceContent .forja2-agenda .v622-sync .small-btn{min-height:34px!important}

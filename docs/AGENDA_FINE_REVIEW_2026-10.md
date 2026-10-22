@@ -40,6 +40,7 @@ simulado na borda HTTP.
 | Secretaria | Seleção de 50 professores produz cartões de apenas 16px e texto ilegível. | Mínimo de 112px por coluna de profissional, rolagem **interna**, cabeçalho e corpo com a mesma largura. Sem extrapolar a página. |
 | Ambos | Regra global `height:100dvh` disputa com o padding do modal: topo em y=-6px no celular. | Limite de altura desconta as margens somente com a Agenda aberta; cabeçalho/rodapé ficam dentro da tela e ações são alcançáveis pela rolagem do corpo. |
 | Ambos | Polling mantém a rolagem, mas filtrar e sair/voltar recriam o calendário em 0/0. | Posição interna guardada no estado existente da Agenda, por sessão/profissionais/período/visualização, limitada a oito contextos e apagada pela troca de sessão. Quatro regressões permanentes cobrem filtros, retorno, cinco ciclos e isolamento. |
+| Ambos (candidato de revisão) | Ampliar a janela móvel com o painel recolhido deixa conteúdo e summary invisíveis: forçar display no filho não vence o fechamento nativo de details. | Summary continua visível no desktop enquanto fechado; reabrir mantém os mesmos campos e handlers. Duas regressões verificam ida/volta entre 390px e 1920px, com busca, seleção e filtros preservados. Corrigido antes de publicar. |
 
 Na Secretaria, o acesso à disponibilidade fixa move o **mesmo nó**, com seus
 handlers, para o painel da Agenda. No professor, preserva a ação original visível
@@ -89,8 +90,8 @@ infraestrutura, páginas públicas, dados pedagógicos ou demais perfis.
   O workflow de Hosting e seus gates de publicação permanecem intactos.
 
 Regeneração repetida produz o mesmo hash, com todos os guards anteriores ativos.
-Fonte SHA256: `84e20a07ecdbc0eab2ca99f331b94e381f93fb57653462dee8761d3730b9205e`.
-Artefato Hosting preparado: `9974d5a6decaa474baff69798f3a5265095611390c9cd45a235bac9d5135582a`.
+Fonte SHA256: `6b73c39bccd72d4c7e28ec15cd8443ff11393e7a6b551fc9ad66c74036f7fdb7`.
+Artefato Hosting preparado: `40049aaec459c76b4ef76a8cff228e60704845f0453aeca05b4816eeee8e8a1d`.
 Preparar `.firebase-public` não executa deploy. Documentação, screenshots e
 ferramentas de QA não entram no artefato público.
 
@@ -129,6 +130,9 @@ backend**, sem falhas, cancelamentos ou testes ignorados. Backend e sua suíte
 unitária não foram modificados. As dez verificações de geometria de janelas e
 drawer passaram, assim como duas repetições de seis cenários de concorrência.
 O caso fortalecido dos decoradores falhava nos dois perfis antes da proteção.
+Após a correção CSS de redimensionamento, os 441 testes frontend e 275 de
+integração passaram novamente. As duas regressões de resize e duas asserções
+adicionais da etapa exata do GET final também passaram isoladamente.
 [Resumo verificável](evidence/agenda-fine/validation-summary.json).
 
 O parecer final dos testes completos e da CI, com SHA e links, será registrado
