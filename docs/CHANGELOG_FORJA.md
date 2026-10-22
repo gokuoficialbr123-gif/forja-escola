@@ -1,3 +1,13 @@
+## 22/10/2026 — Missão01: estabilidade da Agenda, somente Draft
+
+- Pausa de aba preserva confirmação apenas no prazo e contexto originais.
+- Renovação idêntica preserva nós da grade; hora atual atualiza separadamente.
+- Feedback distingue carregamento, falhas, fonte incompleta e vencimento.
+- 36 regressões novas, com reprodução anterior, três visões e desktop/celular.
+- Validade também expira se o relógio monotônico parar durante suspensão.
+- Backend, polling20s/TTL25s, scopes, locks e reservas intactos. Sem publicação.
+- Relatório: AGENDA_STABILITY_MISSION_01_2026-10.md.
+
 ## 21/10/2026 — Estabilização de testes e CI da Agenda, somente Draft
 
 - Espera vinculada à nova requisição, corpo concluído e confirmação da tela,

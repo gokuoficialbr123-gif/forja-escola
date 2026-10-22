@@ -1,3 +1,13 @@
+## 22/10/2026 — Missão 01: estabilidade da Agenda, somente Draft
+
+Base publicada confirmada: frontend612367c3 / backendd1483037. Branch corretiva
+codex/agenda-stability-mission-01. Ler AGENDA_STABILITY_MISSION_01_2026-10.md.
+Pausa breve conserva somente snapshot/contexto ainda válido; grade idêntica
+preserva nós, e feedback distingue carregamento, fonte incompleta, vencimento
+e falha. Polling20s/TTL25s, locks e backend preservados. QA só Node22, mocks e
+Auth/Firestore demo-forja. Nenhum merge/deploy/Preview autorizado nesta missão;
+a publicação do PR30 abaixo é histórica. Missão02 orientada a eventos não iniciada.
+
 ## 22/10/2026 — PR #30: renovação, expiração e remontagem da Agenda
 
 Autorização expressa do proprietário inclui revisar, corrigir e publicar o PR30

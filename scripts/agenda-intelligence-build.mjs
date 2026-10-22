@@ -103,6 +103,15 @@ for(const name of ['v621MonthCalendar(role,uid)','v629MonthCalendar()']){
  replace(body,body.replace(number,'<button type="button" class="v621-month-num" data-forja2-date="${esc(day)}" aria-label="Ver dia ${esc(fmtDate(day))}">${obj.getUTCDate()}</button>'));
 }
 const hooks=`
+  // Preserve actual grid nodes when their generated presentation is unchanged.
+  // Cache belongs to each DOM host, so remounts always render the current data.
+  const forjaAgenda2GridMarkup=new WeakMap();
+  function forjaAgenda2WriteGrid(host,markup){
+    if(!host)return;
+    const clock=host.classList.contains('v621-lane')&&markup.startsWith('<div class="v623-now-line"')?markup.slice(0,markup.indexOf('</div>')+6):'',content=clock?markup.slice(clock.length):markup,old=forjaAgenda2GridMarkup.get(host);
+    if(!old||old.markup!==content||old.rendered!==host.innerHTML){host.innerHTML=markup;forjaAgenda2GridMarkup.set(host,{markup:content,clock,rendered:markup});}
+    else if(old.clock!==clock){host.querySelector('.v623-now-line')?.remove();if(clock)host.insertAdjacentHTML('afterbegin',clock);old.clock=clock;}
+  }
   // Scoped rendering hooks: replace grid contents, never forms, toolbar or scroll containers.
   // Logical ownership does not depend on a transiently detached calendar node.
   // Session, profile, date range and selected professionals still fence reads.
@@ -113,11 +122,11 @@ const hooks=`
     document.querySelector(admin?'.v629-secretary-agenda':'.v625-professor-agenda')?.classList.add('forja2-agenda');
     if(admin)document.querySelector('.v630-mode-tabs')?.remove();
     const focus=document.activeElement,focusedGrid=focus?.closest('.v621-lane,.v621-month-grid'),focusKey=focusedGrid?JSON.stringify({...focus.dataset}):null;
-    for(const lane of document.querySelectorAll(admin?'[data-v629-day]':'[data-v621-lane="teacher"]')){const day=admin?lane.dataset.v629Day:lane.dataset.date;lane.innerHTML=admin?v629Lane(day):v621Lane(role,state.user.uid,day);}
-    for(const cell of document.querySelectorAll('[data-forja2-day]'))cell.innerHTML=admin?v629AllDay(cell.dataset.forja2Day):v621AllDay(state.user.uid,cell.dataset.forja2Day);
+    for(const lane of document.querySelectorAll(admin?'[data-v629-day]':'[data-v621-lane="teacher"]')){const day=admin?lane.dataset.v629Day:lane.dataset.date;forjaAgenda2WriteGrid(lane,admin?v629Lane(day):v621Lane(role,state.user.uid,day));}
+    for(const cell of document.querySelectorAll('[data-forja2-day]'))forjaAgenda2WriteGrid(cell,admin?v629AllDay(cell.dataset.forja2Day):v621AllDay(state.user.uid,cell.dataset.forja2Day));
     if(v621View(role)==='month'){
-      const grid=document.querySelector('.v621-month-grid'),temp=document.createElement('div');temp.innerHTML=admin?v629MonthCalendar():v621MonthCalendar(role,state.user.uid);if(grid)grid.innerHTML=temp.querySelector('.v621-month-grid').innerHTML;
-      for(const cell of grid?.querySelectorAll('.v621-month-cell')||[]){
+      const grid=document.querySelector('.v621-month-grid'),temp=document.createElement('div');temp.innerHTML=admin?v629MonthCalendar():v621MonthCalendar(role,state.user.uid);
+      for(const cell of temp.querySelectorAll('.v621-month-cell')){
         const day=cell.dataset.v629MonthDay||cell.dataset.v625MonthDay;if(!day)continue;cell.classList.add('forja2-month');
         const people=admin?v629SelectedTeachers():[{uid:state.user.uid}],bucket=cell.querySelector('.v621-month-tags');
         for(const person of people){const kind=window.forjaAgenda2DayKind(person.uid,day);if(!['unknown','outside'].includes(kind))continue;
@@ -126,6 +135,7 @@ const hooks=`
         }
         for(const tag of cell.querySelectorAll('.v629-month-tag.lesson')){const count=window.forjaAgenda2LessonCounts(tag.dataset.v629OpenTeacherDay,day);if(count.cancelled){tag.textContent=v629TeacherName(tag.dataset.v629OpenTeacherDay)+' · '+count.active+' aula(s) · '+count.cancelled+' cancelada(s)';if(!count.active){tag.classList.remove('lesson');tag.classList.add('cancelled');}}}
       }
+      forjaAgenda2WriteGrid(grid,temp.querySelector('.v621-month-grid').innerHTML);
     }
     const host=document.querySelector(admin?'.v629-secretary-sync':'.v622-topbar');if(host&&!host.querySelector('[data-forja2-status]'))host.insertAdjacentHTML('beforeend','<div class="forja2-status" data-forja2-status role="status" aria-live="polite"></div>');
     const card=document.querySelector(admin?'.v629-calendar-card':'.v621-calendar-card');if(card&&!card.querySelector('.forja2-legend'))card.insertAdjacentHTML('afterbegin','<div class="forja2-legend" aria-label="Legenda da disponibilidade"><span class="lesson">Aula FORJA</span><span class="available">Disponível</span><span class="busy">Ocupado / bloqueado</span><span class="unknown">Não confirmado</span><span class="outside">Fora da publicação</span></div>');
@@ -137,6 +147,7 @@ const hooks=`
     v621Bind();if(admin){v629Bind();window.forjaAgenda2BindBooking?.();}for(const b of document.querySelectorAll('[data-lesson]')){b.onclick=()=>openLesson(b.dataset.lesson);window.forjaAgenda2DecorateLesson?.(b);}
     for(const block of document.querySelectorAll('.v621-lane .v621-block'))block.classList.toggle('forja2-compact',parseFloat(block.style.height)<34);
     window.forjaAgenda2Polish?.(admin?v629SelectedTeachers().map(x=>x.uid):[state.user.uid]);
+    for(const host of document.querySelectorAll('.v621-lane,.v621-month-grid,[data-forja2-day]')){const saved=forjaAgenda2GridMarkup.get(host);if(saved)saved.rendered=host.innerHTML;}
     if(focusKey&&!focus.isConnected){const target=[...document.querySelectorAll('.v621-lane button,.v621-month-grid button')].find(el=>JSON.stringify({...el.dataset})===focusKey);if(target)target.focus({preventScroll:true});else if(card){card.tabIndex=-1;card.focus({preventScroll:true});}}
   };
 `;
