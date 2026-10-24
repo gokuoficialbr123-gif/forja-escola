@@ -1,0 +1,6 @@
+#institutionalNewUser select,#institutionalUserLink select{width:100%;min-width:0;min-height:44px;padding:10px;border:1px solid #dce2e7;border-radius:8px;background:#fff;color:#14334a;box-sizing:border-box}
+#institutionalNewUser small{display:block;line-height:1.5;color:#5b6871;overflow-wrap:anywhere}
+#institutionalUserLink{margin-top:18px;display:grid;gap:12px;min-width:0}
+#institutionalUserLink h3,#institutionalUserLink p{margin:0}
+[data-institutional-row]{margin-top:12px;max-width:100%;white-space:normal;text-align:left}
+#institutionalNewUser[hidden]{display:none}

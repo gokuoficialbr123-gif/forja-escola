@@ -1,9 +1,9 @@
 /* Agenda: native invalidations plus bounded Google revalidation; never sync writes. */
 (function(){
  'use strict';
- const POLICY='agenda-readonly-v1',BACKOFF_BASE=20000,SOURCE_LEAD=5000,MAX_AGE=25000;
+ const POLICY='agenda-readonly-v1',BACKOFF_BASE=20000,SOURCE_LEAD=5000,MAX_AGE=25000,INSTITUTIONAL_MAX_AGE=300000;
  let context=null,record=null,flight=null,timer=null,sequence=0,failures=0,nextAt=0,lastSuccess=null,channel=null,failureReason=null;
- let stream=null,streamTimer=null,streamSeenAt=0,streamFailures=0,streamStatus='',revision=0,retryUntil=0,changeTimer=null,changeVersion=null,localDirty=false;
+ let stream=null,streamTimer=null,streamSeenAt=0,streamFailures=0,streamStatus='',revision=0,retryUntil=0,changeTimer=null,changeVersion=null,localDirty=false,awaitingStream=false;
  window.forjaAgenda2Enabled=true;
  window.forjaAgenda2RescheduleFeedback=result=>{
   const status=result?.item?.googleSyncStatus,pending=['erro','conflito','pendente','cancelamento_pendente'].includes(status);
@@ -15,7 +15,7 @@
  const row=(uid,day)=>context&&current(context)&&record?.key===context.key&&day>=record.value.from&&day<=record.value.to?record.value.items.find(x=>x.professionalId===uid):null;
  // Some suspended mobile processes stop performance.now while wall time passes.
  // Either clock expiring invalidates the result; neither can extend its TTL.
- const timely=()=>record&&!record.error&&performance.now()<record.expires&&Date.now()<record.wallExpires;
+ const timely=()=>record&&!record.error&&performance.now()<record.expires&&Date.now()<record.wallExpires&&(record.value.refreshMode!=='events'||streamSeenAt>0&&Date.now()-streamSeenAt<45000);
  // Keep the last COMPLETE snapshot only while its original TTL remains valid.
   // A new GET does not revoke already-confirmed intervals; failed or partial
   // responses still invalidate them through record.error or replacement.
@@ -156,11 +156,13 @@
   const centralConsent=(record?.value.items||[]).some(x=>x.central?.reason==='central_consent_required');
   const details=[consent?`${consent} profissional(is) precisam autorizar a consulta Google pela Secretaria em Hoje ou Conta e perfil, na seção Google Calendar`:null,sync?`${sync} profissional(is) com sincronização Google pessoal indisponível; conferir a conexão do professor`:null,personal?'Google pessoal não confirmou todos os horários':null,centralConsent?'Google central precisa de autorização de consulta; conferir a conexão da Secretaria':central?'Google central não confirmou todos os horários; conferir vínculos e acesso':null].filter(Boolean);
   const quota=(record?.value.items||[]).some(x=>[x.personal?.reason,x.central?.reason].some(r=>r==='personal_rate_limit'||r==='central_rate_limit'));
+  const institutional=(record?.value.items||[]).some(x=>x.personal?.sourceMode==='institutional-events-v1');
   const phase=failureReason||(quota?'Limite temporário na fonte Google; aguardando prazo de nova consulta':!record?'Carregamento inicial; horários ainda não confirmados':!timely()?'Dados vencidos; aguardando nova confirmação':!record.value.complete?'Fontes incompletas; horários não confirmados':'');
-  host.classList.toggle('unavailable',!!unavailable);host.textContent=(flight?'Consultando… · ':unavailable?'Consulta incompleta ou vencida · ':'Consulta confirmada · ')+(lastSuccess?'Última consulta completa: '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Aguardando primeira consulta completa')+(phase?' · '+phase:'')+(details.length?' · '+details.join(' · '):'')+(streamStatus?' · '+streamStatus:'');
+  host.classList.toggle('unavailable',!!unavailable);host.textContent=(flight?'Consultando… · ':unavailable?'Consulta incompleta ou vencida · ':'Consulta confirmada · ')+(lastSuccess?'Última consulta completa: '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Aguardando primeira consulta completa')+(phase?' · '+phase:'')+(details.length?' · '+details.join(' · '):'')+(institutional?' · Fonte Google institucional administrada pela Secretaria':'')+(streamStatus?' · '+streamStatus:'');
  }}
  const timeValid=x=>typeof x==='string'&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(x);
  function valid(value,c){
+  if(value?.refreshMode!==undefined&&(value.refreshMode!=='events'||value.complete!==true||!Number.isFinite(Date.parse(value.sourceExpiresAt))||Date.parse(value.sourceExpiresAt)<=Date.parse(value.servedAt)||Date.parse(value.sourceExpiresAt)-Date.parse(value.servedAt)>INSTITUTIONAL_MAX_AGE||!value.items?.every(x=>x.personal?.sourceMode==='institutional-events-v1'&&x.personal?.status==='not_applicable')))return false;
   if(value?.policy!==POLICY||value.from!==c.from||value.to!==c.to||!Array.isArray(value.professionalIds)||JSON.stringify([...value.professionalIds].sort())!==JSON.stringify([...c.ids].sort())||!Array.isArray(value.items)||value.items.length!==c.ids.length||new Set(value.items.map(x=>x.professionalId)).size!==c.ids.length||typeof value.complete!=='boolean'||![value.checkedAt,value.expiresAt,value.servedAt].every(x=>Number.isFinite(Date.parse(x)))||Date.parse(value.expiresAt)-Date.parse(value.checkedAt)!==MAX_AGE||Date.parse(value.expiresAt)<=Date.parse(value.servedAt))return false;
   return value.complete===value.items.every(x=>x.status==='success')&&value.items.every(x=>{
    if(!c.ids.includes(x.professionalId)||!['success','unavailable'].includes(x.status)||!['success','unavailable'].includes(x.nativeStatus)||!['success','not_applicable','unavailable'].includes(x.personal?.status)||!['success','unavailable'].includes(x.central?.status)||x.status==='success'&&(x.nativeStatus!=='success'||x.personal.status==='unavailable'||x.central.status==='unavailable')||!x.days||typeof x.days!=='object'||!Array.isArray(x.lessons)||!Array.isArray(x.blocks)||!Array.isArray(x.school)||!Array.isArray(x.busy))return false;
@@ -174,11 +176,14 @@
   // between tabs carries the remaining lifetime, never a fresh full lifetime.
   const serviceTime=Number.isFinite(Date.parse(value.deliveryStartedAt))?Math.max(0,Date.parse(value.servedAt)-Date.parse(value.deliveryStartedAt)):0;
   const requestAge=flight&&!flight.shared?Math.max(0,performance.now()-flight.startedAt-serviceTime):0;
-  const ttl=Math.min(MAX_AGE,Date.parse(value.expiresAt)-Date.parse(value.servedAt),transferredTtl??MAX_AGE)-requestAge;
+  const eventDriven=value.refreshMode==='events';
+  if(eventDriven&&(!streamSeenAt||Date.now()-streamSeenAt>=45000))throw Error('AGENDA_STREAM_UNAVAILABLE');
+  const maxAge=eventDriven?INSTITUTIONAL_MAX_AGE:MAX_AGE,sourceTtl=eventDriven?Date.parse(value.sourceExpiresAt)-Date.parse(value.servedAt):Date.parse(value.expiresAt)-Date.parse(value.servedAt);
+  const ttl=Math.min(maxAge,sourceTtl,transferredTtl??maxAge)-requestAge;
   if(!Number.isFinite(ttl)||ttl<=0)throw Error('AGENDA_RESULT_EXPIRED');
-  record={key:c.key,value,expires:performance.now()+ttl,wallExpires:Date.now()+ttl,error:false};failureReason=null;
+  awaitingStream=false;record={key:c.key,value,expires:performance.now()+ttl,wallExpires:Date.now()+ttl,error:false};failureReason=null;
   for(const item of value.items)if(typeof item.personal.connected==='boolean'){
-   const metadata={connected:item.personal.connected,lastSyncAt:item.personal.lastSyncAt||null};
+   const metadata={connected:item.personal.connected,lastSyncAt:(item.personal.sourceMode==='institutional-events-v1'?item.central.checkedAt:item.personal.lastSyncAt)||null,...(item.personal.sourceMode?{sourceMode:item.personal.sourceMode,managedBySecretaria:true}:{})};
    if(state.role==='admin'){const old=(state.googleConnections||[]).find(x=>x.uid===item.professionalId)||{};state.googleConnections=[...(state.googleConnections||[]).filter(x=>x.uid!==item.professionalId),{...old,uid:item.professionalId,...metadata}];}
    else state.googleCalendar={...state.googleCalendar,item:{...state.googleCalendar?.item,...metadata}};
   }
@@ -186,12 +191,12 @@
   const retry=Math.min(86400000,Math.max(0,Number(value.retryAfterMs)||0));if(!value.complete&&retry>0)retryUntil=performance.now()+retry;
   // Source cache age shortens the next deadline; it never grants another 25s.
   // Native writes arrive independently through the authenticated change stream.
-  nextAt=Math.max(retryUntil,performance.now()+(value.complete?Math.max(1000,ttl-SOURCE_LEAD):retry>0?retry:Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3))));}
+  nextAt=Math.max(retryUntil,performance.now()+(value.complete?Math.max(1000,eventDriven?ttl:ttl-SOURCE_LEAD):retry>0?retry:Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3))));}
  function connectChannel(c){
   if(typeof BroadcastChannel!=='function')return;
   // Different UIDs, generations, roles and periods do not receive this payload.
   channel=new BroadcastChannel('forja-agenda-readonly-v1:'+c.key);
-  channel.addEventListener('message',event=>{const m=event.data,age=Date.now()-m?.sentAt;if(m?.key!==c.key||!current(c)||!(age>=0&&age<MAX_AGE))return;
+  channel.addEventListener('message',event=>{const m=event.data,age=Date.now()-m?.sentAt;if(m?.key!==c.key||!current(c)||!(age>=0&&age<(m?.value?.refreshMode==='events'?INSTITUTIONAL_MAX_AGE:MAX_AGE)))return;
    if(m.kind==='changes'){streamSeenAt=Date.now();handleChange(c,m.event);return;}
    if(m.kind==='cooldown'&&Number.isFinite(m.wait)&&m.wait>age){retryUntil=Math.max(retryUntil,performance.now()+Math.min(86400000,m.wait-age));nextAt=Math.max(nextAt,retryUntil);failureReason='Limite temporário de consultas; nova tentativa automática';if(record)record.error=true;paint();schedule();return;}
    if(m.kind==='snapshot'&&performance.now()>=retryUntil&&!localDirty&&!flight&&Number.isFinite(m.ttlMs)&&m.ttlMs>0){try{accept(m.value,c,m.ttlMs-age);paint();schedule();}catch{}}
@@ -205,10 +210,10 @@
  function handleChange(c,event){
   if(!current(c))return;
   if(typeof event.version==='string'&&/^[a-f0-9]{64}$/.test(event.version)){const previous=changeVersion;changeVersion=event.version;if(previous&&previous!==changeVersion&&event.kind==='heartbeat')changed(c);}
-  if(['ready','heartbeat'].includes(event.kind)){streamStatus='Alterações FORJA acompanhadas';if(event.kind==='ready'&&(record||flight))changed(c);}
+  if(['ready','heartbeat'].includes(event.kind)){if(awaitingStream&&!flight){awaitingStream=false;nextAt=Math.max(retryUntil,performance.now());schedule();}streamStatus='Alterações FORJA acompanhadas';if(event.kind==='ready'){if(record||flight)changed(c);else{nextAt=Math.max(retryUntil,performance.now());schedule();}}}
   else if(event.kind==='changed')changed(c);
   else if(event.kind==='unauthorized'){revision++;if(record)record.error=true;failureReason='Consulta sem autorização; conferir acesso da conta';paint();}
-  else if(event.kind==='unavailable')streamStatus='Acompanhamento de alterações indisponível; recuperando consulta';
+  else if(event.kind==='unavailable'){streamStatus='Acompanhamento de alterações indisponível; recuperando consulta';if(record?.value.refreshMode==='events'){record.error=true;failureReason='Acompanhamento interrompido; horários não confirmados';paint();}}
  }
  function startChanges(c){
   clearTimeout(streamTimer);streamTimer=null;if(stream||!current(c)||!c.ids.length||c.ids.length>50||navigator.onLine===false)return;
@@ -228,8 +233,11 @@
     const watchdog=setInterval(()=>{if(Date.now()-connection.last>45000)connection.controller.abort();},15000);
     try{for(;;){const part=await reader.read();if(part.done)break;if(!current(c))break;buffer+=decoder.decode(part.value,{stream:true});if(buffer.length>8192)throw Error('AGENDA_STREAM_INVALID');let boundary;
      while((boundary=buffer.indexOf('\n\n'))>=0){const frame=buffer.slice(0,boundary);buffer=buffer.slice(boundary+2);if(!frame.startsWith('data: '))continue;const event=JSON.parse(frame.slice(6));if(!['ready','changed','heartbeat','unavailable','unauthorized','reconnect'].includes(event.kind))throw Error('AGENDA_STREAM_INVALID');connection.last=Date.now();streamSeenAt=Date.now();streamFailures=0;handleChange(c,event);channel?.postMessage({kind:'changes',key:c.key,event,sentAt:Date.now()});if(['reconnect','unauthorized','unavailable'].includes(event.kind))return;}
-    }}finally{clearInterval(watchdog);await reader.cancel().catch(()=>{});reader.releaseLock();}
-   }catch{if(current(c))streamStatus='Acompanhamento de alterações indisponível; recuperando consulta';}
+     }}finally{clearInterval(watchdog);await reader.cancel().catch(()=>{});reader.releaseLock();}
+     // An unexpected EOF is also a transport failure. Explicit reconnect frames
+     // return above; they do not pass through this fail-closed path.
+     if(current(c)){handleChange(c,{kind:'unavailable'});channel?.postMessage({kind:'changes',key:c.key,event:{kind:'unavailable'},sentAt:Date.now()});}
+   }catch{if(current(c)){handleChange(c,{kind:'unavailable'});channel?.postMessage({kind:'changes',key:c.key,event:{kind:'unavailable'},sentAt:Date.now()});}}
    finally{clearTimeout(deadline);forjaSessionRequests.delete(connection.controller);}
   };
   void(async()=>{try{if(navigator.locks)await navigator.locks.request('forja-agenda-events:'+c.key,{ifAvailable:true},async lock=>{if(lock)await run();});else await run();}
@@ -238,11 +246,11 @@
  }
  function schedule(){
   clearTimeout(timer);if(!context||!current(context))return;
-  const now=performance.now(),expiry=record&&!record.error&&record.expires>now?record.expires:Infinity,due=Math.min(flight?Infinity:nextAt,expiry);
+  const now=performance.now(),expiry=record&&!record.error&&record.expires>now?record.expires:Infinity,liveness=record?.value.refreshMode==='events'&&!record.error&&streamSeenAt&&Date.now()-streamSeenAt<45000?now+45000-(Date.now()-streamSeenAt):Infinity,due=Math.min(flight?Infinity:nextAt,expiry,liveness);
   // Keep the original expiry armed during renewal. Do not spin or launch a
   // second GET while the existing request owns the refresh slot.
   if(!Number.isFinite(due))return;
-  timer=setTimeout(()=>{paint();if(!flight&&performance.now()>=nextAt)void refresh();else schedule();},Math.max(20,due-now));
+  timer=setTimeout(()=>{if(record?.value.refreshMode==='events'&&Date.now()-streamSeenAt>=45000){record.error=true;nextAt=Math.max(retryUntil,performance.now());}paint();if(!flight&&performance.now()>=nextAt)void refresh();else schedule();},Math.max(20,due-now));
  }
  async function collect(c,request){
   const query=queryFor(c);
@@ -258,13 +266,13 @@
     let result;
     if(navigator.locks){await navigator.locks.request('forja-agenda:'+c.key,{ifAvailable:true},async lock=>{if(!lock){request.shared=true;nextAt=performance.now()+1000;return;}result=await collect(c,request);});}else result=await collect(c,request);
     if(manual&&current(c))toast(result===true?'Consulta da Agenda confirmada.':'Consulta ainda não confirmada por todas as fontes.',result===true?'ok':'warn');return result===true;
-   }catch(e){if(id===sequence&&current(c)){failures++;if(record)record.error=true;const changedDuringRead=e.status===409&&e.code==='AGENDA_QUERY_CHANGED';failureReason=changedDuringRead?'Alteração detectada durante a consulta; confirmando horários':[401,403].includes(e.status)?'Consulta sem autorização; conferir acesso da conta':e.status===429?'Limite temporário de consultas; nova tentativa automática':request.controller.signal.aborted?'Tempo de consulta esgotado; nova tentativa automática':e.message==='AGENDA_RESULT_EXPIRED'?'Dados recebidos vencidos; aguardando nova confirmação':e.message==='AGENDA_RESULT_INVALID'?'Resposta inválida; horários não confirmados':'Falha de rede ou serviço; horários não confirmados';const wait=e.status===429&&e.retryAfterMs>0?e.retryAfterMs:changedDuringRead||e.message==='AGENDA_RESULT_EXPIRED'?1000:Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3));nextAt=performance.now()+wait;if(e.status===429){retryUntil=nextAt;channel?.postMessage({kind:'cooldown',key:c.key,wait,sentAt:Date.now()});}if(manual)toast('Não foi possível confirmar a atualização da Agenda.','warn');}return false;}
+   }catch(e){if(id===sequence&&current(c)){failures++;awaitingStream=e.message==='AGENDA_STREAM_UNAVAILABLE';if(record)record.error=true;const changedDuringRead=e.status===409&&e.code==='AGENDA_QUERY_CHANGED';failureReason=changedDuringRead?'Alteração detectada durante a consulta; confirmando horários':[401,403].includes(e.status)?'Consulta sem autorização; conferir acesso da conta':e.status===429?'Limite temporário de consultas; nova tentativa automática':request.controller.signal.aborted?'Tempo de consulta esgotado; nova tentativa automática':e.message==='AGENDA_RESULT_EXPIRED'?'Dados recebidos vencidos; aguardando nova confirmação':e.message==='AGENDA_RESULT_INVALID'?'Resposta inválida; horários não confirmados':'Falha de rede ou serviço; horários não confirmados';const wait=e.status===429&&e.retryAfterMs>0?e.retryAfterMs:changedDuringRead||e.message==='AGENDA_RESULT_EXPIRED'?1000:Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3));nextAt=performance.now()+wait;if(e.status===429){retryUntil=nextAt;channel?.postMessage({kind:'cooldown',key:c.key,wait,sentAt:Date.now()});}if(manual)toast('Não foi possível confirmar a atualização da Agenda.','warn');}return false;}
    finally{clearTimeout(deadline);if(flight===request){flight=null;if(current(c)){paint();schedule();}}}
   })();return request.promise;
  }
  // Pause transport, never renew or extend the retained snapshot's expiry.
- function pause(){sequence++;clearTimeout(timer);clearTimeout(changeTimer);clearTimeout(streamTimer);streamTimer=null;stream?.controller.abort();stream=null;flight?.controller.abort();channel?.close();channel=null;flight=null;}
- function reset(){pause();context=null;record=null;lastSuccess=null;failureReason=null;failures=0;nextAt=0;retryUntil=0;revision=0;streamSeenAt=0;streamFailures=0;streamStatus='';changeVersion=null;localDirty=false;}
+ function pause(){if(record?.value.refreshMode==='events'){record.error=true;streamSeenAt=0;}sequence++;clearTimeout(timer);clearTimeout(changeTimer);clearTimeout(streamTimer);streamTimer=null;stream?.controller.abort();stream=null;flight?.controller.abort();channel?.close();channel=null;flight=null;}
+ function reset(){pause();context=null;record=null;lastSuccess=null;failureReason=null;failures=0;nextAt=0;retryUntil=0;revision=0;streamSeenAt=0;streamFailures=0;streamStatus='';changeVersion=null;localDirty=false;awaitingStream=false;}
  function lifecycle(start=true){const c=capture(!document.hidden);if(!c){if(context)reset();return;}if(document.hidden){if(context?.key!==c.key)reset();else pause();return;}if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start){if(!channel)connectChannel(c);paint();}if(start){if(!stream&&!streamTimer)startChanges(c);if(!flight&&performance.now()>=nextAt)void refresh();}}
  window.forjaAgenda2Refresh=refresh;
  window.forjaAgenda2Mutation=path=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;if(context){localDirty=true;changed(context);}else lifecycle();};
