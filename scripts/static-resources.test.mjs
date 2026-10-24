@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';import test from 'node:test';import{readFileSync}from'node:fs';import{createServer}from'node:http';
-import{buildHostingArtifact,productionApiUrl}from'./prepare-hosting.mjs';import{expandStaticResources}from'./static-resources.mjs';import{verifyHostingResources}from'./verify-hosting.mjs';import{sha256}from'./validate.mjs';
+import{buildHostingArtifact,productionApiUrl}from'./prepare-hosting.mjs';import{expandStaticResources,extractStaticResources}from'./static-resources.mjs';import{withoutPerformanceChanges}from'./performance-scope.mjs';import{verifyHostingResources}from'./verify-hosting.mjs';import{sha256}from'./validate.mjs';
 const source=readFileSync(new URL('../index.html',import.meta.url));
 test('image extraction is reversible and leaves every CSS/script byte and ordering intact',()=>{
- const f=buildHostingArtifact();assert.equal(f.resources.length,2);assert.ok(expandStaticResources(f.bytes,f.resources).equals(source));assert.ok(f.bytes.length<source.length*.82);
+ const f=buildHostingArtifact();assert.equal(f.resources.length,2);assert.ok(expandStaticResources(f.bytes,f.resources).equals(source));const baseline=Buffer.from(withoutPerformanceChanges(source.toString('utf8'))),original=extractStaticResources(baseline);assert.equal(sha256(baseline),'43731860d9923001c68f097a76068e082c2c7aeaebc5cbe77161cd2732b790eb');assert.ok(original.bytes.length<baseline.length*.82);assert.equal(source.length-f.bytes.length,baseline.length-original.bytes.length,'authorized app growth must not change even one byte of the reviewed image savings');
  const scripts=x=>[...x.toString().matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[0]);
  const styles=x=>[...x.toString().matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g)].map(m=>m[0]);
  assert.deepEqual(scripts(f.bytes),scripts(source));assert.deepEqual(styles(f.bytes),styles(source));

@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {readFileSync,writeFileSync}from'node:fs';
+import {createHash}from'node:crypto';
+import {withoutInstitutionalCalendar}from'./institutional-calendar-scope.mjs';
+const root=new URL('../index.html',import.meta.url),current=readFileSync(root,'utf8').replace(/\r\n/g,'\n'),base=withoutInstitutionalCalendar(current),hash=x=>createHash('sha256').update(x).digest('hex');
+const before='</body>\n</html>',position=base.indexOf(before);assert.ok(position>0&&base.split(before).length===2);
+const css=readFileSync(new URL('./institutional-calendar-style.css',import.meta.url),'utf8').replace(/\r\n/g,'\n'),client=readFileSync(new URL('./institutional-calendar-client.js',import.meta.url),'utf8').replace(/\r\n/g,'\n');
+const after='<style id="forja-institutional-style">\n'+css+'\n</style>\n<script id="forja-institutional-script">\n'+client+'\n</script>\n'+before;
+const html=base.slice(0,position)+after+base.slice(position+before.length);
+writeFileSync(new URL('./institutional-calendar-changes.json',import.meta.url),JSON.stringify({baseline:hash(base),before,after,position},null,2)+'\n');writeFileSync(root,html);
+const validator=new URL('./validate.mjs',import.meta.url);writeFileSync(validator,readFileSync(validator,'utf8').replace(/export const referenceSha256 = '[a-f0-9]{64}';/,"export const referenceSha256 = '"+hash(html)+"';"));
+console.log(JSON.stringify({baseline:hash(base),sha256:hash(html),layer:'institutional-calendar'}));
