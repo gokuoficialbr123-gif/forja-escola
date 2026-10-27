@@ -217,8 +217,9 @@
  }
  function startChanges(c){
   clearTimeout(streamTimer);streamTimer=null;if(stream||!current(c)||!c.ids.length||c.ids.length>50||navigator.onLine===false)return;
-  const connection={controller:new AbortController(),last:Date.now()};stream=connection;
+  const connection={controller:new AbortController(),last:Date.now(),attempted:false};stream=connection;
   const run=async()=>{
+   connection.attempted=true;
    const deadline=setTimeout(()=>connection.controller.abort(),12000);
    try{
     const user=auth?.currentUser;if(!user||!current(c))return;
@@ -241,7 +242,10 @@
    finally{clearTimeout(deadline);forjaSessionRequests.delete(connection.controller);}
   };
   void(async()=>{try{if(navigator.locks)await navigator.locks.request('forja-agenda-events:'+c.key,{ifAvailable:true},async lock=>{if(lock)await run();});else await run();}
-   finally{if(stream===connection){stream=null;if(current(c)){streamFailures++;streamTimer=setTimeout(()=>startChanges(c),Math.max(connection.retry||0,streamSeenAt&&Date.now()-streamSeenAt<30000?5000:Math.min(60000,2000*2**Math.min(streamFailures,5))));}}}
+   // A visible follower losing ifAvailable is healthy contention, not a failed
+   // transport. Keep its election interval bounded; retain backoff/Retry-After
+   // only for the tab that actually owned the lock and attempted the stream.
+   finally{if(stream===connection){stream=null;if(current(c)){if(connection.attempted)streamFailures++;streamTimer=setTimeout(()=>startChanges(c),connection.attempted?Math.max(connection.retry||0,streamSeenAt&&Date.now()-streamSeenAt<30000?5000:Math.min(60000,2000*2**Math.min(streamFailures,5))):5000);}}}
   })();
  }
  function schedule(){
