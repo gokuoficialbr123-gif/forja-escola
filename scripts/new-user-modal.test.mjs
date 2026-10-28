@@ -80,7 +80,7 @@ for(const role of ['teacher','psychologist','student','parent'])test(`${role}: e
  const f=await fixture(t);await f.fill();await f.page.locator('[data-new-subject="math-id"]').check();await f.page.locator('[data-new-subject="portuguese-id"]').check();await f.page.locator('#newUserMeet').fill('https://meet.google.com/test-local');await f.profile(role);
  const expected={role,fullName:'Pessoa local',cpf:'12345678900',email:'local@forja.invalid',phone:'11999990000'};
  if(['teacher','psychologist'].includes(role))expected.meetLinkFixo='https://meet.google.com/test-local';
- if(role==='teacher')expected.disciplinaIds=['math-id','portuguese-id'];
+ if(role==='teacher'){expected.disciplinaIds=['math-id','portuguese-id'];expected.calendarModel='institutional-events-v1';expected.institutionalCalendarId='';}
  if(role==='student'){await f.page.locator('#newUserBirth').fill('2010-02-03');await f.page.locator('#newUserSerie').selectOption('serie-a');await f.page.locator('#newUserClass').selectOption('class-a');await f.page.locator('#newUserTherapy').check();await f.page.locator('#newUserParentIds').fill('res-local-1, res-local-2\nres-local-3');Object.assign(expected,{birthDate:'2010-02-03',serieId:'serie-a',turmaId:'class-a',therapyActive:true,parentIds:['RES-LOCAL-1','RES-LOCAL-2','RES-LOCAL-3']})}
  if(role==='parent'){await f.page.locator('#newUserChildIds').fill('alu-local-1\nalu-local-2');expected.childIds=['ALU-LOCAL-1','ALU-LOCAL-2']}
  await f.page.locator('#modalSave').click();await f.page.waitForFunction(()=>document.getElementById('modal').classList.contains('hidden'));

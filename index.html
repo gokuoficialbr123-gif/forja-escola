@@ -8655,9 +8655,9 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
 /* Agenda: native invalidations plus bounded Google revalidation; never sync writes. */
 (function(){
  'use strict';
- const POLICY='agenda-readonly-v1',BACKOFF_BASE=20000,SOURCE_LEAD=5000,MAX_AGE=25000;
+ const POLICY='agenda-readonly-v1',BACKOFF_BASE=20000,SOURCE_LEAD=5000,MAX_AGE=25000,INSTITUTIONAL_MAX_AGE=300000;
  let context=null,record=null,flight=null,timer=null,sequence=0,failures=0,nextAt=0,lastSuccess=null,channel=null,failureReason=null;
- let stream=null,streamTimer=null,streamSeenAt=0,streamFailures=0,streamStatus='',revision=0,retryUntil=0,changeTimer=null,changeVersion=null,localDirty=false;
+ let stream=null,streamTimer=null,streamSeenAt=0,streamFailures=0,streamStatus='',revision=0,retryUntil=0,changeTimer=null,changeVersion=null,localDirty=false,awaitingStream=false;
  window.forjaAgenda2Enabled=true;
  window.forjaAgenda2RescheduleFeedback=result=>{
   const status=result?.item?.googleSyncStatus,pending=['erro','conflito','pendente','cancelamento_pendente'].includes(status);
@@ -8669,7 +8669,7 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  const row=(uid,day)=>context&&current(context)&&record?.key===context.key&&day>=record.value.from&&day<=record.value.to?record.value.items.find(x=>x.professionalId===uid):null;
  // Some suspended mobile processes stop performance.now while wall time passes.
  // Either clock expiring invalidates the result; neither can extend its TTL.
- const timely=()=>record&&!record.error&&performance.now()<record.expires&&Date.now()<record.wallExpires;
+ const timely=()=>record&&!record.error&&performance.now()<record.expires&&Date.now()<record.wallExpires&&(record.value.refreshMode!=='events'||streamSeenAt>0&&Date.now()-streamSeenAt<45000);
  // Keep the last COMPLETE snapshot only while its original TTL remains valid.
   // A new GET does not revoke already-confirmed intervals; failed or partial
   // responses still invalidate them through record.error or replacement.
@@ -8810,11 +8810,13 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   const centralConsent=(record?.value.items||[]).some(x=>x.central?.reason==='central_consent_required');
   const details=[consent?`${consent} profissional(is) precisam autorizar a consulta Google pela Secretaria em Hoje ou Conta e perfil, na seção Google Calendar`:null,sync?`${sync} profissional(is) com sincronização Google pessoal indisponível; conferir a conexão do professor`:null,personal?'Google pessoal não confirmou todos os horários':null,centralConsent?'Google central precisa de autorização de consulta; conferir a conexão da Secretaria':central?'Google central não confirmou todos os horários; conferir vínculos e acesso':null].filter(Boolean);
   const quota=(record?.value.items||[]).some(x=>[x.personal?.reason,x.central?.reason].some(r=>r==='personal_rate_limit'||r==='central_rate_limit'));
+  const institutional=(record?.value.items||[]).some(x=>x.personal?.sourceMode==='institutional-events-v1');
   const phase=failureReason||(quota?'Limite temporário na fonte Google; aguardando prazo de nova consulta':!record?'Carregamento inicial; horários ainda não confirmados':!timely()?'Dados vencidos; aguardando nova confirmação':!record.value.complete?'Fontes incompletas; horários não confirmados':'');
-  host.classList.toggle('unavailable',!!unavailable);host.textContent=(flight?'Consultando… · ':unavailable?'Consulta incompleta ou vencida · ':'Consulta confirmada · ')+(lastSuccess?'Última consulta completa: '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Aguardando primeira consulta completa')+(phase?' · '+phase:'')+(details.length?' · '+details.join(' · '):'')+(streamStatus?' · '+streamStatus:'');
+  host.classList.toggle('unavailable',!!unavailable);host.textContent=(flight?'Consultando… · ':unavailable?'Consulta incompleta ou vencida · ':'Consulta confirmada · ')+(lastSuccess?'Última consulta completa: '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Aguardando primeira consulta completa')+(phase?' · '+phase:'')+(details.length?' · '+details.join(' · '):'')+(institutional?' · Fonte Google institucional administrada pela Secretaria':'')+(streamStatus?' · '+streamStatus:'');
  }}
  const timeValid=x=>typeof x==='string'&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(x);
  function valid(value,c){
+  if(value?.refreshMode!==undefined&&(value.refreshMode!=='events'||value.complete!==true||!Number.isFinite(Date.parse(value.sourceExpiresAt))||Date.parse(value.sourceExpiresAt)<=Date.parse(value.servedAt)||Date.parse(value.sourceExpiresAt)-Date.parse(value.servedAt)>INSTITUTIONAL_MAX_AGE||!value.items?.every(x=>x.personal?.sourceMode==='institutional-events-v1'&&x.personal?.status==='not_applicable')))return false;
   if(value?.policy!==POLICY||value.from!==c.from||value.to!==c.to||!Array.isArray(value.professionalIds)||JSON.stringify([...value.professionalIds].sort())!==JSON.stringify([...c.ids].sort())||!Array.isArray(value.items)||value.items.length!==c.ids.length||new Set(value.items.map(x=>x.professionalId)).size!==c.ids.length||typeof value.complete!=='boolean'||![value.checkedAt,value.expiresAt,value.servedAt].every(x=>Number.isFinite(Date.parse(x)))||Date.parse(value.expiresAt)-Date.parse(value.checkedAt)!==MAX_AGE||Date.parse(value.expiresAt)<=Date.parse(value.servedAt))return false;
   return value.complete===value.items.every(x=>x.status==='success')&&value.items.every(x=>{
    if(!c.ids.includes(x.professionalId)||!['success','unavailable'].includes(x.status)||!['success','unavailable'].includes(x.nativeStatus)||!['success','not_applicable','unavailable'].includes(x.personal?.status)||!['success','unavailable'].includes(x.central?.status)||x.status==='success'&&(x.nativeStatus!=='success'||x.personal.status==='unavailable'||x.central.status==='unavailable')||!x.days||typeof x.days!=='object'||!Array.isArray(x.lessons)||!Array.isArray(x.blocks)||!Array.isArray(x.school)||!Array.isArray(x.busy))return false;
@@ -8828,11 +8830,14 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   // between tabs carries the remaining lifetime, never a fresh full lifetime.
   const serviceTime=Number.isFinite(Date.parse(value.deliveryStartedAt))?Math.max(0,Date.parse(value.servedAt)-Date.parse(value.deliveryStartedAt)):0;
   const requestAge=flight&&!flight.shared?Math.max(0,performance.now()-flight.startedAt-serviceTime):0;
-  const ttl=Math.min(MAX_AGE,Date.parse(value.expiresAt)-Date.parse(value.servedAt),transferredTtl??MAX_AGE)-requestAge;
+  const eventDriven=value.refreshMode==='events';
+  if(eventDriven&&(!streamSeenAt||Date.now()-streamSeenAt>=45000))throw Error('AGENDA_STREAM_UNAVAILABLE');
+  const maxAge=eventDriven?INSTITUTIONAL_MAX_AGE:MAX_AGE,sourceTtl=eventDriven?Date.parse(value.sourceExpiresAt)-Date.parse(value.servedAt):Date.parse(value.expiresAt)-Date.parse(value.servedAt);
+  const ttl=Math.min(maxAge,sourceTtl,transferredTtl??maxAge)-requestAge;
   if(!Number.isFinite(ttl)||ttl<=0)throw Error('AGENDA_RESULT_EXPIRED');
-  record={key:c.key,value,expires:performance.now()+ttl,wallExpires:Date.now()+ttl,error:false};failureReason=null;
+  awaitingStream=false;record={key:c.key,value,expires:performance.now()+ttl,wallExpires:Date.now()+ttl,error:false};failureReason=null;
   for(const item of value.items)if(typeof item.personal.connected==='boolean'){
-   const metadata={connected:item.personal.connected,lastSyncAt:item.personal.lastSyncAt||null};
+   const metadata={connected:item.personal.connected,lastSyncAt:(item.personal.sourceMode==='institutional-events-v1'?item.central.checkedAt:item.personal.lastSyncAt)||null,...(item.personal.sourceMode?{sourceMode:item.personal.sourceMode,managedBySecretaria:true}:{})};
    if(state.role==='admin'){const old=(state.googleConnections||[]).find(x=>x.uid===item.professionalId)||{};state.googleConnections=[...(state.googleConnections||[]).filter(x=>x.uid!==item.professionalId),{...old,uid:item.professionalId,...metadata}];}
    else state.googleCalendar={...state.googleCalendar,item:{...state.googleCalendar?.item,...metadata}};
   }
@@ -8840,12 +8845,12 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   const retry=Math.min(86400000,Math.max(0,Number(value.retryAfterMs)||0));if(!value.complete&&retry>0)retryUntil=performance.now()+retry;
   // Source cache age shortens the next deadline; it never grants another 25s.
   // Native writes arrive independently through the authenticated change stream.
-  nextAt=Math.max(retryUntil,performance.now()+(value.complete?Math.max(1000,ttl-SOURCE_LEAD):retry>0?retry:Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3))));}
+  nextAt=Math.max(retryUntil,performance.now()+(value.complete?Math.max(1000,eventDriven?ttl:ttl-SOURCE_LEAD):retry>0?retry:Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3))));}
  function connectChannel(c){
   if(typeof BroadcastChannel!=='function')return;
   // Different UIDs, generations, roles and periods do not receive this payload.
   channel=new BroadcastChannel('forja-agenda-readonly-v1:'+c.key);
-  channel.addEventListener('message',event=>{const m=event.data,age=Date.now()-m?.sentAt;if(m?.key!==c.key||!current(c)||!(age>=0&&age<MAX_AGE))return;
+  channel.addEventListener('message',event=>{const m=event.data,age=Date.now()-m?.sentAt;if(m?.key!==c.key||!current(c)||!(age>=0&&age<(m?.value?.refreshMode==='events'?INSTITUTIONAL_MAX_AGE:MAX_AGE)))return;
    if(m.kind==='changes'){streamSeenAt=Date.now();handleChange(c,m.event);return;}
    if(m.kind==='cooldown'&&Number.isFinite(m.wait)&&m.wait>age){retryUntil=Math.max(retryUntil,performance.now()+Math.min(86400000,m.wait-age));nextAt=Math.max(nextAt,retryUntil);failureReason='Limite temporário de consultas; nova tentativa automática';if(record)record.error=true;paint();schedule();return;}
    if(m.kind==='snapshot'&&performance.now()>=retryUntil&&!localDirty&&!flight&&Number.isFinite(m.ttlMs)&&m.ttlMs>0){try{accept(m.value,c,m.ttlMs-age);paint();schedule();}catch{}}
@@ -8859,15 +8864,16 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  function handleChange(c,event){
   if(!current(c))return;
   if(typeof event.version==='string'&&/^[a-f0-9]{64}$/.test(event.version)){const previous=changeVersion;changeVersion=event.version;if(previous&&previous!==changeVersion&&event.kind==='heartbeat')changed(c);}
-  if(['ready','heartbeat'].includes(event.kind)){streamStatus='Alterações FORJA acompanhadas';if(event.kind==='ready'&&(record||flight))changed(c);}
+  if(['ready','heartbeat'].includes(event.kind)){if(awaitingStream&&!flight){awaitingStream=false;nextAt=Math.max(retryUntil,performance.now());schedule();}streamStatus='Alterações FORJA acompanhadas';if(event.kind==='ready'){if(record||flight)changed(c);else{nextAt=Math.max(retryUntil,performance.now());schedule();}}}
   else if(event.kind==='changed')changed(c);
   else if(event.kind==='unauthorized'){revision++;if(record)record.error=true;failureReason='Consulta sem autorização; conferir acesso da conta';paint();}
-  else if(event.kind==='unavailable')streamStatus='Acompanhamento de alterações indisponível; recuperando consulta';
+  else if(event.kind==='unavailable'){streamStatus='Acompanhamento de alterações indisponível; recuperando consulta';if(record?.value.refreshMode==='events'){record.error=true;failureReason='Acompanhamento interrompido; horários não confirmados';paint();}}
  }
  function startChanges(c){
   clearTimeout(streamTimer);streamTimer=null;if(stream||!current(c)||!c.ids.length||c.ids.length>50||navigator.onLine===false)return;
-  const connection={controller:new AbortController(),last:Date.now()};stream=connection;
+  const connection={controller:new AbortController(),last:Date.now(),attempted:false};stream=connection;
   const run=async()=>{
+   connection.attempted=true;
    const deadline=setTimeout(()=>connection.controller.abort(),12000);
    try{
     const user=auth?.currentUser;if(!user||!current(c))return;
@@ -8882,21 +8888,27 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
     const watchdog=setInterval(()=>{if(Date.now()-connection.last>45000)connection.controller.abort();},15000);
     try{for(;;){const part=await reader.read();if(part.done)break;if(!current(c))break;buffer+=decoder.decode(part.value,{stream:true});if(buffer.length>8192)throw Error('AGENDA_STREAM_INVALID');let boundary;
      while((boundary=buffer.indexOf('\n\n'))>=0){const frame=buffer.slice(0,boundary);buffer=buffer.slice(boundary+2);if(!frame.startsWith('data: '))continue;const event=JSON.parse(frame.slice(6));if(!['ready','changed','heartbeat','unavailable','unauthorized','reconnect'].includes(event.kind))throw Error('AGENDA_STREAM_INVALID');connection.last=Date.now();streamSeenAt=Date.now();streamFailures=0;handleChange(c,event);channel?.postMessage({kind:'changes',key:c.key,event,sentAt:Date.now()});if(['reconnect','unauthorized','unavailable'].includes(event.kind))return;}
-    }}finally{clearInterval(watchdog);await reader.cancel().catch(()=>{});reader.releaseLock();}
-   }catch{if(current(c))streamStatus='Acompanhamento de alterações indisponível; recuperando consulta';}
+     }}finally{clearInterval(watchdog);await reader.cancel().catch(()=>{});reader.releaseLock();}
+     // An unexpected EOF is also a transport failure. Explicit reconnect frames
+     // return above; they do not pass through this fail-closed path.
+     if(current(c)){handleChange(c,{kind:'unavailable'});channel?.postMessage({kind:'changes',key:c.key,event:{kind:'unavailable'},sentAt:Date.now()});}
+   }catch{if(current(c)){handleChange(c,{kind:'unavailable'});channel?.postMessage({kind:'changes',key:c.key,event:{kind:'unavailable'},sentAt:Date.now()});}}
    finally{clearTimeout(deadline);forjaSessionRequests.delete(connection.controller);}
   };
   void(async()=>{try{if(navigator.locks)await navigator.locks.request('forja-agenda-events:'+c.key,{ifAvailable:true},async lock=>{if(lock)await run();});else await run();}
-   finally{if(stream===connection){stream=null;if(current(c)){streamFailures++;streamTimer=setTimeout(()=>startChanges(c),Math.max(connection.retry||0,streamSeenAt&&Date.now()-streamSeenAt<30000?5000:Math.min(60000,2000*2**Math.min(streamFailures,5))));}}}
+   // A visible follower losing ifAvailable is healthy contention, not a failed
+   // transport. Keep its election interval bounded; retain backoff/Retry-After
+   // only for the tab that actually owned the lock and attempted the stream.
+   finally{if(stream===connection){stream=null;if(current(c)){if(connection.attempted)streamFailures++;streamTimer=setTimeout(()=>startChanges(c),connection.attempted?Math.max(connection.retry||0,streamSeenAt&&Date.now()-streamSeenAt<30000?5000:Math.min(60000,2000*2**Math.min(streamFailures,5))):5000);}}}
   })();
  }
  function schedule(){
   clearTimeout(timer);if(!context||!current(context))return;
-  const now=performance.now(),expiry=record&&!record.error&&record.expires>now?record.expires:Infinity,due=Math.min(flight?Infinity:nextAt,expiry);
+  const now=performance.now(),expiry=record&&!record.error&&record.expires>now?record.expires:Infinity,liveness=record?.value.refreshMode==='events'&&!record.error&&streamSeenAt&&Date.now()-streamSeenAt<45000?now+45000-(Date.now()-streamSeenAt):Infinity,due=Math.min(flight?Infinity:nextAt,expiry,liveness);
   // Keep the original expiry armed during renewal. Do not spin or launch a
   // second GET while the existing request owns the refresh slot.
   if(!Number.isFinite(due))return;
-  timer=setTimeout(()=>{paint();if(!flight&&performance.now()>=nextAt)void refresh();else schedule();},Math.max(20,due-now));
+  timer=setTimeout(()=>{if(record?.value.refreshMode==='events'&&Date.now()-streamSeenAt>=45000){record.error=true;nextAt=Math.max(retryUntil,performance.now());}paint();if(!flight&&performance.now()>=nextAt)void refresh();else schedule();},Math.max(20,due-now));
  }
  async function collect(c,request){
   const query=queryFor(c);
@@ -8912,13 +8924,13 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
     let result;
     if(navigator.locks){await navigator.locks.request('forja-agenda:'+c.key,{ifAvailable:true},async lock=>{if(!lock){request.shared=true;nextAt=performance.now()+1000;return;}result=await collect(c,request);});}else result=await collect(c,request);
     if(manual&&current(c))toast(result===true?'Consulta da Agenda confirmada.':'Consulta ainda não confirmada por todas as fontes.',result===true?'ok':'warn');return result===true;
-   }catch(e){if(id===sequence&&current(c)){failures++;if(record)record.error=true;const changedDuringRead=e.status===409&&e.code==='AGENDA_QUERY_CHANGED';failureReason=changedDuringRead?'Alteração detectada durante a consulta; confirmando horários':[401,403].includes(e.status)?'Consulta sem autorização; conferir acesso da conta':e.status===429?'Limite temporário de consultas; nova tentativa automática':request.controller.signal.aborted?'Tempo de consulta esgotado; nova tentativa automática':e.message==='AGENDA_RESULT_EXPIRED'?'Dados recebidos vencidos; aguardando nova confirmação':e.message==='AGENDA_RESULT_INVALID'?'Resposta inválida; horários não confirmados':'Falha de rede ou serviço; horários não confirmados';const wait=e.status===429&&e.retryAfterMs>0?e.retryAfterMs:changedDuringRead||e.message==='AGENDA_RESULT_EXPIRED'?1000:Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3));nextAt=performance.now()+wait;if(e.status===429){retryUntil=nextAt;channel?.postMessage({kind:'cooldown',key:c.key,wait,sentAt:Date.now()});}if(manual)toast('Não foi possível confirmar a atualização da Agenda.','warn');}return false;}
+   }catch(e){if(id===sequence&&current(c)){failures++;awaitingStream=e.message==='AGENDA_STREAM_UNAVAILABLE';if(record)record.error=true;const changedDuringRead=e.status===409&&e.code==='AGENDA_QUERY_CHANGED';failureReason=changedDuringRead?'Alteração detectada durante a consulta; confirmando horários':[401,403].includes(e.status)?'Consulta sem autorização; conferir acesso da conta':e.status===429?'Limite temporário de consultas; nova tentativa automática':request.controller.signal.aborted?'Tempo de consulta esgotado; nova tentativa automática':e.message==='AGENDA_RESULT_EXPIRED'?'Dados recebidos vencidos; aguardando nova confirmação':e.message==='AGENDA_RESULT_INVALID'?'Resposta inválida; horários não confirmados':'Falha de rede ou serviço; horários não confirmados';const wait=e.status===429&&e.retryAfterMs>0?e.retryAfterMs:changedDuringRead||e.message==='AGENDA_RESULT_EXPIRED'?1000:Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3));nextAt=performance.now()+wait;if(e.status===429){retryUntil=nextAt;channel?.postMessage({kind:'cooldown',key:c.key,wait,sentAt:Date.now()});}if(manual)toast('Não foi possível confirmar a atualização da Agenda.','warn');}return false;}
    finally{clearTimeout(deadline);if(flight===request){flight=null;if(current(c)){paint();schedule();}}}
   })();return request.promise;
  }
  // Pause transport, never renew or extend the retained snapshot's expiry.
- function pause(){sequence++;clearTimeout(timer);clearTimeout(changeTimer);clearTimeout(streamTimer);streamTimer=null;stream?.controller.abort();stream=null;flight?.controller.abort();channel?.close();channel=null;flight=null;}
- function reset(){pause();context=null;record=null;lastSuccess=null;failureReason=null;failures=0;nextAt=0;retryUntil=0;revision=0;streamSeenAt=0;streamFailures=0;streamStatus='';changeVersion=null;localDirty=false;}
+ function pause(){if(record?.value.refreshMode==='events'){record.error=true;streamSeenAt=0;}sequence++;clearTimeout(timer);clearTimeout(changeTimer);clearTimeout(streamTimer);streamTimer=null;stream?.controller.abort();stream=null;flight?.controller.abort();channel?.close();channel=null;flight=null;}
+ function reset(){pause();context=null;record=null;lastSuccess=null;failureReason=null;failures=0;nextAt=0;retryUntil=0;revision=0;streamSeenAt=0;streamFailures=0;streamStatus='';changeVersion=null;localDirty=false;awaitingStream=false;}
  function lifecycle(start=true){const c=capture(!document.hidden);if(!c){if(context)reset();return;}if(document.hidden){if(context?.key!==c.key)reset();else pause();return;}if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start){if(!channel)connectChannel(c);paint();}if(start){if(!stream&&!streamTimer)startChanges(c);if(!flight&&performance.now()>=nextAt)void refresh();}}
  window.forjaAgenda2Refresh=refresh;
  window.forjaAgenda2Mutation=path=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;if(context){localDirty=true;changed(context);}else lifecycle();};
@@ -9002,6 +9014,86 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   }finally{replaying=false;}
  });
  root();
+})();
+
+</script>
+<style id="forja-institutional-style">
+#institutionalNewUser select,#institutionalUserLink select{width:100%;min-width:0;min-height:44px;padding:10px;border:1px solid #dce2e7;border-radius:8px;background:#fff;color:#14334a;box-sizing:border-box}
+#institutionalNewUser small{display:block;line-height:1.5;color:#5b6871;overflow-wrap:anywhere}
+#institutionalUserLink{margin-top:18px;display:grid;gap:12px;min-width:0}
+#institutionalUserLink h3,#institutionalUserLink p{margin:0}
+[data-institutional-row]{margin-top:12px;max-width:100%;white-space:normal;text-align:left}
+#institutionalNewUser[hidden]{display:none}
+
+</style>
+<script id="forja-institutional-script">
+/* Institutional configuration only. No Google secrets, direct Google calls or
+   independent synchronization loop. Native booking/drawer remain unchanged. */
+(function(){
+ 'use strict';
+ const CENTRAL='/admin/google-calendar/central',MODEL='institutional-events-v1';
+ let catalog=null,catalogAt=0,catalogFlight=null,authorized=false,lastProfile=null;
+ const adminView=()=>state.role==='admin'&&state.profile?.active===true;
+ const current=s=>!!s&&forjaSessionCurrent(s)&&adminView();
+ const beforeSession=forjaChangeSession;
+ forjaChangeSession=function(...args){catalog=null;catalogAt=0;catalogFlight=null;authorized=false;lastProfile=null;return beforeSession(...args);};
+ const beforeApi=api;
+ api=async function(path,options={}){
+  const session=forjaSessionUID?forjaCaptureSession():null;let next=options;
+  if(adminView()&&options.method==='POST'&&['/admin/profissionais','/admin/usuarios'].includes(path)&&options.body?.role==='teacher'&&document.getElementById('newUserForm'))next={...options,body:{...options.body,calendarModel:MODEL,institutionalCalendarId:document.getElementById('newUserInstitutionalCalendar')?.value||''}};
+  if(adminView()&&options.method==='PATCH'&&path.startsWith(CENTRAL+'/calendars/')&&options.body?.teacherId!==undefined){const id=path.split('/').at(-1),row=catalog?.items?.find(r=>r.id===id);if(!row)throw Error('Atualize a lista de calendários antes de alterar o vínculo.');next={...options,body:{...options.body,expectedTeacherId:row.teacherId||''}};}
+  if(adminView()&&path===CENTRAL+'/connect'&&options.method==='POST'&&authorized)next={...options,body:{purpose:MODEL}};
+  const result=await beforeApi(path,next);
+  if(current(session)){
+   if(path===CENTRAL+'/status')authorized=result.item?.institutionalAuthorized===true;
+   if(path===CENTRAL+'/calendars'||options.method==='PATCH'&&path.startsWith(CENTRAL+'/calendars/')){catalog=result;catalogAt=Date.now();authorized=result.institutionalAuthorized===true;}
+   if(/^\/admin\/usuarios\/[^/]+$/.test(path)&&result.user?.profile)lastProfile={uid:decodeURIComponent(path.split('/').at(-1)),profile:result.user.profile,session};
+   if(result.calendarLink)setTimeout(()=>{if(current(session))toast(result.calendarLink.status==='binding_required'?'Professor criado. Vincule e ative a agenda institucional antes de confirmar horários.':'Professor criado e calendário vinculado. A ativação e a confirmação institucional ainda estão pendentes.','warn');},0);
+  }
+  return result;
+ };
+ async function readCatalog(){
+  if(!adminView())throw Error('Sem permissão.');if(catalog&&Date.now()-catalogAt<60000)return catalog;
+  if(catalogFlight)return catalogFlight;const work=api(CENTRAL+'/calendars');catalogFlight=work;try{return await work;}finally{if(catalogFlight===work)catalogFlight=null;}
+ }
+ function optionsHtml(rows,uid=''){
+  const available=rows.filter(r=>r.accessStatus==='accessible'&&['owner','writer'].includes(r.accessRole)&&(!r.teacherId||r.teacherId===uid));
+  return '<option value="">Vincular depois — horários não confirmados</option>'+available.map(r=>`<option value="${esc(r.id)}" ${r.teacherId===uid&&uid?'selected':''}>${esc(r.displayName)} · ${esc(r.calendarId)}</option>`).join('');
+ }
+ async function activate(row,host){
+  if(!adminView()||!row?.teacherId||!authorized)return;
+  if(!confirm('Ativar a agenda institucional para este professor? A operação exige autorização de eventos, vínculo validado e sincronização inicial. Vínculos legados não serão removidos.'))return;
+  const session=forjaCaptureSession();host.disabled=true;
+  try{await api(CENTRAL+'/calendars/'+row.id,{method:'PATCH',body:{teacherId:row.teacherId,expectedTeacherId:row.teacherId,enabled:true,institutionalMode:true}});if(current(session)){host.textContent='Fonte selecionada; aguarde a confirmação na Agenda';toast('Fonte institucional selecionada. A Agenda só ficará disponível após confirmação das fontes.','ok');}}
+  catch(error){if(current(session)){host.disabled=false;toast(error.message,'warn');}}
+ }
+ async function newUserCalendar(){
+  const form=document.getElementById('newUserForm');if(!form||form.querySelector('#institutionalNewUser')||!adminView())return;
+  const session=forjaCaptureSession(),field=document.createElement('div');field.id='institutionalNewUser';field.className='nu-field nu-full';
+  field.innerHTML='<label for="newUserInstitutionalCalendar">Agenda Google institucional</label><select id="newUserInstitutionalCalendar" aria-describedby="institutionalNewUserHelp"><option value="">Vincular depois — horários não confirmados</option></select><small id="institutionalNewUserHelp" role="status">Consultando os calendários autorizados da Secretaria…</small>';
+  (form.querySelector('.nu-grid')||form.querySelector('#newUserControls')||form).append(field);
+  const updateRole=()=>{field.hidden=document.getElementById('newUserRole')?.value!=='teacher';};form.addEventListener('change',updateRole);updateRole();
+  try{const data=await readCatalog();if(!current(session)||!form.isConnected)return;field.querySelector('select').innerHTML=optionsHtml(data.items||[]);field.querySelector('small').textContent='Selecione pelo nome e ID do calendário. Não informe tokens. O vínculo é preparado; ativação e autorização de eventos são confirmadas pela Secretaria.';}
+  catch{if(current(session)&&form.isConnected)field.querySelector('small').textContent='Lista indisponível. É possível cadastrar e vincular depois; os horários institucionais permanecerão não confirmados.';}
+ }
+ const beforeNewUser=newUserModal;newUserModal=function(...args){const result=beforeNewUser(...args);void newUserCalendar();return result;};
+ const beforeOpenUser=openUser;openUser=async function(uid,...args){const session=forjaCaptureSession();await beforeOpenUser(uid,...args);const modal=document.querySelector('#modal .modal');if(!current(session)||!modal?.querySelector('.admin-user-head')||lastProfile?.uid!==uid||lastProfile.profile.role!=='teacher'||modal.querySelector('#institutionalUserLink'))return;
+  const section=document.createElement('section');section.id='institutionalUserLink';section.className='p2-card';section.innerHTML='<h3>Agenda institucional do professor</h3><label for="institutionalUserCalendar">Calendário autorizado</label><select id="institutionalUserCalendar"><option>Consultando…</option></select><p role="status">O vínculo não troca calendários nem remove eventos legados automaticamente.</p><button class="small-btn" type="button" disabled>Vincular calendário</button>';modal.append(section);
+  try{const data=await readCatalog();if(!current(session)||!section.isConnected)return;const select=section.querySelector('select'),button=section.querySelector('button'),existing=(data.items||[]).find(r=>r.teacherId===uid);select.innerHTML=optionsHtml(data.items||[],uid);button.disabled=!!existing;section.querySelector('p').textContent=existing?existing.institutionalMode?'Fonte institucional selecionada. Confira a confirmação atual na Agenda.':'Vínculo preparado. O modelo anterior permanece até a ativação institucional.':'Sem vínculo. Selecione um calendário livre para este professor.';
+   if(existing){select.disabled=true;button.textContent=existing.institutionalMode?'Fonte institucional selecionada':authorized?'Ativar fonte institucional':'Autorize eventos nas Configurações';if(!existing.institutionalMode&&authorized){button.disabled=false;button.onclick=()=>activate(existing,button);}}
+   else{button.disabled=false;button.onclick=async()=>{if(!select.value)return;button.disabled=true;try{await api(CENTRAL+'/calendars/'+select.value,{method:'PATCH',body:{teacherId:uid,expectedTeacherId:'',enabled:false}});if(current(session)&&section.isConnected){button.textContent='Vinculado; ative nas Configurações';select.disabled=true;section.querySelector('p').textContent='Vínculo preparado. A ativação institucional continua explícita.';}}catch(e){if(current(session)&&section.isConnected){button.disabled=false;section.querySelector('p').textContent=e.message;}}};}
+  }catch{if(current(session)&&section.isConnected)section.querySelector('p').textContent='Não foi possível consultar os vínculos. Nenhuma associação foi alterada.';}
+ };
+ const beforeAgendaPaint=window.forjaAgenda2Paint;
+ window.forjaAgenda2Paint=function(...args){const result=beforeAgendaPaint?.(...args),item=state.googleCalendar?.item||{};if(state.role==='teacher'&&(item.sourceMode===MODEL||state.profile?.calendarModel===MODEL)){const box=document.querySelector('.v622-sync');if(box){const title=box.querySelector('.sync-copy b'),copy=box.querySelector('.sync-copy span');if(title)title.textContent='Agenda institucional';if(copy)copy.textContent='Gerenciada pela Secretaria · Última sincronização: '+(item.lastSyncAt?fmtDateTime(item.lastSyncAt):'aguardando confirmação');box.querySelector('[data-google-action="connect"]')?.remove();box.querySelector('[data-v620-google-diagnostics]')?.remove();}}return result;};
+ const beforeGooglePanel=googleCalendarPanel;googleCalendarPanel=function(...args){const item=state.googleCalendar?.item||{};if(state.role==='teacher'&&(item.sourceMode===MODEL||state.profile?.calendarModel===MODEL))return `<section class="p2-card"><small>AGENDA INSTITUCIONAL</small><h3>Calendário gerenciado pela Secretaria</h3><p>Você usa sua conta FORJA. A conexão e o vínculo Google são administrados pela escola.</p><p role="status">${item.initialSyncComplete?'Fonte institucional confirmada na última consulta. Confira o estado atual na Agenda.':'Vínculo, autorização ou sincronização inicial ainda pendentes. Horários não confirmados não são livres.'}</p></section>`;return beforeGooglePanel(...args);};
+ function centralControls(){
+  if(!adminView()||state.page!=='configuracoes')return;const card=document.getElementById('googleSecretariaCard');if(!card||!catalog)return;
+  if(!card.querySelector('[data-institutional-consent]')){const b=document.createElement('button');b.className='small-btn';b.type='button';b.dataset.institutionalConsent='1';b.textContent=authorized?'Eventos institucionais autorizados':'Autorizar eventos institucionais';b.disabled=authorized;b.onclick=async()=>{const session=forjaCaptureSession();b.disabled=true;try{const r=await api(CENTRAL+'/connect',{method:'POST',body:{purpose:MODEL}});if(current(session)){const u=new URL(r.authUrl);if(u.origin!=='https://accounts.google.com')throw Error('Autorização inválida');location.assign(u.href);}}catch(e){if(current(session)){b.disabled=false;toast(e.message,'warn');}}};(card.querySelector('.quick-row')||card).append(b);const p=card.querySelector(':scope > p');if(p)p.textContent='A fonte institucional exige autorização de eventos, vínculo por professor e sincronização inicial. O modelo legado permanece disponível até a migração explícita.';}
+  for(const row of catalog.items||[]){const parent=card.querySelector('[data-central-professor="'+row.id+'"]')?.closest('.central-calendar');if(!parent||parent.querySelector('[data-institutional-row]')||!row.teacherId)continue;const b=document.createElement('button');b.className='small-btn';b.type='button';b.dataset.institutionalRow=row.id;b.textContent=row.institutionalMode?'Fonte institucional selecionada; confira a Agenda':'Ativar fonte institucional';b.disabled=row.institutionalMode||!authorized||!['owner','writer'].includes(row.accessRole)||row.accessStatus!=='accessible';b.onclick=()=>activate(row,b);parent.append(b);}
+ }
+ const beforeBind=bindPage;bindPage=function(...args){const result=beforeBind(...args);centralControls();return result;};
+ let queued=false;new MutationObserver(()=>{if(queued||!adminView()||state.page!=='configuracoes')return;queued=true;queueMicrotask(()=>{queued=false;centralControls();});}).observe(document.body,{childList:true,subtree:true});
 })();
 
 </script>

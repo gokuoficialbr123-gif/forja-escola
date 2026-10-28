@@ -36,7 +36,7 @@ test('failed central source remains unknown in the actual artifact; it never rev
  assert.match(await f.page.locator('[data-forja2-status]').textContent(),/incompleta|vencida/);
  assert.equal(await f.page.locator('.v629-block.availability').count(),0);assert.deepEqual(f.errors,[]);
 });
-for(const mobile of[false,true])test(`public, login and cadastro ${mobile?'mobile':'desktop'} retain exact computed appearance`,async t=>{
+for(const mobile of[false,true])test(`public, login and unchanged parent cadastro ${mobile?'mobile':'desktop'} retain exact computed appearance`,async t=>{
  const snapshots=[];
  for(const candidate of [{bytes:Buffer.from(withoutPerformanceChanges(readFileSync(new URL('../index.html',import.meta.url),'utf8'))),resources:[]},artifact]){
   const f=await performancePortal({browser,...candidate,mobile,requestDelay:10,secondaryDelay:10});t.after(()=>f.close());
@@ -46,6 +46,11 @@ for(const mobile of[false,true])test(`public, login and cadastro ${mobile?'mobil
   await f.page.locator('#loginView').evaluate(async el=>{await Promise.all(el.getAnimations({subtree:true}).filter(a=>Number.isFinite(a.effect.getComputedTiming().endTime)).map(a=>a.finished.catch(()=>{})))});
   const loginStyle=await f.page.locator('#loginEmail').evaluate(el=>{const c=getComputedStyle(el);return {color:c.color,background:c.backgroundColor,padding:c.padding,radius:c.borderRadius,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height}});
   await f.login();await f.page.waitForFunction(()=>!state.loading);await f.page.evaluate(()=>{navigate('usuarios');newUserModal()});
+  // Teacher registration deliberately gained the authorized calendar field.
+  // Keep exact geometry comparisons for an unchanged profile; teacher/mobile
+  // calendar controls and payloads have their own permanent regressions.
+  await f.page.locator('input[name="newUserProfile"][value="parent"]').check();
+  if(candidate===artifact)assert.equal(await f.page.locator('#institutionalNewUser').isVisible(),false);
   const formStyle=await f.page.locator('#forjaNewUserDialog').evaluate(el=>{const c=getComputedStyle(el);return {color:c.color,background:c.backgroundColor,padding:c.padding,radius:c.borderRadius,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,profiles:el.querySelectorAll('[name=newUserProfile]').length}});
   snapshots.push({publicStyle,loginStyle,formStyle});assert.deepEqual(f.errors,[]);
  }

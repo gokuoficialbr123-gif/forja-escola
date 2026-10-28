@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-export const navigationBaseline='8794128e200cfde8b42cd4023b10e790ec05633e2eef2ac2bfc1325c331d30f1';
+import {withoutInstitutionalCalendar}from './institutional-calendar-scope.mjs';
+export const navigationBaseline='8920dfbe2814f3326c688fd83e3e4ae8ab7cd641f8a62fdf9330738caf45e9ac';
 export function withoutNavigationStudent(html){
- html=html.replace(/\r\n/g,'\n');
+ html=withoutInstitutionalCalendar(html).replace(/\r\n/g,'\n');
  if(!html.includes('<script id="forja-navigation-script">'))return html;
  const {changes}=JSON.parse(readFileSync(new URL('./navigation-student-changes.json',import.meta.url),'utf8'));
  for(const {before,after,positions} of [...changes].reverse())for(const at of [...positions].reverse()){

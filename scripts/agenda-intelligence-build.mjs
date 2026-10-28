@@ -167,3 +167,4 @@ if(current.includes('<script id="forja-navigation-script">')){
  writeFileSync(scope,readFileSync(scope,'utf8').replace(/export const navigationBaseline='[a-f0-9]{64}';/,`export const navigationBaseline='${digest}';`));
  execFileSync(process.execPath,[new URL('./navigation-student-build.mjs',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1')],{stdio:'inherit'});
 }
+if(current.includes('<script id="forja-institutional-script">'))execFileSync(process.execPath,[new URL('./institutional-calendar-build.mjs',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1')],{stdio:'inherit'});
