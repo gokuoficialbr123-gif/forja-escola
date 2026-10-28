@@ -154,6 +154,19 @@ publicado. Artefato local: fonte SHA256
 `bdfe6a94a68d074bbc6417bb17ea96d49370bb21ec1ea8ed2fb2a00414a3bbb1`,
 HTML preparado `1ae1c7b9fe4d3f162f32b5937eb89e266cf8a08cd8db2833faaacf0279c32b9d`.
 
+### Estabilização da verificação visual
+
+A rodada integral encontrou uma leitura de CSS vazia em um cartão do professor
+1366px que já havia sido destacado por uma repintura legítima. Uma regressão
+permanente reproduz essa condição: guarda o nó, muda o snapshot, comprova
+`isConnected=false`/CSS vazio no nó antigo e exige a cor correta no cartão atual.
+A leitura das cores passa a consultar e medir o DOM em uma única tarefa do
+navegador, preservando a exigência de dimensões positivas, visibilidade e cor
+exata em todos os cartões. Não há timeout maior, tolerância de cor ou mudança de
+comportamento real. O cenário original e a prova de nó destacado passaram em
+cinco repetições (10/10 verificações). A nova suíte contém 49 regressões e será
+revalidada integralmente pela CI. HTML e artefato mantêm os hashes acima.
+
 ## Pendências e plano de publicação — não executado
 
 Antes de publicação/ativação real, Júlio/Roberta precisam conferir as Rules

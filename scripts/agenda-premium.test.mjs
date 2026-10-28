@@ -4,7 +4,7 @@ import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {mkdirSync} from 'node:fs';
 import {premiumFixture,premiumLessons,agendaViewports} from './helpers/agenda-premium-fixture.mjs';
-import {agendaPresentationFixture,setView,reviewDay} from './helpers/agenda-presentation-fixture.mjs';
+import {agendaPresentationFixture,setView,reviewDay,nextSnapshot,ready} from './helpers/agenda-presentation-fixture.mjs';
 const {chromium}=await import(pathToFileURL(resolve(process.env.FORJA_PLAYWRIGHT_MODULE)).href);let browser;
 before(async()=>browser=await chromium.launch({headless:true,executablePath:process.env.FORJA_CHROMIUM_PATH}));after(()=>browser?.close());
 
@@ -47,9 +47,12 @@ for(const role of ['admin','teacher','student','parent','psychologist'])for(cons
   }
   if(role==='psychologist')assert.equal(await p.locator('[data-session="PREMIUM_THERAPY"]').count(),1,'therapy remains a session');
   else for(const [id,color]of [['PREMIUM_ONSITE','rgb(37, 99, 235)'],['PREMIUM_ONLINE','rgb(245, 158, 11)'],['PREMIUM_UNKNOWN','rgb(100, 116, 139)']]){
-   const cards=p.locator(`.forja2-lesson[data-lesson="${id}"],.forja2-lesson[data-forja2-lesson="${id}"]`).filter({visible:true});
-   assert.ok(await cards.count()>0,'native lesson remains available in '+view);
-   for(const card of await cards.all())assert.equal(await card.evaluate(el=>getComputedStyle(el).borderLeftColor),color,'one modality palette across calendars and secondary lesson cards');
+   const selector=`.forja2-lesson[data-lesson="${id}"],.forja2-lesson[data-forja2-lesson="${id}"]`;
+   // Query and measure in one browser task. Locator handles obtained before an
+   // SSE repaint can refer to detached nodes, whose computed CSS is empty.
+   const palette=await p.evaluate(selector=>[...document.querySelectorAll(selector)].flatMap(el=>{const rect=el.getBoundingClientRect(),style=getComputedStyle(el);return el.isConnected&&rect.width>0&&rect.height>0&&!['hidden','collapse'].includes(style.visibility)?[style.borderLeftColor]:[];}),selector);
+   assert.ok(palette.length>0,'native lesson remains available in '+view);
+   assert.deepEqual(palette,Array(palette.length).fill(color),'one modality palette across calendars and secondary lesson cards');
    if(role==='student')assert.equal(await p.locator(`.student-b-lesson[data-forja2-lesson="${id}"]`).count(),1,'the final history renderer uses the same modality');
   }
   if(view==='month'&&['student','admin','teacher'].includes(role)){
@@ -66,6 +69,15 @@ for(const role of ['admin','teacher','student','parent','psychologist'])for(cons
  }
  assert.deepEqual(f.errors,[]);
  assert.equal(f.calls.filter(x=>['POST','PATCH','DELETE'].includes(x.method)&&/google|aulas/.test(x.path)).length,0,'visual navigation does not write or synchronize');
+});
+test('palette checks observe current cards rather than detached pre-repaint handles',async t=>{
+ const f=await premiumFixture(browser);t.after(()=>f.close());const p=f.page;await setView(f,'teacher','day');
+ const selector='.forja2-lesson[data-lesson="PREMIUM_ONSITE"]',old=await p.locator(selector).elementHandle(),request=nextSnapshot(p);
+ f.setMode('external');await p.evaluate(()=>forjaAgenda2Refresh({manual:true}));await ready(p,{request});
+ assert.equal(await old.evaluate(el=>el.isConnected),false,'a changed snapshot legitimately replaces the old card');
+ assert.equal(await old.evaluate(el=>getComputedStyle(el).borderLeftColor),'','detached computed CSS reproduces the stale-handle failure');
+ assert.deepEqual(await p.evaluate(selector=>[...document.querySelectorAll(selector)].map(el=>({connected:el.isConnected,color:getComputedStyle(el).borderLeftColor})),selector),[{connected:true,color:'rgb(37, 99, 235)'}]);
+ assert.deepEqual(f.errors,[]);
 });
 for(const role of ['student','psychologist'])test('month date keyboard navigation uses the official day view '+role,async t=>{
  const f=await premiumFixture(browser,{role,width:390,height:844});t.after(()=>f.close());const p=f.page;
