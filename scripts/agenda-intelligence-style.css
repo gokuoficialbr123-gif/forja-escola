@@ -126,6 +126,7 @@ body:has(#workspaceContent .forja2-agenda) .v630-edge-tab{display:none!important
 #workspaceContent .forja2-calendar .agenda-month-weekday abbr{text-decoration:none}
 #workspaceContent .forja2-calendar .agenda-month-events .agenda-event b{display:block;min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .forja2-operational-compact{display:none}
+.forja2-month-time{display:none}
 #workspaceContent.forja2-calendar-page :is(.g-event,.agenda-event){min-width:0;max-width:100%;text-align:left;border-radius:6px;white-space:normal;overflow:hidden}
 #workspaceContent.forja2-calendar-page .g-event :is(b,small){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 #workspaceContent.forja2-calendar-page :is(.g-list-event,.forja2-lesson-row,.student-b-lesson,.teacher-c-lesson){border-radius:10px;min-width:0}
@@ -159,6 +160,12 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  #workspaceContent .forja2-agenda .v629-sidebar .v621-mini-grid button{height:28px!important;min-height:28px!important}
 }
 @media(max-width:600px){
+ body:has(#workspaceContent.forja2-calendar-page) #modal{padding:12px!important;place-items:center!important}
+ body:has(#workspaceContent.forja2-calendar-page) #modal .modal{max-height:calc(100dvh - 24px)!important;height:auto!important;min-height:0!important;min-width:0;display:flex;flex-direction:column}
+ body:has(#workspaceContent.forja2-calendar-page) #modal .modal-body{min-height:0;overflow:auto;overflow-wrap:anywhere;overscroll-behavior:contain}
+ body:has(#workspaceContent.forja2-calendar-page) #modal :is(.modal-head,.modal-foot){flex-shrink:0;flex-wrap:wrap}
+ #workspaceContent :is(.v621-month-tags,.cal18-month-grid) .forja2-month-time{display:block!important;min-width:0;max-width:100%;font-size:10px!important;line-height:13px!important;font-weight:700;white-space:nowrap}
+ #workspaceContent .v621-month-tags .forja2-event-time,#workspaceContent .cal18-month-grid .cal18-event:has(.forja2-month-time)>small{display:none!important}
  #workspaceContent .forja2-calendar .agenda-month-events .agenda-event:has(.forja2-operational-compact){padding:3px 2px}
  #workspaceContent .forja2-calendar .agenda-month-events .agenda-event:has(.forja2-operational-compact)>b{display:none}
  #workspaceContent .forja2-calendar .forja2-operational-compact{display:block;font-size:9px;line-height:13px;min-width:0}
@@ -183,8 +190,8 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  #workspaceContent.forja2-calendar-page :is(.g-day-cell,.agenda-month-day){padding:3px;min-height:100px}
  #workspaceContent .forja2-lesson-row>:first-child{flex-wrap:wrap}
  body:has(#workspaceContent .forja2-agenda) #forjaFixedEntry label{flex-basis:100%}
- body:has(#workspaceContent .forja2-agenda) #modal .summary-box{grid-template-columns:1fr 1fr;gap:8px}
- body:has(#workspaceContent .forja2-agenda) #modal .summary-box>div{min-width:0}
- body:has(#workspaceContent .forja2-agenda) #modal .quick-row{gap:6px}
- body:has(#workspaceContent .forja2-agenda) #modal .btn{min-height:38px;padding:8px 10px}
+ body:has(#workspaceContent .forja2-agenda,#workspaceContent.forja2-calendar-page) #modal .summary-box{grid-template-columns:1fr 1fr;gap:8px}
+ body:has(#workspaceContent .forja2-agenda,#workspaceContent.forja2-calendar-page) #modal .summary-box>div{min-width:0}
+ body:has(#workspaceContent .forja2-agenda,#workspaceContent.forja2-calendar-page) #modal .quick-row{gap:6px}
+ body:has(#workspaceContent .forja2-agenda,#workspaceContent.forja2-calendar-page) #modal .btn{min-height:38px;padding:8px 10px}
 }

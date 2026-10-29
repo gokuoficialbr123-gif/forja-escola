@@ -38,9 +38,14 @@
   const m=window.forjaAgenda2Modality(lesson),location=place&&m.kind==='presencial'?String(lesson.localAula||'').trim():'';
   return '<span class="forja2-mode">'+m.icon+escape(m.label)+(location?'<span class="forja2-place"> · '+escape(location)+'</span>':'')+'</span>';
  };
+ window.forjaAgenda2MonthTime=lesson=>{
+  const start=String(lesson.horaAula||''),period=[lesson.horaAula,lesson.horaFim].filter(Boolean).join('–');
+  if(!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(start))return '';
+  return '<time class="forja2-month-time" datetime="'+escape(start)+'" aria-label="'+escape(period)+'">'+escape(start.slice(0,2)+'h'+(start.slice(3)==='00'?'':start.slice(3)))+'</time>';
+ };
  window.forjaAgenda2LessonContent=(lesson,{name='',compact=false}={})=>{
   const subject=typeof lessonTitle==='function'?lessonTitle(lesson):lesson.disciplinaNome||'Aula',period=[lesson.horaAula,lesson.horaFim].filter(Boolean).join('–');
-  return '<b class="forja2-event-title">'+escape(name||lesson.nomeAluno||subject)+'</b><small class="forja2-event-time">'+escape([period,subject].filter(Boolean).join(' · '))+'</small>'+window.forjaAgenda2LessonMeta(lesson,{place:!compact});
+  return (compact?window.forjaAgenda2MonthTime(lesson):'')+'<b class="forja2-event-title">'+escape(name||lesson.nomeAluno||subject)+'</b><small class="forja2-event-time">'+escape([period,subject].filter(Boolean).join(' · '))+'</small>'+window.forjaAgenda2LessonMeta(lesson,{place:!compact});
  };
  window.forjaAgenda2LessonLegend=()=>'<div class="forja2-legend" aria-label="Legenda das aulas"><span class="presencial">Presencial</span><span class="online">Online</span><span class="unknown">Modalidade não informada</span></div>';
  window.forjaAgenda2CalendarLesson=(lesson,role)=>{
@@ -57,9 +62,9 @@
    if(!legend.dataset.forja2Legend){legend.innerHTML=window.forjaAgenda2LessonLegend();legend.dataset.forja2Legend='1';}
   }
   if(state.role==='psychologist')for(const legend of workspace.querySelectorAll('.agenda-legend'))if(!legend.dataset.forja2Legend){legend.innerHTML='<div class="forja2-legend" aria-label="Legenda dos atendimentos"><span class="unknown">Atendimento</span><span class="busy">Indisponibilidade</span><span class="unknown">Disponibilidade não consultada</span></div>';legend.dataset.forja2Legend='1';}
-  for(const event of workspace.querySelectorAll('.agenda-month-events .agenda-event')){
+  for(const event of workspace.querySelectorAll('.agenda-month-events .agenda-event,.v621-month-tags .forja2-lesson,.cal18-month-grid .forja2-lesson')){
    if(event.dataset.forja2MonthLabel)continue;
-   const label=[...event.children].map(part=>part.textContent.replace(/\s+/g,' ').trim()).filter(Boolean).join(' · ');event.title=label;event.setAttribute('aria-label',label);event.dataset.forja2MonthLabel='1';
+   const label=[...event.children].filter(part=>!part.classList.contains('forja2-month-time')).map(part=>part.textContent.replace(/\s+/g,' ').trim()).filter(Boolean).join(' · ');event.title=label;event.setAttribute('aria-label',label);event.dataset.forja2MonthLabel='1';
    const kind=event.dataset.forja2EventKind,start=event.dataset.forja2EventStart;
    if(['sessao','disponibilidade'].includes(kind)&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(start)){
     const compact=document.createElement('span'),time=document.createElement('span'),type=document.createElement('span');compact.className='forja2-operational-compact';compact.setAttribute('aria-hidden','true');

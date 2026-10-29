@@ -138,6 +138,7 @@ presentation('v617ListLesson(l,role)',body=>body
 // its controls/actions and apply the same modality contract at its native cards.
 presentation('lessonEvent618(l,role)',body=>body
  .replace('class="cal18-event ${esc618(st.cls||\'\')}"','class="cal18-event ${esc618(st.cls||\'\')} ${window.forjaAgenda2LessonClass(l)}" data-forja2-modality="${window.forjaAgenda2Modality(l).kind}"')
+ .replace('<b>${esc618(title)}</b>','${window.forjaAgenda2MonthTime(l)}<b>${esc618(title)}</b>')
  .replace('${esc618(sub)}</small>','${esc618(sub)}</small>${window.forjaAgenda2LessonMeta(l)}'));
 presentation('listLesson618(l,role)',body=>body
  .replace('class="cal18-list-row"','class="cal18-list-row ${window.forjaAgenda2LessonClass(l)}" data-forja2-lesson="${esc618(l.id)}" data-forja2-modality="${window.forjaAgenda2Modality(l).kind}"')
