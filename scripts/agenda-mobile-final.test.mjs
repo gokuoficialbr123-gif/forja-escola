@@ -14,6 +14,8 @@ for(const width of [360,390])for(const role of ['admin','teacher','student'])tes
  const selector=role==='student'?'.cal18-month-grid [data-lesson="PREMIUM_ONSITE"]':`.v621-month-tags [data-lesson="PREMIUM_ONSITE"]`;
  const data=await p.locator(selector).evaluate(el=>{const time=el.querySelector('.forja2-month-time'),s=time&&getComputedStyle(time);return {text:time?.textContent,visible:!!time&&time.getBoundingClientRect().width>0&&s.display!=='none',cut:time&&time.scrollWidth>time.clientWidth+1,font:s?.fontSize,label:el.getAttribute('aria-label')||el.getAttribute('title')};});
  assert.equal(data.visible,true,'native month must show an untruncated start time');assert.equal(data.text,'13h');assert.equal(data.cut,false);assert.ok(parseFloat(data.font)>=10);assert.match(data.label||'',/13:00–14:00/);
+ const minutes=await p.locator(selector).evaluate(el=>{const original=el.querySelector('.forja2-month-time'),template=document.createElement('template');template.innerHTML=window.forjaAgenda2MonthTime({horaAula:'13:30',horaFim:'14:30'});const time=template.content.firstElementChild;original.replaceWith(time);const result={text:time.textContent,cut:time.scrollWidth>time.clientWidth+1,label:time.getAttribute('aria-label')};time.replaceWith(original);return result;});
+ assert.equal(minutes.text,'13h30');assert.equal(minutes.cut,false,'non-zero minutes must also fit');assert.equal(minutes.label,'13:30–14:30');
  await p.locator(selector).click();await p.waitForFunction(()=>document.querySelector('#modalTitle')?.textContent==='Central da Aula');assert.deepEqual(f.errors,[]);
 });
 for(const width of [360,390])for(const role of ['student','parent','psychologist'])test(`mobile details and More menu fit and expose their last action ${role} ${width}`,async t=>{
