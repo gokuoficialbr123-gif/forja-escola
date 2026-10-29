@@ -167,6 +167,40 @@ comportamento real. O cenário original e a prova de nó destacado passaram em
 cinco repetições (10/10 verificações). A nova suíte contém 49 regressões e será
 revalidada integralmente pela CI. HTML e artefato mantêm os hashes acima.
 
+## Revisão visual complementar — 29/10/2026
+
+Os checks anteriores aprovaram frontend `365d80e` (536/536 navegador e 33/33
+pipeline) e backend `33473d5` (355/355 unitários e 284/284 integrações). A revisão
+adicional reproduziu cartões mensais psicológicos com palavras quebradas no
+celular, ausência dos sete cabeçalhos dos dias e rótulos 07:00/22:00 ultrapassando
+o eixo em 5–6px. Duas regressões de compactação e duas de limites falharam antes
+da correção. Outras duas comprovaram que o HTML nativo das agendas administrativa
+e docente dependia de decoração posterior para receber seu escopo visual.
+
+Correção restrita aos renderizadores existentes: sete cabeçalhos na mesma grade
+mensal, horário/tipo compactos com texto completo em aria-label/title, rótulos
+extremos contidos no eixo e classe visual já no HTML inicial. "Disp." continua
+neutro e identificado pela legenda como disponibilidade não consultada; não é
+confirmação de horário livre. Geração oficial, hashes e guards preservados.
+Não houve mudança em disponibilidade, consultas reais, locks, reservas ou backend.
+
+A nova suíte permanente `agenda-visual-review.test.mjs` contém 14 verificações:
+legenda nas três visualizações, cartões psicológicos 360/390px, cabeçalhos,
+navegação nativa para o dia, escopo inicial dos dois perfis, última data acessível
+acima da navegação fixa e alinhamento dos horários. Duas rodadas aprovaram
+14/14 cada; a rodada final atualizou as capturas e o pipeline aprovou 33/33. Os checks da
+nova revisão devem confirmar o conjunto integral de 550 testes de navegador,
+33 testes do pipeline e o pareamento backend. Resultados finais e SHAs são
+registrados no PR #34; o PR #28 muda somente seu pin frontend nesta revisão.
+
+Também foi reproduzida uma corrida do helper de troca de visualização: uma
+renovação da semana anterior podia satisfazer a espera pelo novo dia e ser
+legitimamente abortada pelo cliente. O checkpoint agora exige a janela solicitada.
+Uma regressão conclui uma consulta semanal, exige que ela não resolva o checkpoint
+diário e só depois aceita a resposta diária. Os cinco ciclos exatos, a conclusão
+HTTP e o comportamento real permanecem intactos; nenhum timeout foi ampliado.
+Capturas complementares: [galeria](evidence/agenda-premium/README.md).
+
 ## Pendências e plano de publicação — não executado
 
 Antes de publicação/ativação real, Júlio/Roberta precisam conferir as Rules

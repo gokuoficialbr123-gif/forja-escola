@@ -34,3 +34,19 @@ com fonte institucional e transporte por eventos simulados.
 Os testes verificam cinco ciclos, reconexão, múltiplas abas, isolamento,
 validade, drawer e retenção de formulários; imagens isoladas não provam esses
 comportamentos. Os controles de disponibilidade e os detalhes permanecem nativos.
+
+## Revisão complementar de 29/10/2026
+
+Capturas Chromium sintéticas após correção da compactação mensal psicológica,
+cabeçalhos dos dias e limites dos rótulos do eixo:
+
+- [Psicologia, mês 360px](review-2026-10-29/psychologist-month-360.png).
+- [Psicologia, mês 390px](review-2026-10-29/psychologist-month-390.png).
+- [Secretaria, dia 390px](review-2026-10-29/admin-day-390.png).
+- [Professor, dia 390px](review-2026-10-29/teacher-day-390.png).
+
+Disponibilidade não confirmada permanece neutra. A barra inferior é fixa no
+viewport; numa captura de página inteira ela aparece na posição da primeira
+tela. Os testes verificam por hit-test que a última data pode ser rolada para
+cima dessa barra e acionada. Texto operacional completo permanece em aria-label
+e title; no mês estreito, "Disp." não significa confirmação de disponibilidade.

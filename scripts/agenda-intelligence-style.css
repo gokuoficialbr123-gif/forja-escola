@@ -45,6 +45,8 @@ body:has(#workspaceContent .forja2-agenda) .v630-edge-tab{display:none!important
 #workspaceContent .forja2-agenda :is(.v621-day-head,.v621-time-head){background:#fff!important;border-color:var(--forja-agenda-border)!important}
 #workspaceContent .forja2-agenda .v621-day-head.today b,#workspaceContent .forja2-agenda .v621-month-cell.today button.v621-month-num{background:var(--forja-agenda-navy)!important;color:#fff!important}
 #workspaceContent .forja2-agenda :is(.v621-time-axis,.v621-lane){height:720px!important}
+#workspaceContent .forja2-agenda .v621-time-axis .v621-time-label:first-child{transform:translateY(0)!important}
+#workspaceContent .forja2-agenda .v621-time-axis .v621-time-label:last-child{transform:translateY(-100%)!important}
 #workspaceContent .forja2-agenda .v621-lane{background:repeating-linear-gradient(to bottom,#fff 0,#fff 23px,#f1f5f9 23px,#f1f5f9 24px,#fff 24px,#fff 47px,#e2e8f0 47px,#e2e8f0 48px)!important}
 #workspaceContent .forja2-agenda .forja2-state{position:absolute;left:0;right:0;pointer-events:none;z-index:0!important;border:0;border-radius:0;min-height:0;box-sizing:border-box;overflow:hidden;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 47px,#e2e8f0 47px,#e2e8f0 48px);background-position-y:var(--forja2-grid-offset,0px);color:var(--forja-agenda-neutral-text)}
 #workspaceContent .forja2-agenda .forja2-state.outside{background-color:#f1f5f9}
@@ -119,6 +121,11 @@ body:has(#workspaceContent .forja2-agenda) .v630-edge-tab{display:none!important
 #workspaceContent.forja2-calendar-page :is(.g-day-cell,.agenda-month-day){min-width:0!important;min-height:110px;border-color:var(--forja-agenda-border)!important}
 #workspaceContent.forja2-calendar-page :is(.g-day-num,.agenda-month-date){font:inherit;font-weight:700;border:0;background:transparent;color:var(--forja-agenda-navy);cursor:pointer;min-height:28px;min-width:28px;padding:4px}
 #workspaceContent.forja2-calendar-page :is(.g-day-events,.agenda-month-events){min-width:0;max-height:220px;overflow:auto}
+#workspaceContent .forja2-calendar .agenda-month-events{grid-template-columns:minmax(0,1fr);min-width:0}
+#workspaceContent .forja2-calendar .agenda-month-weekday{min-width:0;padding:5px 1px;text-align:center;background:#fff;color:#475569;font-size:10px;line-height:16px}
+#workspaceContent .forja2-calendar .agenda-month-weekday abbr{text-decoration:none}
+#workspaceContent .forja2-calendar .agenda-month-events .agenda-event b{display:block;min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.forja2-operational-compact{display:none}
 #workspaceContent.forja2-calendar-page :is(.g-event,.agenda-event){min-width:0;max-width:100%;text-align:left;border-radius:6px;white-space:normal;overflow:hidden}
 #workspaceContent.forja2-calendar-page .g-event :is(b,small){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 #workspaceContent.forja2-calendar-page :is(.g-list-event,.forja2-lesson-row,.student-b-lesson,.teacher-c-lesson){border-radius:10px;min-width:0}
@@ -152,6 +159,10 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  #workspaceContent .forja2-agenda .v629-sidebar .v621-mini-grid button{height:28px!important;min-height:28px!important}
 }
 @media(max-width:600px){
+ #workspaceContent .forja2-calendar .agenda-month-events .agenda-event:has(.forja2-operational-compact){padding:3px 2px}
+ #workspaceContent .forja2-calendar .agenda-month-events .agenda-event:has(.forja2-operational-compact)>b{display:none}
+ #workspaceContent .forja2-calendar .forja2-operational-compact{display:block;font-size:9px;line-height:13px;min-width:0}
+ .forja2-operational-compact>span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  #workspaceContent.forja2-calendar-page{padding-bottom:110px!important}
  #workspaceContent .forja2-agenda :is(.v622-title,.v629-secretary-head) :is(h1,h2){font-size:23px}
  .forja2-legend{font-size:10px;padding:9px;gap:6px 10px}

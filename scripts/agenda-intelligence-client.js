@@ -57,6 +57,15 @@
    if(!legend.dataset.forja2Legend){legend.innerHTML=window.forjaAgenda2LessonLegend();legend.dataset.forja2Legend='1';}
   }
   if(state.role==='psychologist')for(const legend of workspace.querySelectorAll('.agenda-legend'))if(!legend.dataset.forja2Legend){legend.innerHTML='<div class="forja2-legend" aria-label="Legenda dos atendimentos"><span class="unknown">Atendimento</span><span class="busy">Indisponibilidade</span><span class="unknown">Disponibilidade não consultada</span></div>';legend.dataset.forja2Legend='1';}
+  for(const event of workspace.querySelectorAll('.agenda-month-events .agenda-event')){
+   if(event.dataset.forja2MonthLabel)continue;
+   const label=[...event.children].map(part=>part.textContent.replace(/\s+/g,' ').trim()).filter(Boolean).join(' · ');event.title=label;event.setAttribute('aria-label',label);event.dataset.forja2MonthLabel='1';
+   const kind=event.dataset.forja2EventKind,start=event.dataset.forja2EventStart;
+   if(['sessao','disponibilidade'].includes(kind)&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(start)){
+    const compact=document.createElement('span'),time=document.createElement('span'),type=document.createElement('span');compact.className='forja2-operational-compact';compact.setAttribute('aria-hidden','true');
+    time.textContent=start.slice(0,2)+'h'+(start.slice(3)==='00'?'':start.slice(3));type.textContent=kind==='sessao'?'Sessão':'Disp.';compact.append(time,type);event.append(compact);
+   }
+  }
   for(const button of workspace.querySelectorAll('[data-forja2-cal-day]'))button.onclick=e=>{e.preventDefault();e.stopPropagation();const role=button.dataset.forja2CalRole;if(role!==state.role)return;const keys=gCalendarState(role);state[keys.dateKey]=button.dataset.forja2CalDay;state[keys.viewKey]='day';renderPage();};
   for(const button of workspace.querySelectorAll('[data-forja2-therapy-day]'))button.onclick=()=>{if(state.role!=='psychologist')return;state.agendaDate=button.dataset.forja2TherapyDay;state.agendaView='day';renderPage();};
  };

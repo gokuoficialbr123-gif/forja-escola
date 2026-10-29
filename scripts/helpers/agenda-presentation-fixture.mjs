@@ -39,7 +39,13 @@ export async function agendaPresentationFixture(browser,{role='teacher',mobile=f
    await f.close();
   }};
 }
-export const nextSnapshot=page=>page.waitForRequest(r=>r.method()==='GET'&&new URL(r.url()).pathname==='/agenda/snapshot');
+export const nextSnapshot=(page,{view}={})=>page.waitForRequest(r=>{
+ if(r.method()!=='GET')return false;const url=new URL(r.url());if(url.pathname!=='/agenda/snapshot')return false;
+ // A previous view's automatic renewal may start just before the click. It
+ // is correctly aborted by the client, but cannot complete the new view.
+ if(!view)return true;const span=(Date.parse(url.searchParams.get('to'))-Date.parse(url.searchParams.get('from')))/86400000;
+ return span===({day:0,week:6,month:41})[view];
+});
 export async function ready(page,{request}={}){
  // For a new read, status alone can still belong to the previous response.
  // Bind completion to the request captured before the action/clock advance.
@@ -47,4 +53,4 @@ export async function ready(page,{request}={}){
  await page.waitForFunction(()=>/^(Consulta confirmada|Consulta incompleta)/.test(document.querySelector('[data-forja2-status]')?.textContent||''));
 }
 export async function automaticCycle(page){const [request]=await Promise.all([nextSnapshot(page),page.clock.fastForward(20010)]);await ready(page,{request});}
-export async function setView(f,role,view){const button=f.page.locator(`[data-v621-view="${view}"][data-role="${role}"]`),changes=!(await button.evaluate(el=>el.classList.contains('active'))),request=changes?nextSnapshot(f.page):undefined;await button.click();await ready(f.page,{request});}
+export async function setView(f,role,view){const button=f.page.locator(`[data-v621-view="${view}"][data-role="${role}"]`),changes=!(await button.evaluate(el=>el.classList.contains('active'))),request=changes?nextSnapshot(f.page,{view}):undefined;await button.click();await ready(f.page,{request});}

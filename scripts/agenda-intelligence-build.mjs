@@ -157,10 +157,16 @@ presentation('teacherTodayCardC(l)',body=>body
  .replace('class="teacher-c-lesson"','class="teacher-c-lesson ${window.forjaAgenda2LessonClass(l)}" data-forja2-lesson="${esc(l.id)}"')
  .replace('</h4><p>${esc(`${l.modalidade','</h4>${window.forjaAgenda2LessonMeta(l)}<p>${esc(`${l.modalidade'));
 presentation('agendaEventButton(e)',body=>body
+ .replace('class="agenda-event ${esc(e.kind)}','data-forja2-event-kind="${esc(e.kind)}" data-forja2-event-start="${esc(e.start||\'\')}" class="agenda-event ${esc(e.kind)}')
  .replace('${esc(e.kind)} ${cancelled?', '${esc(e.kind)} ${e.kind==="aula"?window.forjaAgenda2LessonClass(e.source):e.kind==="disponibilidade"?"forja2-unverified":""} ${cancelled?')
  .replace('${e.title}', '${e.kind==="disponibilidade"?"Disponibilidade cadastrada":e.title}')
  .replace('${esc(e.sub||statusLabel(e.status||""))}</small>', '${esc(e.kind==="disponibilidade"?"Disponibilidade ainda não consultada":e.sub||statusLabel(e.status||""))}</small>${e.kind==="aula"?window.forjaAgenda2LessonMeta(e.source):""}'));
-presentation('renderAgendaMonth(events)',body=>body.replace('<div class="agenda-month-date">${esc(String(Number(day.slice(-2))))}</div>','<button type="button" class="agenda-month-date" data-forja2-therapy-day="${esc(day)}" aria-label="Ver dia ${esc(fmtDate(day))}">${esc(String(Number(day.slice(-2))))}</button>'));
+presentation('renderAgendaMonth(events)',body=>body
+ .replace('<div class="agenda-month">','<div class="agenda-month">'+[['Seg','Segunda-feira'],['Ter','Terça-feira'],['Qua','Quarta-feira'],['Qui','Quinta-feira'],['Sex','Sexta-feira'],['Sáb','Sábado'],['Dom','Domingo']].map(([short,full])=>`<div class="agenda-month-weekday"><abbr title="${full}">${short}</abbr></div>`).join(''))
+ .replace('<div class="agenda-month-date">${esc(String(Number(day.slice(-2))))}</div>','<button type="button" class="agenda-month-date" data-forja2-therapy-day="${esc(day)}" aria-label="Ver dia ${esc(fmtDate(day))}">${esc(String(Number(day.slice(-2))))}</button>'));
+// Native markup owns its scope on the first frame, including re-renders before
+// the asynchronous snapshot painter runs. Reusing that class is idempotent.
+for(const classes of ['v621-agenda-shell v623-agenda-root v624-agenda-ready v625-professor-agenda','v621-agenda-shell v623-agenda-root v624-agenda-ready','v629-secretary-agenda'])replace(`class="${classes}"`,`class="${classes} forja2-agenda"`);
 replace('  function v621TeacherTopbar(){',`  function v621TeacherTopbar(){
     if(window.forjaAgenda2Institutional?.())return '<div class="v622-topbar"><div class="v622-title"><div><small>AGENDA DO PROFESSOR</small><h2>Minha agenda</h2><p>Aulas, disponibilidade e horários ocupados em uma visão única.</p></div></div><div class="v622-sync"><div class="sync-copy"><b>Agenda institucional</b><span>Gerenciada pela Secretaria · confirmação automática das fontes</span></div></div></div>';
 `);
