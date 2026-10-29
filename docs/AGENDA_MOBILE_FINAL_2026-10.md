@@ -61,6 +61,18 @@ e comentário técnico do PR; execução em andamento não é aprovação.
 O workflow mantém todos os testes anteriores e acrescenta os 12 novos (562
 testes de navegador esperados). Backend funcional não foi alterado.
 
+A rodada ampliada inicial terminou com 112/113, por uma corrida preexistente no
+teste do checkpoint de troca de visualização. A consulta inicial podia ainda
+estar sendo revalidada pelo handshake SSE ao avançar o relógio simulado 20s.
+Probe controlada reproduziu `ERR_ABORTED` e o timeout de 15s em apenas 14ms reais
+com resposta retida; com o checkpoint completo, houve exatamente uma consulta
+automática. Seis repetições já estabilizadas também passaram. Esperar somente
+o status não eliminou a corrida. O teste do checkpoint passa a usar a fixture
+existente de apresentação, isolando a consulta por período do handshake SSE
+Premium não pertinente a essa asserção. Os testes dedicados de SSE continuam
+intactos, assim como o ciclo automático, timeouts, asserções e contagem exata.
+A rodada final e os checks registram a revalidação após esse ajuste de QA.
+
 [Galeria antes/depois e medições](evidence/agenda-mobile-final/README.md).
 Fontes modificadas: stylesheet/client/gerador existentes; index e manifests
 regenerados exclusivamente pelo procedimento oficial. Não criar outra Agenda.

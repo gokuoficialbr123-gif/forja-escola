@@ -4,12 +4,15 @@ import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {mkdirSync} from 'node:fs';
 import {premiumFixture} from './helpers/agenda-premium-fixture.mjs';
-import {setView,reviewDay,nextSnapshot,ready,automaticCycle} from './helpers/agenda-presentation-fixture.mjs';
+import {agendaPresentationFixture,setView,reviewDay,nextSnapshot,ready,automaticCycle} from './helpers/agenda-presentation-fixture.mjs';
 const {chromium}=await import(pathToFileURL(resolve(process.env.FORJA_PLAYWRIGHT_MODULE)).href);let browser;
 before(async()=>browser=await chromium.launch({headless:true,executablePath:process.env.FORJA_CHROMIUM_PATH}));after(()=>browser?.close());
 async function evidence(page,name){if(!process.env.FORJA_VISUAL_REVIEW_EVIDENCE_DIR)return;mkdirSync(process.env.FORJA_VISUAL_REVIEW_EVIDENCE_DIR,{recursive:true});await page.screenshot({path:resolve(process.env.FORJA_VISUAL_REVIEW_EVIDENCE_DIR,name+'.png'),fullPage:true,animations:'disabled'});}
 test('new view checkpoint ignores a completed renewal of the former period',async t=>{
- const f=await premiumFixture(browser);t.after(()=>f.close());await setView(f,'teacher','week');
+ // Isolate the request-period checkpoint. Premium's concurrent SSE handshake
+ // is covered by agenda-events; advancing its pending real IO by 20s can
+ // expire a request before the mock response is processed.
+ const f=await agendaPresentationFixture(browser);t.after(()=>f.close());await setView(f,'teacher','week');
  let matched=false;const request=nextSnapshot(f.page,{view:'day'}).then(r=>{matched=true;return r;});const before=f.reads();
  await automaticCycle(f.page);assert.equal(f.reads(),before+1,'one automatic read for the former week');assert.equal(matched,false,'a weekly renewal cannot satisfy the daily view checkpoint');
  await f.page.locator('[data-v621-view="day"][data-role="teacher"]').click();await ready(f.page,{request});
