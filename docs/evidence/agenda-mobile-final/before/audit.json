@@ -1,0 +1,1526 @@
+{
+  "phase": "before",
+  "checks": 216,
+  "results": [
+    {
+      "role": "admin",
+      "width": 360,
+      "height": 640,
+      "view": "day",
+      "pageWidth": 360,
+      "times": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "10px",
+          "width": 263,
+          "cut": false
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "10px",
+          "width": 263,
+          "cut": false
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "10px",
+          "width": 263,
+          "cut": false
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Disponível",
+          "width": 60,
+          "scroll": 60,
+          "color": "rgb(22, 163, 74)"
+        },
+        {
+          "text": "Ocupado / bloqueado",
+          "width": 112,
+          "scroll": 112,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Não confirmado / fora da publicação",
+          "width": 177,
+          "scroll": 177,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "admin",
+      "width": 360,
+      "height": 640,
+      "view": "week",
+      "pageWidth": 360,
+      "times": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "10px",
+          "width": 87,
+          "cut": false
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "10px",
+          "width": 87,
+          "cut": false
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "10px",
+          "width": 87,
+          "cut": false
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Disponível",
+          "width": 60,
+          "scroll": 60,
+          "color": "rgb(22, 163, 74)"
+        },
+        {
+          "text": "Ocupado / bloqueado",
+          "width": 112,
+          "scroll": 112,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Não confirmado / fora da publicação",
+          "width": 177,
+          "scroll": 177,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "admin",
+      "width": 360,
+      "height": 640,
+      "view": "month",
+      "pageWidth": 360,
+      "times": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "8px",
+          "width": 0,
+          "cut": false
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "8px",
+          "width": 0,
+          "cut": false
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "8px",
+          "width": 0,
+          "cut": false
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Disponível",
+          "width": 60,
+          "scroll": 60,
+          "color": "rgb(22, 163, 74)"
+        },
+        {
+          "text": "Ocupado / bloqueado",
+          "width": 112,
+          "scroll": 112,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Não confirmado / fora da publicação",
+          "width": 177,
+          "scroll": 177,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "teacher",
+      "width": 360,
+      "height": 640,
+      "view": "day",
+      "pageWidth": 360,
+      "times": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "10px",
+          "width": 259,
+          "cut": false
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "10px",
+          "width": 259,
+          "cut": false
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "10px",
+          "width": 259,
+          "cut": false
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Disponível",
+          "width": 60,
+          "scroll": 60,
+          "color": "rgb(22, 163, 74)"
+        },
+        {
+          "text": "Ocupado / bloqueado",
+          "width": 112,
+          "scroll": 112,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Não confirmado / fora da publicação",
+          "width": 177,
+          "scroll": 177,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "teacher",
+      "width": 360,
+      "height": 640,
+      "view": "week",
+      "pageWidth": 360,
+      "times": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "10px",
+          "width": 87,
+          "cut": false
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "10px",
+          "width": 87,
+          "cut": false
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "10px",
+          "width": 87,
+          "cut": false
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Disponível",
+          "width": 60,
+          "scroll": 60,
+          "color": "rgb(22, 163, 74)"
+        },
+        {
+          "text": "Ocupado / bloqueado",
+          "width": 112,
+          "scroll": 112,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Não confirmado / fora da publicação",
+          "width": 177,
+          "scroll": 177,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "teacher",
+      "width": 360,
+      "height": 640,
+      "view": "month",
+      "pageWidth": 360,
+      "times": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "8px",
+          "width": 33,
+          "cut": true
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "8px",
+          "width": 33,
+          "cut": true
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "8px",
+          "width": 33,
+          "cut": true
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Disponível",
+          "width": 60,
+          "scroll": 60,
+          "color": "rgb(22, 163, 74)"
+        },
+        {
+          "text": "Ocupado / bloqueado",
+          "width": 112,
+          "scroll": 112,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Não confirmado / fora da publicação",
+          "width": 177,
+          "scroll": 177,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "student",
+      "width": 360,
+      "height": 640,
+      "view": "day",
+      "pageWidth": 360,
+      "times": [],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Modalidade não informada",
+          "width": 134,
+          "scroll": 134,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "student",
+      "width": 360,
+      "height": 640,
+      "view": "week",
+      "pageWidth": 360,
+      "times": [
+        {
+          "text": "13:00–14:00 · Professora Ana · simulação · Confirmada",
+          "period": "13:00–14:00",
+          "font": "9px",
+          "width": 111,
+          "cut": false
+        },
+        {
+          "text": "15:00–16:00 · Professora Ana · simulação · Confirmada",
+          "period": "15:00–16:00",
+          "font": "9px",
+          "width": 111,
+          "cut": false
+        },
+        {
+          "text": "17:00–18:00 · Professora Ana · simulação · Confirmada",
+          "period": "17:00–18:00",
+          "font": "9px",
+          "width": 111,
+          "cut": false
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Modalidade não informada",
+          "width": 134,
+          "scroll": 134,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "student",
+      "width": 360,
+      "height": 640,
+      "view": "month",
+      "pageWidth": 360,
+      "times": [
+        {
+          "text": "13:00–14:00 · Professora Ana · simulação · Confirmada",
+          "period": "13:00–14:00",
+          "font": "9px",
+          "width": 30,
+          "cut": true
+        },
+        {
+          "text": "15:00–16:00 · Professora Ana · simulação · Confirmada",
+          "period": "15:00–16:00",
+          "font": "9px",
+          "width": 30,
+          "cut": true
+        },
+        {
+          "text": "17:00–18:00 · Professora Ana · simulação · Confirmada",
+          "period": "17:00–18:00",
+          "font": "9px",
+          "width": 30,
+          "cut": true
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Modalidade não informada",
+          "width": 134,
+          "scroll": 134,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "parent",
+      "width": 360,
+      "height": 640,
+      "view": "list",
+      "pageWidth": 360,
+      "times": [],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Modalidade não informada",
+          "width": 134,
+          "scroll": 134,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "psychologist",
+      "width": 360,
+      "height": 640,
+      "view": "day",
+      "pageWidth": 360,
+      "times": [],
+      "legend": [
+        {
+          "text": "Atendimento",
+          "width": 78,
+          "scroll": 78,
+          "color": "rgb(100, 116, 139)"
+        },
+        {
+          "text": "Indisponibilidade",
+          "width": 98,
+          "scroll": 98,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Disponibilidade não consultada",
+          "width": 167,
+          "scroll": 167,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "psychologist",
+      "width": 360,
+      "height": 640,
+      "view": "week",
+      "pageWidth": 360,
+      "times": [],
+      "legend": [
+        {
+          "text": "Atendimento",
+          "width": 78,
+          "scroll": 78,
+          "color": "rgb(100, 116, 139)"
+        },
+        {
+          "text": "Indisponibilidade",
+          "width": 98,
+          "scroll": 98,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Disponibilidade não consultada",
+          "width": 167,
+          "scroll": 167,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "psychologist",
+      "width": 360,
+      "height": 640,
+      "view": "month",
+      "pageWidth": 360,
+      "times": [],
+      "legend": [
+        {
+          "text": "Atendimento",
+          "width": 78,
+          "scroll": 78,
+          "color": "rgb(100, 116, 139)"
+        },
+        {
+          "text": "Indisponibilidade",
+          "width": 98,
+          "scroll": 98,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Disponibilidade não consultada",
+          "width": 167,
+          "scroll": 167,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "admin",
+      "width": 390,
+      "height": 844,
+      "view": "day",
+      "pageWidth": 390,
+      "times": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "10px",
+          "width": 293,
+          "cut": false
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "10px",
+          "width": 293,
+          "cut": false
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "10px",
+          "width": 293,
+          "cut": false
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Disponível",
+          "width": 60,
+          "scroll": 60,
+          "color": "rgb(22, 163, 74)"
+        },
+        {
+          "text": "Ocupado / bloqueado",
+          "width": 112,
+          "scroll": 112,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Não confirmado / fora da publicação",
+          "width": 177,
+          "scroll": 177,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "admin",
+      "width": 390,
+      "height": 844,
+      "view": "week",
+      "pageWidth": 390,
+      "times": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "10px",
+          "width": 87,
+          "cut": false
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "10px",
+          "width": 87,
+          "cut": false
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "10px",
+          "width": 87,
+          "cut": false
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Disponível",
+          "width": 60,
+          "scroll": 60,
+          "color": "rgb(22, 163, 74)"
+        },
+        {
+          "text": "Ocupado / bloqueado",
+          "width": 112,
+          "scroll": 112,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Não confirmado / fora da publicação",
+          "width": 177,
+          "scroll": 177,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "admin",
+      "width": 390,
+      "height": 844,
+      "view": "month",
+      "pageWidth": 390,
+      "times": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "8px",
+          "width": 0,
+          "cut": false
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "8px",
+          "width": 0,
+          "cut": false
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "8px",
+          "width": 0,
+          "cut": false
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Disponível",
+          "width": 60,
+          "scroll": 60,
+          "color": "rgb(22, 163, 74)"
+        },
+        {
+          "text": "Ocupado / bloqueado",
+          "width": 112,
+          "scroll": 112,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Não confirmado / fora da publicação",
+          "width": 177,
+          "scroll": 177,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "teacher",
+      "width": 390,
+      "height": 844,
+      "view": "day",
+      "pageWidth": 390,
+      "times": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "10px",
+          "width": 289,
+          "cut": false
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "10px",
+          "width": 289,
+          "cut": false
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "10px",
+          "width": 289,
+          "cut": false
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Disponível",
+          "width": 60,
+          "scroll": 60,
+          "color": "rgb(22, 163, 74)"
+        },
+        {
+          "text": "Ocupado / bloqueado",
+          "width": 112,
+          "scroll": 112,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Não confirmado / fora da publicação",
+          "width": 177,
+          "scroll": 177,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "teacher",
+      "width": 390,
+      "height": 844,
+      "view": "week",
+      "pageWidth": 390,
+      "times": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "10px",
+          "width": 87,
+          "cut": false
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "10px",
+          "width": 87,
+          "cut": false
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "10px",
+          "width": 87,
+          "cut": false
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Disponível",
+          "width": 60,
+          "scroll": 60,
+          "color": "rgb(22, 163, 74)"
+        },
+        {
+          "text": "Ocupado / bloqueado",
+          "width": 112,
+          "scroll": 112,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Não confirmado / fora da publicação",
+          "width": 177,
+          "scroll": 177,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "teacher",
+      "width": 390,
+      "height": 844,
+      "view": "month",
+      "pageWidth": 390,
+      "times": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "8px",
+          "width": 37,
+          "cut": true
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "8px",
+          "width": 37,
+          "cut": true
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "8px",
+          "width": 37,
+          "cut": true
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Disponível",
+          "width": 60,
+          "scroll": 60,
+          "color": "rgb(22, 163, 74)"
+        },
+        {
+          "text": "Ocupado / bloqueado",
+          "width": 112,
+          "scroll": 112,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Não confirmado / fora da publicação",
+          "width": 177,
+          "scroll": 177,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "student",
+      "width": 390,
+      "height": 844,
+      "view": "day",
+      "pageWidth": 390,
+      "times": [],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Modalidade não informada",
+          "width": 134,
+          "scroll": 134,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "student",
+      "width": 390,
+      "height": 844,
+      "view": "week",
+      "pageWidth": 390,
+      "times": [
+        {
+          "text": "13:00–14:00 · Professora Ana · simulação · Confirmada",
+          "period": "13:00–14:00",
+          "font": "9px",
+          "width": 111,
+          "cut": false
+        },
+        {
+          "text": "15:00–16:00 · Professora Ana · simulação · Confirmada",
+          "period": "15:00–16:00",
+          "font": "9px",
+          "width": 111,
+          "cut": false
+        },
+        {
+          "text": "17:00–18:00 · Professora Ana · simulação · Confirmada",
+          "period": "17:00–18:00",
+          "font": "9px",
+          "width": 111,
+          "cut": false
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Modalidade não informada",
+          "width": 134,
+          "scroll": 134,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "student",
+      "width": 390,
+      "height": 844,
+      "view": "month",
+      "pageWidth": 390,
+      "times": [
+        {
+          "text": "13:00–14:00 · Professora Ana · simulação · Confirmada",
+          "period": "13:00–14:00",
+          "font": "9px",
+          "width": 34,
+          "cut": true
+        },
+        {
+          "text": "15:00–16:00 · Professora Ana · simulação · Confirmada",
+          "period": "15:00–16:00",
+          "font": "9px",
+          "width": 34,
+          "cut": true
+        },
+        {
+          "text": "17:00–18:00 · Professora Ana · simulação · Confirmada",
+          "period": "17:00–18:00",
+          "font": "9px",
+          "width": 34,
+          "cut": true
+        }
+      ],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Modalidade não informada",
+          "width": 134,
+          "scroll": 134,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "parent",
+      "width": 390,
+      "height": 844,
+      "view": "list",
+      "pageWidth": 390,
+      "times": [],
+      "legend": [
+        {
+          "text": "Presencial",
+          "width": 58,
+          "scroll": 58,
+          "color": "rgb(37, 99, 235)"
+        },
+        {
+          "text": "Online",
+          "width": 43,
+          "scroll": 43,
+          "color": "rgb(245, 158, 11)"
+        },
+        {
+          "text": "Modalidade não informada",
+          "width": 134,
+          "scroll": 134,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "psychologist",
+      "width": 390,
+      "height": 844,
+      "view": "day",
+      "pageWidth": 390,
+      "times": [],
+      "legend": [
+        {
+          "text": "Atendimento",
+          "width": 78,
+          "scroll": 78,
+          "color": "rgb(100, 116, 139)"
+        },
+        {
+          "text": "Indisponibilidade",
+          "width": 98,
+          "scroll": 98,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Disponibilidade não consultada",
+          "width": 167,
+          "scroll": 167,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "psychologist",
+      "width": 390,
+      "height": 844,
+      "view": "week",
+      "pageWidth": 390,
+      "times": [],
+      "legend": [
+        {
+          "text": "Atendimento",
+          "width": 78,
+          "scroll": 78,
+          "color": "rgb(100, 116, 139)"
+        },
+        {
+          "text": "Indisponibilidade",
+          "width": 98,
+          "scroll": 98,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Disponibilidade não consultada",
+          "width": 167,
+          "scroll": 167,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    },
+    {
+      "role": "psychologist",
+      "width": 390,
+      "height": 844,
+      "view": "month",
+      "pageWidth": 390,
+      "times": [],
+      "legend": [
+        {
+          "text": "Atendimento",
+          "width": 78,
+          "scroll": 78,
+          "color": "rgb(100, 116, 139)"
+        },
+        {
+          "text": "Indisponibilidade",
+          "width": 98,
+          "scroll": 98,
+          "color": "rgb(220, 38, 38)"
+        },
+        {
+          "text": "Disponibilidade não consultada",
+          "width": 167,
+          "scroll": 167,
+          "color": "rgb(100, 116, 139)"
+        }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "name": "monthly start times readable",
+      "role": "admin",
+      "width": 360,
+      "height": 640,
+      "view": "month"
+    },
+    {
+      "name": "appointment time not clipped",
+      "role": "teacher",
+      "width": 360,
+      "height": 640,
+      "view": "month",
+      "detail": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "8px",
+          "width": 33,
+          "cut": true
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "8px",
+          "width": 33,
+          "cut": true
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "8px",
+          "width": 33,
+          "cut": true
+        }
+      ]
+    },
+    {
+      "name": "monthly start times readable",
+      "role": "teacher",
+      "width": 360,
+      "height": 640,
+      "view": "month"
+    },
+    {
+      "name": "appointment time not clipped",
+      "role": "student",
+      "width": 360,
+      "height": 640,
+      "view": "month",
+      "detail": [
+        {
+          "text": "13:00–14:00 · Professora Ana · simulação · Confirmada",
+          "period": "13:00–14:00",
+          "font": "9px",
+          "width": 30,
+          "cut": true
+        },
+        {
+          "text": "15:00–16:00 · Professora Ana · simulação · Confirmada",
+          "period": "15:00–16:00",
+          "font": "9px",
+          "width": 30,
+          "cut": true
+        },
+        {
+          "text": "17:00–18:00 · Professora Ana · simulação · Confirmada",
+          "period": "17:00–18:00",
+          "font": "9px",
+          "width": 30,
+          "cut": true
+        }
+      ]
+    },
+    {
+      "name": "monthly start times readable",
+      "role": "student",
+      "width": 360,
+      "height": 640,
+      "view": "month"
+    },
+    {
+      "name": "detail fits viewport",
+      "role": "student",
+      "width": 360,
+      "height": 640,
+      "detail": {
+        "r": {
+          "x": 6,
+          "y": -6,
+          "width": 348,
+          "height": 640,
+          "top": -6,
+          "right": 354,
+          "bottom": 634,
+          "left": 6
+        },
+        "width": 360,
+        "height": 640,
+        "overflow": false,
+        "bodyOverflow": false
+      }
+    },
+    {
+      "name": "detail fits viewport",
+      "role": "parent",
+      "width": 360,
+      "height": 640,
+      "detail": {
+        "r": {
+          "x": 6,
+          "y": -6,
+          "width": 348,
+          "height": 640,
+          "top": -6,
+          "right": 354,
+          "bottom": 634,
+          "left": 6
+        },
+        "width": 360,
+        "height": 640,
+        "overflow": false,
+        "bodyOverflow": false
+      }
+    },
+    {
+      "name": "detail fits viewport",
+      "role": "psychologist",
+      "width": 360,
+      "height": 640,
+      "detail": {
+        "r": {
+          "x": 6,
+          "y": -6,
+          "width": 348,
+          "height": 640,
+          "top": -6,
+          "right": 354,
+          "bottom": 634,
+          "left": 6
+        },
+        "width": 360,
+        "height": 640,
+        "overflow": false,
+        "bodyOverflow": false
+      }
+    },
+    {
+      "name": "monthly start times readable",
+      "role": "admin",
+      "width": 390,
+      "height": 844,
+      "view": "month"
+    },
+    {
+      "name": "appointment time not clipped",
+      "role": "teacher",
+      "width": 390,
+      "height": 844,
+      "view": "month",
+      "detail": [
+        {
+          "text": "13:00–14:00 · Matemática",
+          "period": "13:00–14:00",
+          "font": "8px",
+          "width": 37,
+          "cut": true
+        },
+        {
+          "text": "15:00–16:00 · Matemática",
+          "period": "15:00–16:00",
+          "font": "8px",
+          "width": 37,
+          "cut": true
+        },
+        {
+          "text": "17:00–18:00 · Matemática",
+          "period": "17:00–18:00",
+          "font": "8px",
+          "width": 37,
+          "cut": true
+        }
+      ]
+    },
+    {
+      "name": "monthly start times readable",
+      "role": "teacher",
+      "width": 390,
+      "height": 844,
+      "view": "month"
+    },
+    {
+      "name": "appointment time not clipped",
+      "role": "student",
+      "width": 390,
+      "height": 844,
+      "view": "month",
+      "detail": [
+        {
+          "text": "13:00–14:00 · Professora Ana · simulação · Confirmada",
+          "period": "13:00–14:00",
+          "font": "9px",
+          "width": 34,
+          "cut": true
+        },
+        {
+          "text": "15:00–16:00 · Professora Ana · simulação · Confirmada",
+          "period": "15:00–16:00",
+          "font": "9px",
+          "width": 34,
+          "cut": true
+        },
+        {
+          "text": "17:00–18:00 · Professora Ana · simulação · Confirmada",
+          "period": "17:00–18:00",
+          "font": "9px",
+          "width": 34,
+          "cut": true
+        }
+      ]
+    },
+    {
+      "name": "monthly start times readable",
+      "role": "student",
+      "width": 390,
+      "height": 844,
+      "view": "month"
+    },
+    {
+      "name": "detail fits viewport",
+      "role": "student",
+      "width": 390,
+      "height": 844,
+      "detail": {
+        "r": {
+          "x": 6,
+          "y": -6,
+          "width": 378,
+          "height": 844,
+          "top": -6,
+          "right": 384,
+          "bottom": 838,
+          "left": 6
+        },
+        "width": 390,
+        "height": 844,
+        "overflow": false,
+        "bodyOverflow": false
+      }
+    },
+    {
+      "name": "detail fits viewport",
+      "role": "parent",
+      "width": 390,
+      "height": 844,
+      "detail": {
+        "r": {
+          "x": 6,
+          "y": -6,
+          "width": 378,
+          "height": 844,
+          "top": -6,
+          "right": 384,
+          "bottom": 838,
+          "left": 6
+        },
+        "width": 390,
+        "height": 844,
+        "overflow": false,
+        "bodyOverflow": false
+      }
+    },
+    {
+      "name": "detail fits viewport",
+      "role": "psychologist",
+      "width": 390,
+      "height": 844,
+      "detail": {
+        "r": {
+          "x": 6,
+          "y": -6,
+          "width": 378,
+          "height": 844,
+          "top": -6,
+          "right": 384,
+          "bottom": 838,
+          "left": 6
+        },
+        "width": 390,
+        "height": 844,
+        "overflow": false,
+        "bodyOverflow": false
+      }
+    }
+  ]
+}

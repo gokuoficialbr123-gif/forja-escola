@@ -103,7 +103,86 @@ for(const name of ['v621MonthCalendar(role,uid)','v629MonthCalendar()']){
  assert.equal(body.split(number).length,2,'One day number per month renderer');
  replace(body,body.replace(number,'<button type="button" class="v621-month-num" data-forja2-date="${esc(day)}" aria-label="Ver dia ${esc(fmtDate(day))}">${obj.getUTCDate()}</button>'));
 }
+// Change the native renderers, recording every reversible boundary. One shared
+// modality contract serves the existing calendars/lists; booking is unchanged.
+function presentation(signature,transform){
+ const start=html.indexOf('function '+signature+'{');assert.ok(start>0,signature);
+ const indent=html.slice(html.lastIndexOf('\n',start)+1,start),end=html.indexOf('\n'+indent+'function ',start+1);assert.ok(end>start,signature);
+ const before=html.slice(start,end),after=transform(before);assert.notEqual(after,before,signature);replace(before,after);
+}
+presentation('v621Lane(role,uid,day)',body=>body
+ .replace('class="v621-block lesson ${v621LessonClass(l)}"','class="v621-block lesson ${v621LessonClass(l)} ${window.forjaAgenda2LessonClass(l)}" data-forja2-modality="${window.forjaAgenda2Modality(l).kind}"')
+ .replace(/<b>\$\{esc\(`\$\{l\.nomeAluno[\s\S]*?<\/small>/,'${window.forjaAgenda2LessonContent(l)}'));
+presentation('v629Lane(day)',body=>body
+ .replace('lesson ${v621LessonClass(l)} ${v629EventPresentationClass(l.horaAula,end)}"','lesson ${v621LessonClass(l)} ${v629EventPresentationClass(l.horaAula,end)} ${window.forjaAgenda2LessonClass(l)}" data-forja2-modality="${window.forjaAgenda2Modality(l).kind}"')
+ .replace('${v629EventContent(name,`Aula · ${lessonTitle(l)}`,l.horaAula,end)}','${window.forjaAgenda2LessonContent(l,{name:l.nomeAluno||name})}'));
+presentation('v621MonthCalendar(role,uid)',body=>body
+ .replace('lessons.slice(0,2)','lessons')
+ .replace('class="v621-month-tag lesson"','class="v621-month-tag lesson ${window.forjaAgenda2LessonClass(l)}" data-forja2-modality="${window.forjaAgenda2Modality(l).kind}"')
+ .replace('${esc(`${l.horaAula||\'—\'} · ${l.nomeAluno||\'Aluno\'}`)}','${window.forjaAgenda2LessonContent(l,{compact:true})}'));
+presentation('v629MonthCalendar()',body=>body
+ .replace('if(filters.lesson!==false&&data.lessons.length)tags.push(`<button class="v629-month-tag lesson" data-v629-open-teacher-day="${esc(teacher.uid)}" data-date="${esc(day)}">${esc(`${name} · ${data.lessons.length} aula(s)`)}</button>`);','if(filters.lesson!==false)for(const l of data.lessons)tags.push(`<button type="button" class="v629-month-tag lesson ${window.forjaAgenda2LessonClass(l)}" data-lesson="${esc(l.id)}" data-forja2-modality="${window.forjaAgenda2Modality(l).kind}" title="${esc(name)}">${window.forjaAgenda2LessonContent(l,{name,compact:true})}</button>`);')
+ .replace('const shown=tags.slice(0,5),extra=Math.max(0,tags.length-shown.length);','const shown=tags,extra=0;'));
+presentation('gLessonEvent(l,role)',()=>`function gLessonEvent(l,role){return window.forjaAgenda2CalendarLesson(l,role);}`);
+presentation('gRenderCalendar(role,lessons,sessions=[])',body=>body
+ .replace('<div class="g-day-num">${obj.getUTCDate()}</div>','<button type="button" class="g-day-num" data-forja2-cal-day="${esc(day)}" data-forja2-cal-role="${role}" aria-label="Ver dia ${esc(fmtDate(day))}">${obj.getUTCDate()}</button>')
+ .replace('class="g-list-event"','class="g-list-event ${window.forjaAgenda2LessonClass(v.x)}" data-forja2-modality="${window.forjaAgenda2Modality(v.x).kind}"')
+ .replace('</small></div><button class="small-btn" data-lesson=','</small>${window.forjaAgenda2LessonMeta(v.x)}</div><button class="small-btn" data-lesson='));
+// v617 is the final native list/month renderer used by the student calendar.
+presentation('v617CalendarLegend(role)',()=>"function v617CalendarLegend(role){return window.forjaAgenda2LessonLegend();}");
+presentation('v617ListLesson(l,role)',body=>body
+ .replace('class="g-list-event"','class="g-list-event ${window.forjaAgenda2LessonClass(l)}" data-forja2-modality="${window.forjaAgenda2Modality(l).kind}"')
+ .replace("${esc(l.horaAula||'—')}","${esc([l.horaAula,l.horaFim].filter(Boolean).join('–'))}")
+ .replace('</small></div>','</small>${window.forjaAgenda2LessonMeta(l)}</div>'));
+// The existing isolated cal18 renderer is the final student calendar. Keep
+// its controls/actions and apply the same modality contract at its native cards.
+presentation('lessonEvent618(l,role)',body=>body
+ .replace('class="cal18-event ${esc618(st.cls||\'\')}"','class="cal18-event ${esc618(st.cls||\'\')} ${window.forjaAgenda2LessonClass(l)}" data-forja2-modality="${window.forjaAgenda2Modality(l).kind}"')
+ .replace('<b>${esc618(title)}</b>','${window.forjaAgenda2MonthTime(l)}<b>${esc618(title)}</b>')
+ .replace('${esc618(sub)}</small>','${esc618(sub)}</small>${window.forjaAgenda2LessonMeta(l)}'));
+presentation('listLesson618(l,role)',body=>body
+ .replace('class="cal18-list-row"','class="cal18-list-row ${window.forjaAgenda2LessonClass(l)}" data-forja2-lesson="${esc618(l.id)}" data-forja2-modality="${window.forjaAgenda2Modality(l).kind}"')
+ .replace("${esc618(l.horaAula||'—')}","${esc618([l.horaAula,l.horaFim].filter(Boolean).join('–'))}")
+ .replace('</small></div>','</small>${window.forjaAgenda2LessonMeta(l)}</div>'));
+presentation('legend618(role)',()=>"function legend618(role){return window.forjaAgenda2LessonLegend();}");
+replace('<div class="cal18-daynum">${obj.getUTCDate()}</div>','<button type="button" class="cal18-daynum" data-forja2-cal-day="${esc618(day)}" data-forja2-cal-role="${role}" aria-label="Ver dia ${esc618(fmtDate(day))}">${obj.getUTCDate()}</button>');
+replace('<div class="g-day-num">${obj.getUTCDate()}</div>','<button type="button" class="g-day-num" data-forja2-cal-day="${esc(day)}" data-forja2-cal-role="${role}" aria-label="Ver dia ${esc(fmtDate(day))}">${obj.getUTCDate()}</button>');
+presentation('studentLessonCardB(l)',body=>body
+ .replace('class="student-b-lesson ${canRespond','data-forja2-lesson="${esc(l.id)}" class="student-b-lesson ${window.forjaAgenda2LessonClass(l)} ${canRespond')
+ .replace('${esc(`${l.nomeProfessor||"Professor"} · ${l.modalidade||"modalidade não informada"}`)}</p>','${esc(l.nomeProfessor||"Professor")}</p>${window.forjaAgenda2LessonMeta(l)}'));
+// The later justification-aware renderer owns the current student cards.
+// Keep every cancellation/justification/Meet action in that renderer intact.
+replace('return `<article class="student-b-lesson ${canRespond?', 'return `<article data-forja2-lesson="${esc(l.id)}" class="student-b-lesson ${window.forjaAgenda2LessonClass(l)} ${canRespond?');
+replace('${esc(`${l.nomeProfessor||\'Professor\'} · ${l.modalidade||\'modalidade não informada\'}`)}</p>', '${esc(l.nomeProfessor||\'Professor\')}</p>${window.forjaAgenda2LessonMeta(l)}');
+presentation('teacherTodayCardC(l)',body=>body
+ .replace('class="teacher-c-lesson"','class="teacher-c-lesson ${window.forjaAgenda2LessonClass(l)}" data-forja2-lesson="${esc(l.id)}"')
+ .replace('</h4><p>${esc(`${l.modalidade','</h4>${window.forjaAgenda2LessonMeta(l)}<p>${esc(`${l.modalidade'));
+presentation('agendaEventButton(e)',body=>body
+ .replace('class="agenda-event ${esc(e.kind)}','data-forja2-event-kind="${esc(e.kind)}" data-forja2-event-start="${esc(e.start||\'\')}" class="agenda-event ${esc(e.kind)}')
+ .replace('${esc(e.kind)} ${cancelled?', '${esc(e.kind)} ${e.kind==="aula"?window.forjaAgenda2LessonClass(e.source):e.kind==="disponibilidade"?"forja2-unverified":""} ${cancelled?')
+ .replace('${e.title}', '${e.kind==="disponibilidade"?"Disponibilidade cadastrada":e.title}')
+ .replace('${esc(e.sub||statusLabel(e.status||""))}</small>', '${esc(e.kind==="disponibilidade"?"Disponibilidade ainda não consultada":e.sub||statusLabel(e.status||""))}</small>${e.kind==="aula"?window.forjaAgenda2LessonMeta(e.source):""}'));
+presentation('renderAgendaMonth(events)',body=>body
+ .replace('<div class="agenda-month">','<div class="agenda-month">'+[['Seg','Segunda-feira'],['Ter','Terça-feira'],['Qua','Quarta-feira'],['Qui','Quinta-feira'],['Sex','Sexta-feira'],['Sáb','Sábado'],['Dom','Domingo']].map(([short,full])=>`<div class="agenda-month-weekday"><abbr title="${full}">${short}</abbr></div>`).join(''))
+ .replace('<div class="agenda-month-date">${esc(String(Number(day.slice(-2))))}</div>','<button type="button" class="agenda-month-date" data-forja2-therapy-day="${esc(day)}" aria-label="Ver dia ${esc(fmtDate(day))}">${esc(String(Number(day.slice(-2))))}</button>'));
+// Native markup owns its scope on the first frame, including re-renders before
+// the asynchronous snapshot painter runs. Reusing that class is idempotent.
+for(const classes of ['v621-agenda-shell v623-agenda-root v624-agenda-ready v625-professor-agenda','v621-agenda-shell v623-agenda-root v624-agenda-ready','v629-secretary-agenda'])replace(`class="${classes}"`,`class="${classes} forja2-agenda"`);
+replace('  function v621TeacherTopbar(){',`  function v621TeacherTopbar(){
+    if(window.forjaAgenda2Institutional?.())return '<div class="v622-topbar"><div class="v622-title"><div><small>AGENDA DO PROFESSOR</small><h2>Minha agenda</h2><p>Aulas, disponibilidade e horários ocupados em uma visão única.</p></div></div><div class="v622-sync"><div class="sync-copy"><b>Agenda institucional</b><span>Gerenciada pela Secretaria · confirmação automática das fontes</span></div></div></div>';
+`);
+replace('modal("Central da Aula",body);','modal("Central da Aula",(window.forjaAgenda2DetailMeta?.(l)||\'\')+body);');
+replace("function professional(){return ['teacher','psychologist'].includes(state.role)&&state.profile?.active===true}","function professional(){return ['teacher','psychologist'].includes(state.role)&&state.profile?.active===true&&!window.forjaAgenda2Institutional?.()}");
+replace("access_denied:'Acesso ao calendário recusado',rate_limited:","access_denied:'Acesso ao calendário recusado',insufficient_scope:'Permissão OAuth insuficiente',rate_limited:");
+// Keep the native professional scope through the consent-era wrapper. Dropping
+// it made the psychologist calendar fall back to the administrative header.
+replace('forjaAgendaPage=function(){const page=previousAgenda();','forjaAgendaPage=function(...args){const page=previousAgenda(...args);');
 const hooks=`
+  gLessonEvent=function(l,role){return window.forjaAgenda2CalendarLesson(l,role);};
+  // Preserve the official row/actions and add modality metadata to authorized
+  // lesson lists (including the selected dependent), without changing data.
+  const forjaAgenda2PreviousLessonRows=lessonRows;
+  lessonRows=function(items,showPerson=true){return items.length?items.map(l=>'<div class="forja2-lesson-row '+window.forjaAgenda2LessonClass(l)+'" data-forja2-lesson="'+esc(l.id)+'">'+forjaAgenda2PreviousLessonRows([l],showPerson)+'<div class="forja2-row-meta">'+window.forjaAgenda2LessonMeta(l)+'</div></div>').join(''):forjaAgenda2PreviousLessonRows(items,showPerson);};
   // Preserve actual grid nodes when their generated presentation is unchanged.
   // Cache belongs to each DOM host, so remounts always render the current data.
   const forjaAgenda2GridMarkup=new WeakMap();
@@ -139,13 +218,13 @@ const hooks=`
       forjaAgenda2WriteGrid(grid,temp.querySelector('.v621-month-grid').innerHTML);
     }
     const host=document.querySelector(admin?'.v629-secretary-sync':'.v622-topbar');if(host&&!host.querySelector('[data-forja2-status]'))host.insertAdjacentHTML('beforeend','<div class="forja2-status" data-forja2-status role="status" aria-live="polite"></div>');
-    const card=document.querySelector(admin?'.v629-calendar-card':'.v621-calendar-card');if(card&&!card.querySelector('.forja2-legend'))card.insertAdjacentHTML('afterbegin','<div class="forja2-legend" aria-label="Legenda da disponibilidade"><span class="lesson">Aula FORJA</span><span class="available">Disponível</span><span class="busy">Ocupado / bloqueado</span><span class="unknown">Não confirmado</span><span class="outside">Fora da publicação</span></div>');
+    const card=document.querySelector(admin?'.v629-calendar-card':'.v621-calendar-card');if(card&&!card.querySelector('.forja2-legend'))card.insertAdjacentHTML('afterbegin','<div class="forja2-legend" aria-label="Legenda da Agenda"><span class="presencial">Presencial</span><span class="online">Online</span><span class="available">Disponível</span><span class="busy">Ocupado / bloqueado</span><span class="unknown">Não confirmado / fora da publicação</span></div>');
     const top=document.querySelector('.v629-secretary-sync .copy span');if(top)top.textContent='Última sincronização Google: '+v629LastGoogleSync();
     const teacherSync=document.querySelector('.v622-topbar .sync-copy span');if(!admin&&teacherSync)teacherSync.textContent='Última sincronização Google: '+(state.googleCalendar?.item?.lastSyncAt?fmtDateTime(state.googleCalendar.item.lastSyncAt):'—');
     const refresh=document.querySelector('[data-v629-refresh]');if(refresh)refresh.textContent='Atualizar consulta';
     if(!admin&&host&&!host.querySelector('[data-forja2-refresh]')){const b=document.createElement('button');b.className='small-btn';b.dataset.forja2Refresh='1';b.textContent='Atualizar consulta';b.onclick=()=>window.forjaAgenda2Refresh({manual:true});(host.querySelector('.v622-sync')||host).append(b);}
     if(admin)document.querySelector('.v629-secretary-summary')?.remove();
-    v621Bind();if(admin){v629Bind();window.forjaAgenda2BindBooking?.();}for(const b of document.querySelectorAll('[data-lesson]')){b.onclick=()=>openLesson(b.dataset.lesson);window.forjaAgenda2DecorateLesson?.(b);}
+    v621Bind();if(admin){v629Bind();window.forjaAgenda2BindBooking?.();}for(const b of document.querySelectorAll('[data-lesson]')){b.onclick=e=>{e.preventDefault();e.stopPropagation();openLesson(b.dataset.lesson);};window.forjaAgenda2DecorateLesson?.(b);}
     for(const block of document.querySelectorAll('.v621-lane .v621-block'))block.classList.toggle('forja2-compact',parseFloat(block.style.height)<34);
     window.forjaAgenda2Polish?.(admin?v629SelectedTeachers().map(x=>x.uid):[state.user.uid]);
     for(const host of document.querySelectorAll('.v621-lane,.v621-month-grid,[data-forja2-day]')){const saved=forjaAgenda2GridMarkup.get(host);if(saved)saved.rendered=host.innerHTML;}
