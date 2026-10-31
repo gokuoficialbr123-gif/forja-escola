@@ -18,6 +18,8 @@ Nenhum merge, Preview, deploy, OAuth ou acesso aos dados escolares reais nesta m
 | Renovação institucional | Próximo GET era agendado exatamente em `sourceExpiresAt` | Fonte saudável expirava antes de começar a leitura; regressão registrou duas transições históricas |
 | Manutenção institucional | Lease e renovação sem mudança de bloqueios geravam invalidação | Uma operação interna de sincronização podia produzir o ciclo vermelho → cinza → vermelho |
 | Visão mista institucional/legada | Prazo individual institucional não era transportado na resposta | A projeção podia tomar emprestada a validade de outra fonte; agora o prazo individual limita também o envelope legado |
+| Aula recém-gravada com consulta nativa indisponível | O histórico de exibição não recebia a resposta canônica da gravação | A aula existia no servidor e no estado autorizado do portal, mas não aparecia na grade |
+| Primeira consulta nativa indisponível/reload | `displayRow` transformava ausência de prova nativa em lista vazia, descartando o cache autorizado da conta | Aulas antigas desapareciam em vez de permanecerem identificadas como histórico |
 
 Os casos anteriores falham no artefato publicado/base. Não é uma atribuição da
 causa real a Julio ou a um reinício específico do Render. Não houve leitura de
@@ -66,6 +68,20 @@ O renderizador oficial reconcilia os filhos da grade por identidade, preservando
 cartões que não mudaram. Não substitui formulários, drawer, filtros ou contêineres
 de scroll, e mantém os bindings oficiais idempotentes.
 
+O hook de mutação existente recebe também a resposta canônica já validada pelo
+fence de sessão de `api()`. Recibos de aulas pertinentes ao profissional
+selecionado atualizam somente o conjunto histórico existente; não concedem prazo,
+verde ou autorização de reserva. A próxima prova nativa substitui o conjunto
+inteiro. No primeiro erro nativo, o cache autorizado da conta pode aparecer como
+histórico; uma resposta nativa vazia é respeitada como vazia e impede posterior
+ressurreição desse cache. HTTP401/403 e troca de sessão continuam eliminando tudo.
+
+As quatro regressões novas desses caminhos falharam antes e passaram depois.
+A reprodução HTTP/emulada registrou `stateHasLesson:true`,
+`displayHasLesson:false`, período/profissional corretos e motivo sanitizado
+`personal_sync_unavailable`, sem registrar identidade ou conteúdo. O backend
+funcional de criação/remarcação/cancelamento não precisou ser modificado.
+
 ## Apresentação em avaliação visual
 
 - Hora vem primeiro em aulas, ocupações e disponibilidade. Uma única escala liga
@@ -79,6 +95,12 @@ de scroll, e mantém os bindings oficiais idempotentes.
   para o dia, sem eliminar os compromissos.
 - Controles existentes são reorganizados; a disponibilidade fixa e o diagnóstico
   Google permanecem acessíveis, sem ocultar diagnósticos de erro.
+- A regressão completa encontrou corte de `13h30` no mês do professor em360px:
+ 32px internos para texto de aproximadamente35px. Apenas o padding horizontal
+ mensal até400px foi removido; fonte de12px preservada, client/scroll agora36px.
+ A asserção de minutos foi fortalecida para nenhuma diferença de scroll/client,
+ sem tolerância adicional. [Antes](evidence/agenda-source-stability/before-month-360-minutes.png)
+ e [depois](evidence/agenda-source-stability/after-month-360-minutes.png).
 
 ## QA e evidências
 
@@ -96,13 +118,29 @@ Validação local até este checkpoint: backend362 verificações unitárias e64
 integração afetadas aprovadas; frontend35 verificações de pipeline e
 [15 novas regressões funcionais/visuais](evidence/agenda-source-stability/focused-tests.tap)
 aprovadas, com capturas de Dia/Semana/Mês em desktop e mobile.
+Adicionalmente: [quatro regressões nativas](evidence/agenda-source-stability/native-four-regressions.tap),
+[61 verificações de apresentação/mobile](evidence/agenda-source-stability/mobile-premium.tap)
+e [15 de diagnóstico Google](evidence/agenda-source-stability/personal-controls.tap)
+aprovadas. Os quatro casos nativos falharam antes da correção:
+[carregamento inicial](evidence/agenda-source-stability/initial-outage-before.tap),
+[recibo de gravação](evidence/agenda-source-stability/receipt-before.tap).
+Os dois fluxos de integração pareada que falharam na CI passaram nos24 testes
+locais do conjunto afetado após correção e navegação pelos controles oficiais.
 A suíte frontend completa e as CIs ainda estão em execução/preparação; seus
 resultados finais serão registrados no PR sem presumir aprovação.
+
+O job anterior [124603630093](https://github.com/gokuoficialbr123-gif/forja-escola/actions/runs/41223796053)
+foi cancelado após45min15s. O orçamento do workflow passou de45 para60min, com
+cobertura integral e sem ampliar timeouts internos dos testes ou da aplicação.
+Testes antigos agora abrem filtros/diagnóstico pelo controle oficial e verificam
+a escala de96px/h, o resumo mensal com acesso a todas as aulas no dia e o nome
+acessível dos estados compactos. Nenhuma exigência de cinco consultas, ausência
+de sobreposições, permissão, isolamento ou confirmação final foi removida.
 
 ### Sessão prolongada e interpretação das transições
 
 [Registro integral sanitizado](evidence/agenda-source-stability/soak-report.json):
-**603293ms reais de exercício**, além da preparação,15 fases,35 snapshots no
+**601596ms reais de exercício**, além da preparação,17 fases,37 snapshots no
 servidor administrativo compartilhado,5 conexões SSE acumuladas, no máximo1
 simultânea entre as abas administrativas. São56 compromissos sintéticos por
 semana, incluindo21 aulas,28 ocupações Google e7 bloqueios curtos/sobrepostos.
@@ -115,15 +153,17 @@ desse ensaio são simuladas; a integração com Firebase emulado foi testada à 
 - Voltar à aba após mais de25s exige nova prova: histórico antes dessa resposta
   é correto. O resultado vencido não foi reaproveitado como confirmado.
 - A primeira latência inesperada de8s excedeu o prazo: a transição ocorreu com
-  idade25128ms, e nenhum verde. Depois da medição, a leitura seguinte começou
-  com8547ms restantes e terminou antes do vencimento. Não se mascara esse
+  idade maior que25000ms, e nenhum verde. Depois da medição, a leitura seguinte começou
+  com margem baseada na latência medida e terminou antes do vencimento. Não se mascara esse
   primeiro vencimento real nem se promete continuidade em atrasos arbitrários.
 - Rede offline deixou expirar os prazos originais, removeu verde e preservou
   histórico identificado. Recuperação exigiu nova resposta completa.
 - Cancelamento sintético invalidou a fonte nativa, mantendo Google saudável.
+- Uma resposta POST inteiramente simulada durante falha nativa manteve o recibo
+  no histórico existente, sem verde. A recuperação nativa confirmou a aula.
 - Não houve transição registrada com verde e alguma fonte necessária não atual.
 
-As35 consultas incluem preparação e a última leitura. Não são35 chamadas Google:
+As37 consultas incluem preparação e a última leitura. Não são37 chamadas Google:
 no ensaio o provedor é simulado e na integração real emulada o cache/limites do
 backend foram exercitados. Não extrapolar esse número para carga escolar real.
 
@@ -138,6 +178,7 @@ backend foram exercitados. Não extrapolar esse número para carga escolar real.
 | Renovação normal | [Captura](evidence/agenda-source-stability/after-normal-renewal-calendar.png) |
 | Reconexão SSE | [Captura](evidence/agenda-source-stability/after-SSE-reconnected-calendar.png) |
 | Fonte pessoal indisponível | [Captura](evidence/agenda-source-stability/after-personal-rate-limit-calendar.png) |
+| Recibo nativo durante falha | [Histórico claramente identificado](evidence/agenda-source-stability/after-native-receipt-history-calendar.png) |
 | Vencimento real e recuperação | [Histórico](evidence/agenda-source-stability/after-really-expired-calendar.png), [recuperação](evidence/agenda-source-stability/after-network-recovered-calendar.png) |
 | Vídeos antes | [Desktop](evidence/agenda-source-stability/before-admin-desktop.webm), [mobile](evidence/agenda-source-stability/before-teacher-mobile.webm) |
 | Vídeos após, Dia/Semana/Mês e estados | [Desktop](evidence/agenda-source-stability/after-admin-desktop.webm), [mobile](evidence/agenda-source-stability/after-teacher-mobile.webm) |
@@ -159,3 +200,10 @@ Não houve mudança de dados, Rules, Auth, OAuth, credenciais, calendário, vín
 infraestrutura, plano Render, backfill ou migração. A publicação futura exige
 revisão do proprietário e ordem coordenada backend/frontend. Reversão seria
 somente de código, após autorização, sem reversão de dados.
+
+Plano de reversão, caso uma publicação futura seja autorizada: interromper a
+promoção; se necessário, restaurar primeiro o frontend anteriormente publicado
+(`4f7c5f9`) pelo pipeline oficial. O backend novo aceita esse cliente. Reverter
+backend para `508c717` somente se também necessário e autorizado, preservando
+dados e configurações. Isso restaura comportamentos anteriores, inclusive seus
+defeitos; não existe rollback automático nem operação de limpeza de calendários.

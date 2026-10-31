@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {withoutInstitutionalCalendar}from './institutional-calendar-scope.mjs';
-export const navigationBaseline='b4921954e40310c61d80b124d1f6f812e04ac63d54f9e3af15a8066f1f144392';
+export const navigationBaseline='f5ae969c49f147d364d827bf299b70160906ace52dd46f26c36f597e8d30f091';
 export function withoutNavigationStudent(html){
  html=withoutInstitutionalCalendar(html).replace(/\r\n/g,'\n');
  if(!html.includes('<script id="forja-navigation-script">'))return html;

@@ -1,0 +1,54 @@
+TAP version 13
+# Subtest: native write receipt survives an unavailable snapshot as history, never as availability admin
+not ok 1 - native write receipt survives an unavailable snapshot as history, never as availability admin
+  ---
+  duration_ms: 6615.7827
+  type: 'test'
+  location: '<frontend>\\scripts\\agenda-native-history.test.mjs:28:39'
+  failureType: 'testCodeFailure'
+  error: |-
+    successful canonical receipt cannot disappear because the snapshot native source is unavailable
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (<frontend>/scripts/agenda-native-history.test.mjs:35:70)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: native write receipt survives an unavailable snapshot as history, never as availability teacher
+not ok 2 - native write receipt survives an unavailable snapshot as history, never as availability teacher
+  ---
+  duration_ms: 5791.2666
+  type: 'test'
+  location: '<frontend>\\scripts\\agenda-native-history.test.mjs:28:39'
+  failureType: 'testCodeFailure'
+  error: |-
+    successful canonical receipt cannot disappear because the snapshot native source is unavailable
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (<frontend>/scripts/agenda-native-history.test.mjs:35:70)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13305.2202

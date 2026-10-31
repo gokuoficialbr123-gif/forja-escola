@@ -159,6 +159,8 @@ body:has(#workspaceContent .forja2-agenda) .v630-edge-tab{display:none!important
 #workspaceContent .forja2-calendar .agenda-month-events .agenda-event b{display:block;min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .forja2-operational-compact{display:none}
 .forja2-month-time{display:none}
+/* Keep full five-character times at 360px without shrinking the 12px type. */
+@media(max-width:400px){#workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag).lesson{padding:4px 0!important}}
 #workspaceContent.forja2-calendar-page :is(.g-event,.agenda-event){min-width:0;max-width:100%;text-align:left;border-radius:6px;white-space:normal;overflow:hidden}
 #workspaceContent.forja2-calendar-page .g-event :is(b,small){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 #workspaceContent.forja2-calendar-page :is(.g-list-event,.forja2-lesson-row,.student-b-lesson,.teacher-c-lesson){border-radius:10px;min-width:0}

@@ -18,6 +18,7 @@
  const current=c=>!!c&&active()&&forjaSessionCurrent(c.scope)&&capture()?.key===c.key;
  const row=(uid,day)=>context&&current(context)&&record?.key===context.key&&day>=record.value.from&&day<=record.value.to?record.value.items.find(x=>x.professionalId===uid):null;
  const knownRow=(uid,day)=>row(uid,day)?knownRows.get(uid):null;
+ const accountLessons=uid=>(state.lessons||[]).filter(l=>l?.professorId===uid);
  function remember(value){for(const item of value.items){
   const old=knownRows.get(item.professionalId)||{},next={...old};
   if(item.nativeStatus==='success')Object.assign(next,{lessons:item.lessons,blocks:item.blocks,school:item.school});
@@ -31,7 +32,7 @@
   return ['success','not_applicable'].includes(status)&&!!deadline&&performance.now()<deadline.expires&&Date.now()<deadline.wallExpires;
  }
  function noteStream(){if(record?.value.refreshMode==='events'&&streamSeenAt&&Date.now()-streamSeenAt>=45000)record.leaseLost=true;streamSeenAt=Date.now();}
- function displayRow(uid,day){const r=row(uid,day),old=knownRow(uid,day);if(!r)return null;return {...r,nativeHistorical:!sourceCurrent(r,'native'),lessons:r.nativeStatus==='success'?r.lessons:old?.lessons||[],blocks:r.nativeStatus==='success'?r.blocks:old?.blocks||[],school:r.nativeStatus==='success'?r.school:old?.school||[],busy:['personal','central'].flatMap(source=>['success','not_applicable'].includes(r[source].status)?r.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source):old?.[source]||[])};}
+ function displayRow(uid,day){const r=row(uid,day),old=knownRow(uid,day);if(!r)return null;return {...r,nativeHistorical:!sourceCurrent(r,'native'),lessons:sourceCurrent(r,'native')?r.lessons:old?.lessons??accountLessons(uid),blocks:r.nativeStatus==='success'?r.blocks:old?.blocks||[],school:r.nativeStatus==='success'?r.school:old?.school||[],busy:['personal','central'].flatMap(source=>['success','not_applicable'].includes(r[source].status)?r.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source):old?.[source]||[])};}
  const historical=(uid,day)=>!timely()||row(uid,day)?.status!=='success';
  // Some suspended mobile processes stop performance.now while wall time passes.
  // Either clock expiring invalidates the result; neither can extend its TTL.
@@ -419,7 +420,15 @@
  function reset(){pause();context=null;record=null;knownRows.clear();accessDenied=false;lastSuccess=null;failureReason=null;failures=0;nextAt=0;retryUntil=0;revision=0;streamSeenAt=0;streamFailures=0;streamStatus='';changeVersion=null;localDirty=false;awaitingStream=false;observedLatency=0;}
  function lifecycle(start=true){const c=capture(!document.hidden);if(!c){if(context)reset();return;}if(document.hidden){if(context?.key!==c.key)reset();else pause();return;}if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start){if(!channel)connectChannel(c);paint();}if(start){if(!stream&&!streamTimer)startChanges(c);if(!flight&&performance.now()>=nextAt)void refresh();}}
  window.forjaAgenda2Refresh=refresh;
- window.forjaAgenda2Mutation=path=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;if(context){localDirty=true;changed(context);}else lifecycle();};
+ window.forjaAgenda2Mutation=(path,result)=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;
+  // api() invokes this only after a successful response and its session fence.
+  // Keep canonical write receipts in the EXISTING display-only history, never
+  // in source proofs. A fresh native snapshot still replaces this entire set.
+  if(current(context)&&!accessDenied&&/^\/aulas(?:\/|$|-recorrentes(?:\/|$))/.test(path))for(const lesson of [result?.item,...(Array.isArray(result?.items)?result.items:[])]){
+   if(!lesson||typeof lesson.id!=='string'||!context.ids.includes(lesson.professorId)||!/^\d{4}-\d{2}-\d{2}$/.test(lesson.dataAula||'')||!timeValid(lesson.horaAula)||!timeValid(lesson.horaFim)||lesson.horaFim<=lesson.horaAula)continue;
+   const old=knownRows.get(lesson.professorId)||{};knownRows.set(lesson.professorId,{...old,lessons:[...(old.lessons??accountLessons(lesson.professorId)).filter(x=>x.id!==lesson.id),{...lesson}]});
+  }
+  if(context){localDirty=true;changed(context);}else lifecycle();};
  const previousBind=bindPage;bindPage=function(){previousBind();window.forjaAgenda2ProfilePolish();lifecycle();};
  const previousNavigate=navigate;navigate=function(...args){const result=previousNavigate(...args);lifecycle();return result;};
  const previousSession=forjaChangeSession;forjaChangeSession=function(...args){reset();return previousSession(...args);};

@@ -3844,7 +3844,7 @@ async function api(path,{method="GET",body=null,authRequired=true,session=null,s
     const data=await response.json().catch(()=>({}));
     if(scope)forjaAssertSession(scope);
     if(!response.ok){const e=new Error(data.error||`Erro ${response.status}`);e.status=response.status;e.code=data.code;if(path.startsWith('/agenda/')){const raw=response.headers.get('Retry-After'),seconds=raw===null?NaN:Number(raw),wait=Number.isFinite(seconds)?seconds*1000:Date.parse(raw)-Date.now();e.retryAfterMs=Number.isFinite(wait)&&wait>0?Math.min(86400000,wait):0;}e.bookingState=data.bookingState;e.googleVerification=data.googleVerification;e.googleDiagnosis=data.googleDiagnosis;if(path==="/google/calendar/connection"&&method==="DELETE")e.disconnectResult=googlePersonalDisconnectResult(data);if(data.code==='BOOKING_REQUEST_CHANGED')e.bookingExistingItem=data.item;if(String(data.code||'').startsWith('RECURRING_')){e.occurrences=data.occurrences;e.seriesId=data.seriesId;}throw e}
-    if(["POST","PATCH","DELETE"].includes(method))window.forjaAgenda2Mutation?.(path);
+    if(["POST","PATCH","DELETE"].includes(method))window.forjaAgenda2Mutation?.(path,data);
     if(["POST","PATCH","DELETE"].includes(method)&&typeof forjaAdminMutationCommitted==="function")forjaAdminMutationCommitted(path);
     return data;
   }catch(error){if(scope&&!forjaSessionCurrent(scope))throw forjaStaleSession();throw error;}
@@ -8716,6 +8716,8 @@ body:has(#workspaceContent .forja2-agenda) .v630-edge-tab{display:none!important
 #workspaceContent .forja2-calendar .agenda-month-events .agenda-event b{display:block;min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .forja2-operational-compact{display:none}
 .forja2-month-time{display:none}
+/* Keep full five-character times at 360px without shrinking the 12px type. */
+@media(max-width:400px){#workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag).lesson{padding:4px 0!important}}
 #workspaceContent.forja2-calendar-page :is(.g-event,.agenda-event){min-width:0;max-width:100%;text-align:left;border-radius:6px;white-space:normal;overflow:hidden}
 #workspaceContent.forja2-calendar-page .g-event :is(b,small){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 #workspaceContent.forja2-calendar-page :is(.g-list-event,.forja2-lesson-row,.student-b-lesson,.teacher-c-lesson){border-radius:10px;min-width:0}
@@ -8815,6 +8817,7 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  const current=c=>!!c&&active()&&forjaSessionCurrent(c.scope)&&capture()?.key===c.key;
  const row=(uid,day)=>context&&current(context)&&record?.key===context.key&&day>=record.value.from&&day<=record.value.to?record.value.items.find(x=>x.professionalId===uid):null;
  const knownRow=(uid,day)=>row(uid,day)?knownRows.get(uid):null;
+ const accountLessons=uid=>(state.lessons||[]).filter(l=>l?.professorId===uid);
  function remember(value){for(const item of value.items){
   const old=knownRows.get(item.professionalId)||{},next={...old};
   if(item.nativeStatus==='success')Object.assign(next,{lessons:item.lessons,blocks:item.blocks,school:item.school});
@@ -8828,7 +8831,7 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   return ['success','not_applicable'].includes(status)&&!!deadline&&performance.now()<deadline.expires&&Date.now()<deadline.wallExpires;
  }
  function noteStream(){if(record?.value.refreshMode==='events'&&streamSeenAt&&Date.now()-streamSeenAt>=45000)record.leaseLost=true;streamSeenAt=Date.now();}
- function displayRow(uid,day){const r=row(uid,day),old=knownRow(uid,day);if(!r)return null;return {...r,nativeHistorical:!sourceCurrent(r,'native'),lessons:r.nativeStatus==='success'?r.lessons:old?.lessons||[],blocks:r.nativeStatus==='success'?r.blocks:old?.blocks||[],school:r.nativeStatus==='success'?r.school:old?.school||[],busy:['personal','central'].flatMap(source=>['success','not_applicable'].includes(r[source].status)?r.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source):old?.[source]||[])};}
+ function displayRow(uid,day){const r=row(uid,day),old=knownRow(uid,day);if(!r)return null;return {...r,nativeHistorical:!sourceCurrent(r,'native'),lessons:sourceCurrent(r,'native')?r.lessons:old?.lessons??accountLessons(uid),blocks:r.nativeStatus==='success'?r.blocks:old?.blocks||[],school:r.nativeStatus==='success'?r.school:old?.school||[],busy:['personal','central'].flatMap(source=>['success','not_applicable'].includes(r[source].status)?r.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source):old?.[source]||[])};}
  const historical=(uid,day)=>!timely()||row(uid,day)?.status!=='success';
  // Some suspended mobile processes stop performance.now while wall time passes.
  // Either clock expiring invalidates the result; neither can extend its TTL.
@@ -9216,7 +9219,15 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  function reset(){pause();context=null;record=null;knownRows.clear();accessDenied=false;lastSuccess=null;failureReason=null;failures=0;nextAt=0;retryUntil=0;revision=0;streamSeenAt=0;streamFailures=0;streamStatus='';changeVersion=null;localDirty=false;awaitingStream=false;observedLatency=0;}
  function lifecycle(start=true){const c=capture(!document.hidden);if(!c){if(context)reset();return;}if(document.hidden){if(context?.key!==c.key)reset();else pause();return;}if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start){if(!channel)connectChannel(c);paint();}if(start){if(!stream&&!streamTimer)startChanges(c);if(!flight&&performance.now()>=nextAt)void refresh();}}
  window.forjaAgenda2Refresh=refresh;
- window.forjaAgenda2Mutation=path=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;if(context){localDirty=true;changed(context);}else lifecycle();};
+ window.forjaAgenda2Mutation=(path,result)=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;
+  // api() invokes this only after a successful response and its session fence.
+  // Keep canonical write receipts in the EXISTING display-only history, never
+  // in source proofs. A fresh native snapshot still replaces this entire set.
+  if(current(context)&&!accessDenied&&/^\/aulas(?:\/|$|-recorrentes(?:\/|$))/.test(path))for(const lesson of [result?.item,...(Array.isArray(result?.items)?result.items:[])]){
+   if(!lesson||typeof lesson.id!=='string'||!context.ids.includes(lesson.professorId)||!/^\d{4}-\d{2}-\d{2}$/.test(lesson.dataAula||'')||!timeValid(lesson.horaAula)||!timeValid(lesson.horaFim)||lesson.horaFim<=lesson.horaAula)continue;
+   const old=knownRows.get(lesson.professorId)||{};knownRows.set(lesson.professorId,{...old,lessons:[...(old.lessons??accountLessons(lesson.professorId)).filter(x=>x.id!==lesson.id),{...lesson}]});
+  }
+  if(context){localDirty=true;changed(context);}else lifecycle();};
  const previousBind=bindPage;bindPage=function(){previousBind();window.forjaAgenda2ProfilePolish();lifecycle();};
  const previousNavigate=navigate;navigate=function(...args){const result=previousNavigate(...args);lifecycle();return result;};
  const previousSession=forjaChangeSession;forjaChangeSession=function(...args){reset();return previousSession(...args);};
