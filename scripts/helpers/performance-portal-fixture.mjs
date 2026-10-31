@@ -1,3 +1,4 @@
+import './qa-isolation-guard.mjs';
 import {createServer}from'node:http';import{brotliCompressSync}from'node:zlib';
 export const delay=ms=>new Promise(r=>setTimeout(r,ms));
 export async function performancePortal({browser,bytes,resources=[],mobile=false,requestDelay=120,secondaryDelay=900,meDelay=requestDelay,role='admin',agendaEvents=null}){
@@ -33,7 +34,7 @@ export async function performancePortal({browser,bytes,resources=[],mobile=false
   if(url.pathname==='/admin/google-calendar/central/status')return json({configured:false,policy:'calendarlist-association-v2',item:{connected:false}});
   if(url.pathname==='/admin/familias')return json({links:[],pending:[],unlinkedStudents:[]});
   return json({ok:true,items:[],users:[],item:{}});
- };await page.route('**/*',handler);
+ };await context.route('**/*',route=>route.abort('blockedbyclient'));await context.routeWebSocket('**/*',socket=>socket.close());await page.route('**/*',handler);
 
  if(agendaEvents)await context.addInitScript(()=>{const native=window.fetch;window.fetch=function(input,options){const url=new URL(input,location.href);return native.call(this,url.hostname==='forja-api-m1kq.onrender.com'&&url.pathname==='/agenda/changes'?location.origin+url.pathname+url.search:input,options);};});
  await page.goto(origin);await page.waitForFunction(()=>typeof __perfSignIn==='function');

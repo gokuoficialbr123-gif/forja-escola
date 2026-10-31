@@ -3,6 +3,10 @@
  'use strict';
  const POLICY='agenda-readonly-v1',BACKOFF_BASE=20000,SOURCE_LEAD=5000,MAX_AGE=25000,INSTITUTIONAL_MAX_AGE=300000;
  let context=null,record=null,flight=null,timer=null,sequence=0,failures=0,nextAt=0,lastSuccess=null,channel=null,failureReason=null;
+ // Bounded to one last confirmed set per source/professional in this context.
+ // Display only: never feeds published periods, cuts or booking authorization.
+ let knownRows=new Map(),accessDenied=false;
+ function denyAccess(){accessDenied=true;knownRows.clear();record=null;lastSuccess=null;}
  let stream=null,streamTimer=null,streamSeenAt=0,streamFailures=0,streamStatus='',revision=0,retryUntil=0,changeTimer=null,changeVersion=null,localDirty=false,awaitingStream=false;
  window.forjaAgenda2Enabled=true;
  window.forjaAgenda2RescheduleFeedback=result=>{
@@ -13,6 +17,15 @@
  const capture=(visible=true)=>{if(!active(visible))return null;const range=window.forjaAgenda2Context?.();if(!range)return null;const scope=forjaCaptureSession();return {...range,scope,key:JSON.stringify([scope.uid,scope.generation,state.role,range])};};
  const current=c=>!!c&&active()&&forjaSessionCurrent(c.scope)&&capture()?.key===c.key;
  const row=(uid,day)=>context&&current(context)&&record?.key===context.key&&day>=record.value.from&&day<=record.value.to?record.value.items.find(x=>x.professionalId===uid):null;
+ const knownRow=(uid,day)=>row(uid,day)?knownRows.get(uid):null;
+ function remember(value){for(const item of value.items){
+  const old=knownRows.get(item.professionalId)||{},next={...old};
+  if(item.nativeStatus==='success')Object.assign(next,{lessons:item.lessons,blocks:item.blocks,school:item.school});
+  for(const source of ['personal','central'])if(['success','not_applicable'].includes(item[source].status))next[source]=item.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source);
+  knownRows.set(item.professionalId,next);
+ }}
+ function displayRow(uid,day){const r=row(uid,day),old=knownRow(uid,day);if(!r)return null;return {...r,lessons:r.nativeStatus==='success'?r.lessons:old?.lessons||[],blocks:r.nativeStatus==='success'?r.blocks:old?.blocks||[],school:r.nativeStatus==='success'?r.school:old?.school||[],busy:['personal','central'].flatMap(source=>['success','not_applicable'].includes(r[source].status)?r.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source):old?.[source]||[])};}
+ const historical=(uid,day)=>!timely()||row(uid,day)?.status!=='success';
  // Some suspended mobile processes stop performance.now while wall time passes.
  // Either clock expiring invalidates the result; neither can extend its TTL.
  const timely=()=>record&&!record.error&&performance.now()<record.expires&&Date.now()<record.wallExpires&&(record.value.refreshMode!=='events'||streamSeenAt>0&&Date.now()-streamSeenAt<45000);
@@ -79,7 +92,7 @@
  function busyFor(r,day){return (r?.busy||[]).flatMap(x=>{const a=part(x.startAt),b=part(x.endAt),ad=dayKey(a),bd=dayKey(b);if(day<ad||day>bd)return [];const start=day===ad?a.hour+':'+a.minute:'00:00',end=day===bd?b.hour+':'+b.minute:'24:00';return end>start?[{start,end,source:x.source}]:[];});}
  function cuts(r,day){return [...busyFor(r,day),...(r?.blocks||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})),...(r?.school||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})),...(r?.lessons||[]).filter(x=>String(x.dataAula).slice(0,10)===day&&!/cancel/i.test(x.status||'')).map(x=>({start:x.horaAula,end:x.horaFim}))];}
  window.forjaAgenda2Periods=(uid,day)=>{const r=row(uid,day);return fresh()&&r?.status==='success'?(r.days[day]||[]):[];};
- window.forjaAgenda2Lessons=(uid,day)=>row(uid,day)?.nativeStatus==='success'?row(uid,day).lessons.filter(x=>String(x.dataAula).slice(0,10)===day):null;
+ window.forjaAgenda2Lessons=(uid,day)=>displayRow(uid,day)?.lessons.filter(x=>String(x.dataAula).slice(0,10)===day)??null;
  window.forjaAgenda2Google=(uid,day)=>{const r=row(uid,day);return r&&timely()?busyFor(r,day):[];};
  window.forjaAgenda2School=(uid,day)=>{const r=row(uid,day);return r?.nativeStatus==='success'&&timely()?r.school.filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})):[];};
  window.forjaAgenda2SchoolCards=(uid,day,style)=>window.forjaAgenda2School(uid,day).map(x=>`<div class="v621-block busy school" style="${style(x.start,x.end)}" title="Calendário escolar bloqueia este período"><b>Bloqueio escolar</b><small>${x.start}–${x.end}</small></div>`).join('');
@@ -89,24 +102,28 @@
   ...(r?.blocks||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim,label:'Bloqueio FORJA',manual:x})),
   ...(r?.school||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim,label:'Calendário escolar'}))
  ];}
+ function displaySources(uid,day){const r=row(uid,day),live=timely();return occupiedSources(displayRow(uid,day),day).map(x=>({...x,historical:!live||(x.label.startsWith('Google')?r?.[x.label==='Google central'?'central':'personal']?.status!=='success':r?.nativeStatus!=='success')}));}
  // Presentation only: union overlapping busy sources and leave native lesson
  // cards visible. This NEVER removes an interval from cuts(), booking or Google.
  window.forjaAgenda2BusyCards=(uid,day,style,role,filters={},name='')=>{
-  const r=row(uid,day);if(filters.busy===false||r?.nativeStatus!=='success'||!timely())return '';
-  const sources=occupiedSources(r,day),lessons=r.lessons.filter(x=>String(x.dataAula).slice(0,10)===day&&!/cancel/i.test(x.status||'')),points=new Set([420,1320]);
+  const r=displayRow(uid,day);if(filters.busy===false||!r)return '';
+  const nativeKnown=timely()&&r.nativeStatus==='success';
+  const sources=displaySources(uid,day),lessons=r.lessons.filter(x=>String(x.dataAula).slice(0,10)===day&&!/cancel/i.test(x.status||'')),points=new Set([420,1320]);
   for(const x of [...sources,...lessons.map(x=>({start:x.horaAula,end:x.horaFim}))])for(const t of [x.start,x.end])points.add(Math.max(420,Math.min(1320,minutes(t))));
   const bounds=[...points].sort((a,b)=>a-b),parts=[];
   for(let i=0;i<bounds.length-1;i++){
    const a=bounds[i],b=bounds[i+1],active=sources.filter(x=>minutes(x.start)<b&&minutes(x.end)>a);
    if(!active.length||filters.lesson!==false&&lessons.some(x=>minutes(x.horaAula)<b&&minutes(x.horaFim)>a))continue;
-   const labels=[...new Set(active.map(x=>x.label))].sort(),manual=[...new Map(active.filter(x=>x.manual).map(x=>[x.manual.id,x.manual])).values()],key=JSON.stringify([labels,manual.map(x=>x.id).sort()]),last=parts.at(-1);
-   if(last?.b===a&&last.key===key)last.b=b;else parts.push({a,b,labels,manual,key});
+   const labels=[...new Set(active.map(x=>x.label))].sort(),manual=[...new Map(active.filter(x=>x.manual).map(x=>[x.manual.id,x.manual])).values()],stale=active.every(x=>x.historical),key=JSON.stringify([labels,manual.map(x=>x.id).sort(),stale]),last=parts.at(-1);
+   if(last?.b===a&&last.key===key)last.b=b;else parts.push({a,b,labels,manual,key,stale});
   }
-  return parts.map(({a,b,labels,manual})=>{
-   const editable=role==='teacher'&&manual.length===1,m=manual[0],tag=editable?'button':'div',origin=labels.join(' · '),attrs=editable?`type="button" data-v625-busy="${escape(m.id)}" data-date="${escape(day)}" data-start="${escape(m.horaInicio)}" data-end="${escape(m.horaFim)}"`:'',extra=role==='teacher'&&manual.length>1?manual.map(x=>`<button type="button" data-v625-busy="${escape(x.id)}" data-date="${escape(day)}" data-start="${escape(x.horaInicio)}" data-end="${escape(x.horaFim)}">Ver bloqueio FORJA</button>`).join(''):'';
-   return `<${tag} ${attrs} class="v621-block ${role==='admin'?'v629-block':''} busy forja2-band forja2-busy ${labels.includes('Calendário escolar')?'school':''} ${labels.some(x=>x.startsWith('Google'))?'google':''}" style="${position(style,a,b)}" data-forja2-origin="${escape(origin)}" data-forja2-start="${time(a)}" data-forja2-end="${time(b)}" aria-label="${escape([name,'Ocupado',origin,time(a)+'–'+time(b)].filter(Boolean).join(' · '))}" title="${escape(origin)} · ${time(a)}–${time(b)}"><b>${escape(role==='admin'?name:'Ocupado')}</b><small>${time(a)}–${time(b)}</small><span class="forja2-origin">${escape(origin)}</span>${extra}</${tag}>`;
+  return parts.map(({a,b,labels,manual,stale})=>{
+   const editable=nativeKnown&&role==='teacher'&&manual.length===1,m=manual[0],tag=editable?'button':'div',origin=labels.join(' · '),attrs=editable?`type="button" data-v625-busy="${escape(m.id)}" data-date="${escape(day)}" data-start="${escape(m.horaInicio)}" data-end="${escape(m.horaFim)}"`:'',extra=nativeKnown&&role==='teacher'&&manual.length>1?manual.map(x=>`<button type="button" data-v625-busy="${escape(x.id)}" data-date="${escape(day)}" data-start="${escape(x.horaInicio)}" data-end="${escape(x.horaFim)}">Ver bloqueio FORJA</button>`).join(''):'';
+   const period=time(a)+'–'+time(b),label=[name,stale?'Última informação conhecida':'Ocupado',origin,period].filter(Boolean).join(' · '),shortOrigin=labels.some(x=>x.startsWith('Google'))&&labels.every(x=>x.startsWith('Google'))?(labels.length===1?labels[0]:'Google'):origin;
+   return `<${tag} ${attrs} class="v621-block ${role==='admin'?'v629-block':''} busy forja2-band forja2-busy ${stale?'forja2-historical':''} ${labels.includes('Calendário escolar')?'school':''} ${labels.some(x=>x.startsWith('Google'))?'google':''}" style="${position(style,a,b)}" data-forja2-origin="${escape(origin)}" data-forja2-start="${time(a)}" data-forja2-end="${time(b)}" aria-label="${escape(label)}" title="${escape(label)}"><b>${period}</b><span class="forja2-origin">${stale?'Histórico':'Ocupado'} · ${escape(shortOrigin)}</span>${extra}</${tag}>`;
   }).join('');
  };
+ window.forjaAgenda2HistoricalMonth=(uid,day)=>(state.role==='admin'?state.v629SecretaryFilters:state.v624Filters)?.busy!==false&&displaySources(uid,day).some(x=>x.historical);
  window.forjaAgenda2LessonOrigin=(uid,day,start,end)=>{
   const r=row(uid,day);return timely()&&r?.nativeStatus==='success'?[...new Set(occupiedSources(r,day).filter(x=>minutes(x.start)<minutes(end)&&minutes(x.end)>minutes(start)).map(x=>x.label))].join(' · '):'';
  };
@@ -210,7 +227,7 @@
   const institutionalIssue=reasons.includes('institutional_consent_required')?'Autorização institucional incompleta; a Secretaria precisa conferir a conexão central':reasons.includes('institutional_access_denied')?'Acesso ao calendário institucional recusado; a Secretaria precisa conferir as permissões':reasons.includes('institutional_configuration')?'Configuração da integração institucional indisponível; solicitar revisão administrativa':reasons.includes('institutional_authorization_invalid')?'Autorização institucional recusada; solicitar revisão da conexão pela Secretaria':'';
   if(institutionalIssue)details.push(institutionalIssue);
   const institutional=(record?.value.items||[]).some(x=>x.personal?.sourceMode==='institutional-events-v1');
-  const phase=failureReason||(quota?'Limite temporário na fonte Google; aguardando prazo de nova consulta':!record?'Carregamento inicial; horários ainda não confirmados':!timely()?'Dados vencidos; aguardando nova confirmação':!record.value.complete?'Fontes incompletas; horários não confirmados':'');
+  const phase=(failureReason||(quota?'Limite temporário na fonte Google; aguardando prazo de nova consulta':!record?'Carregamento inicial; horários ainda não confirmados':!timely()?'Dados vencidos; aguardando nova confirmação':!record.value.complete?'Fontes incompletas; horários não confirmados':''))+(!fresh()&&knownRows.size?' · Última informação conhecida nas ocupações; horários sem confirmação para agendar':'');
   host.classList.toggle('unavailable',!!unavailable);host.textContent=(flight?'Consultando… · ':unavailable?'Consulta incompleta ou vencida · ':'Consulta confirmada · ')+(lastSuccess?'Última consulta completa: '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Aguardando primeira consulta completa')+(phase?' · '+phase:'')+(details.length?' · '+details.join(' · '):'')+(institutional?' · Fonte Google institucional administrada pela Secretaria':'')+(streamStatus?' · '+streamStatus:'');
  }}
  const timeValid=x=>typeof x==='string'&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(x);
@@ -234,7 +251,7 @@
   const maxAge=eventDriven?INSTITUTIONAL_MAX_AGE:MAX_AGE,sourceTtl=eventDriven?Date.parse(value.sourceExpiresAt)-Date.parse(value.servedAt):Date.parse(value.expiresAt)-Date.parse(value.servedAt);
   const ttl=Math.min(maxAge,sourceTtl,transferredTtl??maxAge)-requestAge;
   if(!Number.isFinite(ttl)||ttl<=0)throw Error('AGENDA_RESULT_EXPIRED');
-  awaitingStream=false;record={key:c.key,value,expires:performance.now()+ttl,wallExpires:Date.now()+ttl,error:false};failureReason=null;
+  awaitingStream=false;accessDenied=false;remember(value);record={key:c.key,value,expires:performance.now()+ttl,wallExpires:Date.now()+ttl,error:false};failureReason=null;
   for(const item of value.items)if(typeof item.personal.connected==='boolean'){
    const metadata={connected:item.personal.connected,lastSyncAt:(item.personal.sourceMode==='institutional-events-v1'?item.central.checkedAt:item.personal.lastSyncAt)||null,...(item.personal.sourceMode?{sourceMode:item.personal.sourceMode,managedBySecretaria:true}:{})};
    if(state.role==='admin'){const old=(state.googleConnections||[]).find(x=>x.uid===item.professionalId)||{};state.googleConnections=[...(state.googleConnections||[]).filter(x=>x.uid!==item.professionalId),{...old,uid:item.professionalId,...metadata}];}
@@ -252,7 +269,7 @@
   channel.addEventListener('message',event=>{const m=event.data,age=Date.now()-m?.sentAt;if(m?.key!==c.key||!current(c)||!(age>=0&&age<(m?.value?.refreshMode==='events'?INSTITUTIONAL_MAX_AGE:MAX_AGE)))return;
    if(m.kind==='changes'){streamSeenAt=Date.now();handleChange(c,m.event);return;}
    if(m.kind==='cooldown'&&Number.isFinite(m.wait)&&m.wait>age){retryUntil=Math.max(retryUntil,performance.now()+Math.min(86400000,m.wait-age));nextAt=Math.max(nextAt,retryUntil);failureReason='Limite temporário de consultas; nova tentativa automática';if(record)record.error=true;paint();schedule();return;}
-   if(m.kind==='snapshot'&&performance.now()>=retryUntil&&!localDirty&&!flight&&Number.isFinite(m.ttlMs)&&m.ttlMs>0){try{accept(m.value,c,m.ttlMs-age);paint();schedule();}catch{}}
+   if(m.kind==='snapshot'&&!accessDenied&&performance.now()>=retryUntil&&!localDirty&&!flight&&Number.isFinite(m.ttlMs)&&m.ttlMs>0){try{accept(m.value,c,m.ttlMs-age);paint();schedule();}catch{}}
   });
  }
  const queryFor=c=>{const query=new URLSearchParams({from:c.from,to:c.to});for(const id of c.ids)query.append('professionalId',id);return query;};
@@ -262,10 +279,17 @@
  }
  function handleChange(c,event){
   if(!current(c))return;
-  if(typeof event.version==='string'&&/^[a-f0-9]{64}$/.test(event.version)){const previous=changeVersion;changeVersion=event.version;if(previous&&previous!==changeVersion&&event.kind==='heartbeat')changed(c);}
-  if(['ready','heartbeat'].includes(event.kind)){if(awaitingStream&&!flight){awaitingStream=false;nextAt=Math.max(retryUntil,performance.now());schedule();}streamStatus='Alterações FORJA acompanhadas';if(event.kind==='ready'){if(record||flight)changed(c);else{nextAt=Math.max(retryUntil,performance.now());schedule();}}}
+  const versioned=typeof event.version==='string'&&/^[a-f0-9]{64}$/.test(event.version),previous=changeVersion??record?.value.changeVersion;
+  if(versioned)changeVersion=event.version;
+  if(['ready','heartbeat'].includes(event.kind)){if(awaitingStream&&!flight){awaitingStream=false;nextAt=Math.max(retryUntil,performance.now());schedule();}streamStatus='Alterações FORJA acompanhadas';
+   // A handshake is not a mutation. Revoke only on a different/unknown version,
+   // never extend either original source deadline or revive an invalid record.
+   if(record&&(!versioned||previous!==event.version))changed(c);
+   else if((!record||record.error)&&!flight){nextAt=Math.max(retryUntil,performance.now());schedule();}
+   if(event.kind==='ready')paint();
+  }
   else if(event.kind==='changed')changed(c);
-  else if(event.kind==='unauthorized'){revision++;if(record)record.error=true;failureReason='Consulta sem autorização; conferir acesso da conta';paint();}
+  else if(event.kind==='unauthorized'){revision++;denyAccess();failureReason='Consulta sem autorização; conferir acesso da conta';paint();}
   else if(event.kind==='unavailable'){streamStatus='Acompanhamento de alterações indisponível; recuperando consulta';if(record?.value.refreshMode==='events'){record.error=true;failureReason='Acompanhamento interrompido; horários não confirmados';paint();}}
  }
  function startChanges(c){
@@ -323,13 +347,13 @@
     let result;
     if(navigator.locks){await navigator.locks.request('forja-agenda:'+c.key,{ifAvailable:true},async lock=>{if(!lock){request.shared=true;nextAt=performance.now()+1000;return;}result=await collect(c,request);});}else result=await collect(c,request);
     if(manual&&current(c))toast(result===true?'Consulta da Agenda confirmada.':'Consulta ainda não confirmada por todas as fontes.',result===true?'ok':'warn');return result===true;
-   }catch(e){if(id===sequence&&current(c)){failures++;awaitingStream=e.message==='AGENDA_STREAM_UNAVAILABLE';if(record)record.error=true;const changedDuringRead=e.status===409&&e.code==='AGENDA_QUERY_CHANGED';failureReason=changedDuringRead?'Alteração detectada durante a consulta; confirmando horários':[401,403].includes(e.status)?'Consulta sem autorização; conferir acesso da conta':e.status===429?'Limite temporário de consultas; nova tentativa automática':request.controller.signal.aborted?'Tempo de consulta esgotado; nova tentativa automática':e.message==='AGENDA_RESULT_EXPIRED'?'Dados recebidos vencidos; aguardando nova confirmação':e.message==='AGENDA_RESULT_INVALID'?'Resposta inválida; horários não confirmados':'Falha de rede ou serviço; horários não confirmados';const wait=e.status===429&&e.retryAfterMs>0?e.retryAfterMs:changedDuringRead||e.message==='AGENDA_RESULT_EXPIRED'?1000:Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3));nextAt=performance.now()+wait;if(e.status===429){retryUntil=nextAt;channel?.postMessage({kind:'cooldown',key:c.key,wait,sentAt:Date.now()});}if(manual)toast('Não foi possível confirmar a atualização da Agenda.','warn');}return false;}
+   }catch(e){if(id===sequence&&current(c)){failures++;if([401,403].includes(e.status))denyAccess();awaitingStream=e.message==='AGENDA_STREAM_UNAVAILABLE';if(record)record.error=true;const changedDuringRead=e.status===409&&e.code==='AGENDA_QUERY_CHANGED';failureReason=changedDuringRead?'Alteração detectada durante a consulta; confirmando horários':[401,403].includes(e.status)?'Consulta sem autorização; conferir acesso da conta':e.status===429?'Limite temporário de consultas; nova tentativa automática':request.controller.signal.aborted?'Tempo de consulta esgotado; nova tentativa automática':e.message==='AGENDA_RESULT_EXPIRED'?'Dados recebidos vencidos; aguardando nova confirmação':e.message==='AGENDA_RESULT_INVALID'?'Resposta inválida; horários não confirmados':'Falha de rede ou serviço; horários não confirmados';const wait=e.status===429&&e.retryAfterMs>0?e.retryAfterMs:changedDuringRead||e.message==='AGENDA_RESULT_EXPIRED'?1000:Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3));nextAt=performance.now()+wait;if(e.status===429){retryUntil=nextAt;channel?.postMessage({kind:'cooldown',key:c.key,wait,sentAt:Date.now()});}if(manual)toast('Não foi possível confirmar a atualização da Agenda.','warn');}return false;}
    finally{clearTimeout(deadline);if(flight===request){flight=null;if(current(c)){paint();schedule();}}}
   })();return request.promise;
  }
  // Pause transport, never renew or extend the retained snapshot's expiry.
  function pause(){if(record?.value.refreshMode==='events'){record.error=true;streamSeenAt=0;}sequence++;clearTimeout(timer);clearTimeout(changeTimer);clearTimeout(streamTimer);streamTimer=null;stream?.controller.abort();stream=null;flight?.controller.abort();channel?.close();channel=null;flight=null;}
- function reset(){pause();context=null;record=null;lastSuccess=null;failureReason=null;failures=0;nextAt=0;retryUntil=0;revision=0;streamSeenAt=0;streamFailures=0;streamStatus='';changeVersion=null;localDirty=false;awaitingStream=false;}
+ function reset(){pause();context=null;record=null;knownRows.clear();accessDenied=false;lastSuccess=null;failureReason=null;failures=0;nextAt=0;retryUntil=0;revision=0;streamSeenAt=0;streamFailures=0;streamStatus='';changeVersion=null;localDirty=false;awaitingStream=false;}
  function lifecycle(start=true){const c=capture(!document.hidden);if(!c){if(context)reset();return;}if(document.hidden){if(context?.key!==c.key)reset();else pause();return;}if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start){if(!channel)connectChannel(c);paint();}if(start){if(!stream&&!streamTimer)startChanges(c);if(!flight&&performance.now()>=nextAt)void refresh();}}
  window.forjaAgenda2Refresh=refresh;
  window.forjaAgenda2Mutation=path=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;if(context){localDirty=true;changed(context);}else lifecycle();};

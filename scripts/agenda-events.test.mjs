@@ -7,18 +7,93 @@ import {pathToFileURL} from 'node:url';
 import {EventEmitter,once} from 'node:events';
 import {agendaPresentationFixture,nextSnapshot,ready,reviewDay} from './helpers/agenda-presentation-fixture.mjs';
 import {buildHostingArtifact} from './prepare-hosting.mjs';
+import {extractStaticResources} from './static-resources.mjs';
 import {delay} from './helpers/performance-portal-fixture.mjs';
 const {chromium}=await import(pathToFileURL(resolve(process.env.FORJA_PLAYWRIGHT_MODULE)).href);let browser;
 before(async()=>browser=await chromium.launch({headless:true,executablePath:process.env.FORJA_CHROMIUM_PATH}));after(()=>browser?.close());
-function artifact(){const value=buildHostingArtifact();if(process.env.FORJA_AGENDA_EVENT_BASELINE==='1'){const before=execFileSync('git',['show','8d7c3cee3a07acd7a9b543a6df1f5077b873bfef:index.html'],{encoding:'utf8',maxBuffer:4e6}),pattern=/<script id="forja-agenda2-script">[\s\S]*?<\/script>/;value.bytes=Buffer.from(value.bytes.toString().replace(pattern,()=>before.match(pattern)[0]));}return value;}
+function artifact(){if(process.env.FORJA_RECONNECTION_BASELINE==='1')return extractStaticResources(execFileSync('git',['show','471429518213dc3e450263ba07eb82eb03e4d150:index.html'],{maxBuffer:4e6}));const value=buildHostingArtifact();if(process.env.FORJA_AGENDA_EVENT_BASELINE==='1'){const before=execFileSync('git',['show','8d7c3cee3a07acd7a9b543a6df1f5077b873bfef:index.html'],{encoding:'utf8',maxBuffer:4e6}),pattern=/<script id="forja-agenda2-script">[\s\S]*?<\/script>/;value.bytes=Buffer.from(value.bytes.toString().replace(pattern,()=>before.match(pattern)[0]));}return value;}
 async function fixture(t,options={}){
- const sockets=new Set(),events=new EventEmitter();let connections=0,version=0;const f=await agendaPresentationFixture(browser,{...options,artifact:artifact(),mode:'free',changeVersion:()=>String(version).padStart(64,'0'),agendaEvents:(req,res)=>{assert.equal(req.headers.authorization,'Bearer SYNTHETIC');connections++;res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store'});res.flushHeaders();sockets.add(res);events.emit('stream');res.on('close',()=>{sockets.delete(res);events.emit('stream');});}});
+ const sockets=new Set(),events=new EventEmitter();let connections=0,version=0;const f=await agendaPresentationFixture(browser,{...options,artifact:artifact(),mode:options.mode||'free',changeVersion:()=>String(version).padStart(64,'0'),agendaEvents:(req,res)=>{assert.equal(req.headers.authorization,'Bearer SYNTHETIC');connections++;res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store'});res.flushHeaders();sockets.add(res);events.emit('stream');res.on('close',()=>{sockets.delete(res);events.emit('stream');});}});
  t.after(async()=>{for(const socket of sockets)socket.end();await f.close();});
- return {...f,connections:()=>connections,activeStreams:()=>sockets.size,async waitStreams(opened,active){const signal=AbortSignal.timeout(5000);while(connections!==opened||sockets.size!==active)await once(events,'stream',{signal});},emit:kind=>{if(kind==='changed')version++;for(const socket of sockets)socket.write('data: '+JSON.stringify({kind,version:String(version).padStart(64,'0')})+'\n\n');},disconnect:()=>{for(const socket of sockets)socket.end();}};
+ return {...f,connections:()=>connections,activeStreams:()=>sockets.size,async waitStreams(opened,active){const signal=AbortSignal.timeout(5000);while(connections!==opened||sockets.size!==active)await once(events,'stream',{signal});},emit:kind=>{if(kind==='changed')version++;for(const socket of sockets)socket.write('data: '+JSON.stringify({kind,version:String(version).padStart(64,'0')})+'\n\n');},advanceVersion:()=>++version,disconnect:()=>{for(const socket of sockets)socket.end();}};
 }
 async function eventCycle(f,kind='changed'){
+ if(kind==='ready'){f.emit(kind);await f.page.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.includes('Alterações FORJA acompanhadas'));return;}
  const request=nextSnapshot(f.page);f.emit(kind);await delay(80);await f.page.clock.runFor(300);await ready(f.page,{request});
 }
+
+for(const role of ['admin','teacher'])test(`reconnection: unchanged SSE ready retains confirmed cards and in-flight snapshot ${role}`,async t=>{
+ const f=await fixture(t,{role,mode:'mixed'}),p=f.page;await f.waitStreams(1,1);
+ const busy=p.locator('.forja2-busy.google').first(),before=await busy.elementHandle(),count=f.reads();
+ f.emit('ready');await delay(80);
+ if(process.env.FORJA_RECONNECTION_EVIDENCE_DIR){mkdirSync(process.env.FORJA_RECONNECTION_EVIDENCE_DIR,{recursive:true});await p.screenshot({path:resolve(process.env.FORJA_RECONNECTION_EVIDENCE_DIR,`ready-${role}.png`),fullPage:true});}
+ assert.ok(await p.locator('.v621-block.availability').count()>0,'ready is a handshake, not a native change');
+ assert.equal(await before.evaluate(el=>el.isConnected),true,'unchanged ready preserves original DOM');
+ await p.clock.runFor(300);assert.equal(f.reads(),count,'same-version handshake must not cause a redundant read');
+ let release,entered;const gate=new Promise(r=>release=r),entry=new Promise(r=>entered=r),hold=async route=>{entered();await gate;await route.fallback();};await p.route('**/agenda/snapshot?**',hold);
+ const result=p.evaluate(()=>forjaAgenda2Refresh());await entry;f.emit('ready');await delay(80);release();assert.equal(await result,true,'ready cannot discard a complete in-flight read');await p.unroute('**/agenda/snapshot?**',hold);
+ const retained=await p.locator('.forja2-busy.google').first().elementHandle(),reads=f.reads();f.disconnect();await f.waitStreams(1,0);await delay(80);const reconnect=f.waitStreams(2,1);await p.clock.runFor(5001);await reconnect;f.emit('ready');await delay(80);await p.clock.runFor(300);
+ assert.equal(f.reads(),reads,'actual reconnect with unchanged revision does not duplicate snapshots');assert.equal(await retained.evaluate(el=>el.isConnected),true);assert.ok(await p.locator('.v621-block.availability').count()>0);
+ assert.deepEqual(f.errors,[]);
+});
+
+test('reconnection: changed ready revokes green, preserves historical busy and fences the earlier response',async t=>{
+ const f=await fixture(t,{mode:'mixed'}),p=f.page;await f.waitStreams(1,1);f.emit('ready');await delay(50);
+ let release,entered;const gate=new Promise(r=>release=r),entry=new Promise(r=>entered=r),old=f.snapshot(),hold=async route=>{entered();await gate;await route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':f.origin},body:JSON.stringify(old)});};await p.route('**/agenda/snapshot?**',hold);
+ const reading=p.evaluate(()=>forjaAgenda2Refresh());await entry;f.advanceVersion();f.emit('ready');await delay(60);assert.equal(await p.locator('.v621-block.availability').count(),0);assert.ok(await p.locator('.forja2-historical.google').count()>0);release();assert.equal(await reading,false,'previous-version read is discarded');await p.unroute('**/agenda/snapshot?**',hold);
+ const request=nextSnapshot(p);await p.clock.runFor(300);await ready(p,{request});assert.ok(await p.locator('.v621-block.availability').count()>0);assert.equal(await p.locator('.forja2-historical').count(),0);
+});
+
+for(const role of ['admin','teacher'])test(`reconnection: month identifies historical busy and successful empty source clears it ${role}`,async t=>{
+ const f=await fixture(t,{role,mode:'mixed'}),p=f.page;await f.waitStreams(1,1);f.emit('ready');await delay(50);
+ const request=nextSnapshot(p,{view:'month'});await p.locator(`[data-v621-view="month"][data-role="${role}"]`).click();await ready(p,{request});
+ f.emit('changed');await delay(60);assert.ok(await p.locator('.v621-month-tag.forja2-historical').count()>0);assert.equal(await p.locator('.v621-month-tag.availability,.v629-month-tag.availability').count(),0);
+ await p.evaluate(()=>{(state.role==='admin'?state.v629SecretaryFilters:state.v624Filters).busy=false;forjaAgenda2Paint();});assert.equal(await p.locator('.forja2-historical').count(),0,'existing busy filter applies to historical labels too');await p.evaluate(()=>{(state.role==='admin'?state.v629SecretaryFilters:state.v624Filters).busy=true;forjaAgenda2Paint();});
+ f.setMode('free');const renewal=nextSnapshot(p);await p.clock.runFor(300);await ready(p,{request:renewal});assert.equal(await p.locator('.forja2-historical').count(),0,'confirmed empty source removes historical occupancy');assert.ok(await p.locator('.v621-month-tag.availability,.v629-month-tag.availability').count()>0);
+});
+
+for(const role of ['admin','teacher'])for(const failure of ['expiry',403,429,'timeout','partial'])test(`reconnection: historical busy survives ${failure}, never offers green ${role}`,async t=>{
+ const f=await fixture(t,{role,mode:'mixed'}),p=f.page;await f.waitStreams(1,1);f.emit('ready');await delay(80);await p.clock.runFor(300);await ready(p);
+ const response=async route=>{if(failure==='partial'||failure===403)return route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':f.origin},body:JSON.stringify({...f.snapshot(),complete:false,items:f.snapshot().items.map(x=>({...x,status:'unavailable',busy:[],personal:{status:'unavailable',reason:failure===403?'personal_access_denied':'personal_rate_limit'},central:{status:'unavailable'}}))})});return route.fulfill({status:failure,contentType:'application/json',headers:{'Access-Control-Allow-Origin':f.origin,'Access-Control-Expose-Headers':'Retry-After','Retry-After':'75'},body:'{"code":"SYNTHETIC_FAILURE"}'});};
+ let release,entered;const gate=new Promise(r=>release=r),entry=new Promise(r=>entered=r),held=async route=>{entered();await gate;await route.fallback();};
+ if(['expiry','timeout'].includes(failure))await p.route('**/agenda/snapshot?**',held);else await p.route('**/agenda/snapshot?**',response);
+ if(failure==='expiry'){await p.clock.runFor(20010);await entry;}
+ const reading=p.evaluate(()=>forjaAgenda2Refresh());
+ if(['expiry','timeout'].includes(failure)){await entry;await p.clock.runFor(failure==='expiry'?5010:15001);await delay(50);}else await reading;
+ if(failure==='expiry'&&process.env.FORJA_RECONNECTION_EVIDENCE_DIR){mkdirSync(process.env.FORJA_RECONNECTION_EVIDENCE_DIR,{recursive:true});await p.screenshot({path:resolve(process.env.FORJA_RECONNECTION_EVIDENCE_DIR,`expired-${role}.png`),fullPage:true});}
+ assert.equal(await p.locator('.v621-block.availability').count(),0,'expired/failed intervals cannot be booked');
+ assert.ok(await p.locator('.forja2-busy.google.forja2-historical').count()>0,'last known Google busy stays visible as historical');
+ assert.match(await p.locator('.forja2-busy.google.forja2-historical').first().getAttribute('aria-label'),/Última informação conhecida/);
+ assert.equal(await p.locator('.forja2-historical').first().evaluate(el=>getComputedStyle(el).color),'rgb(71, 85, 105)','historical cards cannot retain confirmed red styling');
+ assert.match(await p.locator('.forja2-historical').first().evaluate(el=>getComputedStyle(el).backgroundImage),/gradient/);
+ assert.ok(await p.locator('[data-lesson="REVIEW_LESSON"]').count()>0,'independently confirmed FORJA lesson survives');
+ if(failure==='partial'||failure===403)assert.equal(await p.locator('.forja2-busy:not(.google):not(.forja2-historical)').count(),2,'current native manual/school blocks stay confirmed despite the independent Google failure');
+ if(failure==='expiry')assert.match(await p.locator('[data-forja2-status]').textContent(),/Consultando/,'snapshot actually expires while renewal still owns the request');
+ if(['expiry','timeout'].includes(failure)){release();await reading;await p.unroute('**/agenda/snapshot?**',held);}else await p.unroute('**/agenda/snapshot?**',response);
+ // Recovery uses new source data. No retained block is a permanent reservation.
+ if(failure===429)await p.clock.runFor(75001);await p.evaluate(()=>forjaAgenda2Refresh());await ready(p);assert.equal(await p.locator('.forja2-historical').count(),0);assert.ok(await p.locator('.v621-block.availability').count()>0);assert.deepEqual(f.errors,[]);
+});
+
+for(const change of ['period','professional','profile','account','route'])test(`reconnection: historical occupancy never crosses ${change}`,async t=>{
+ const f=await fixture(t,{role:'admin',mode:'mixed'}),p=f.page;await f.waitStreams(1,1);f.emit('changed');await delay(60);assert.ok(await p.locator('.forja2-historical.google').count()>0);
+ const old=await p.evaluate(()=>forjaAgenda2Context());await p.route('**/agenda/snapshot?**',route=>route.abort());
+ await p.evaluate(async change=>{
+  if(change==='account'){await executeLogout();return;}
+  if(change==='route'){navigate('inicio');return;}
+  if(change==='period')state.adminLessonAgendaDateG=gAddDays(state.adminLessonAgendaDateG,7);
+  if(change==='professional'){state.users.push({uid:'OTHER_FAKE_TEACHER',fullName:'Outro fictício',role:'teacher',active:true,disciplinaIds:['MATH']});state.v629SecretarySelectionTouched=true;state.v629SecretarySelectedTeacherIds=['OTHER_FAKE_TEACHER'];}
+  if(change==='profile'){state.role='teacher';state.profile={...state.profile,role:'teacher'};}
+  renderPage();
+ },change);await delay(80);
+ assert.equal(await p.evaluate(old=>forjaAgenda2BusyCards(old.ids[0],old.from,()=>'', 'admin'),old),'','former source history must be erased, not merely hidden');assert.equal(await p.locator('.forja2-historical:visible').count(),0);assert.deepEqual(f.errors,[]);
+});
+
+for(const denial of [401,403,'unauthorized'])test(`reconnection: authorization denial ${denial} removes Google history and rejects broadcasts`,async t=>{
+ const f=await fixture(t,{mode:'mixed'}),p=f.page;await f.waitStreams(1,1);const old=f.snapshot(),key=await p.evaluate(()=>{const scope=forjaCaptureSession();return JSON.stringify([scope.uid,scope.generation,state.role,forjaAgenda2Context()]);});
+ if(denial==='unauthorized'){f.emit(denial);await delay(80);}else{await p.route('**/agenda/snapshot?**',route=>route.fulfill({status:denial,contentType:'application/json',headers:{'Access-Control-Allow-Origin':f.origin},body:'{"code":"SEM_PERMISSAO"}'}));await p.evaluate(()=>forjaAgenda2Refresh());}
+ assert.equal(await p.locator('.forja2-busy.google').count(),0,'a lost permission cannot expose retained Google occupancy');assert.equal(await p.locator('.v621-block.availability').count(),0);
+ await p.evaluate(({old,key})=>{const channel=new BroadcastChannel('forja-agenda-readonly-v1:'+key);channel.postMessage({kind:'snapshot',key,value:old,ttlMs:18000,sentAt:Date.now()});channel.close();},{old,key});await delay(80);assert.equal(await p.locator('.forja2-busy.google').count(),0);assert.equal(await p.locator('.v621-block.availability').count(),0,'another tab cannot restore a denied confirmation');
+});
 for(const role of ['admin','teacher'])for(const mobile of [false,true])test(`native event: five updates, create/change/cancel without F5 ${role} ${mobile?'mobile':'desktop'}`,async t=>{
  let lesson=null;const f=await fixture(t,{role,mobile,transformItem:item=>({...item,lessons:lesson?[{...lesson,professorId:item.professionalId}]:[]})}),p=f.page;
  await p.waitForFunction(()=>document.querySelectorAll('.v621-block.availability').length>0);await delay(150);assert.equal(f.connections(),1);await eventCycle(f,'ready');const initial=f.reads();

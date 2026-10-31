@@ -24,7 +24,7 @@ jobs:
       - name: Validar release, hash e JavaScript
         run: node scripts/validate.mjs
       - name: Testar proteções do pipeline
-        run: node --test scripts/pipeline.test.mjs scripts/static-resources.test.mjs
+        run: node --import ./scripts/helpers/qa-isolation-guard.mjs --test scripts/qa-isolation.test.mjs scripts/pipeline.test.mjs scripts/static-resources.test.mjs
       - name: Instalar Chromium para regressões do drawer
         run: |
           npm install --prefix /tmp/forja-browser-tests --no-save --package-lock=false playwright@1.56.1
@@ -35,7 +35,7 @@ jobs:
           FORJA_PLAYWRIGHT_MODULE: /tmp/forja-browser-tests/node_modules/playwright/index.mjs
         run: |
           set -o pipefail
-          node --test --test-concurrency=1 --test-reporter=tap scripts/secretaria-drawer.test.mjs scripts/availability-publication.test.mjs scripts/secretaria-agenda.test.mjs scripts/secretaria-agenda-visual.test.mjs scripts/google-secretaria.test.mjs scripts/google-secretaria-navigation.test.mjs scripts/new-user-modal.test.mjs scripts/invitation-demo.test.mjs scripts/availability-session.test.mjs scripts/personal-google-diagnostics.test.mjs scripts/lesson-read-policy.test.mjs scripts/fixed-availability.test.mjs scripts/legal-pages.test.mjs scripts/recurring-lessons.test.mjs scripts/lesson-confirmation.test.mjs scripts/google-personal-consent.test.mjs scripts/google-personal-disconnect.test.mjs scripts/central-booking.test.mjs scripts/performance.test.mjs scripts/login-profile.test.mjs scripts/login-critical-path.test.mjs scripts/agenda-intelligence.test.mjs scripts/agenda-presentation.test.mjs scripts/agenda-fine.test.mjs scripts/navigation-student.test.mjs scripts/agenda-events.test.mjs scripts/institutional-calendar.test.mjs scripts/agenda-premium.test.mjs scripts/agenda-visual-review.test.mjs scripts/agenda-mobile-final.test.mjs 2>&1 | tee /tmp/forja-frontend-tests.log
+          node --import ./scripts/helpers/qa-isolation-guard.mjs --test --test-concurrency=1 --test-reporter=tap scripts/secretaria-drawer.test.mjs scripts/availability-publication.test.mjs scripts/secretaria-agenda.test.mjs scripts/secretaria-agenda-visual.test.mjs scripts/google-secretaria.test.mjs scripts/google-secretaria-navigation.test.mjs scripts/new-user-modal.test.mjs scripts/invitation-demo.test.mjs scripts/availability-session.test.mjs scripts/personal-google-diagnostics.test.mjs scripts/lesson-read-policy.test.mjs scripts/fixed-availability.test.mjs scripts/legal-pages.test.mjs scripts/recurring-lessons.test.mjs scripts/lesson-confirmation.test.mjs scripts/google-personal-consent.test.mjs scripts/google-personal-disconnect.test.mjs scripts/central-booking.test.mjs scripts/performance.test.mjs scripts/login-profile.test.mjs scripts/login-critical-path.test.mjs scripts/agenda-intelligence.test.mjs scripts/agenda-presentation.test.mjs scripts/agenda-fine.test.mjs scripts/navigation-student.test.mjs scripts/agenda-events.test.mjs scripts/institutional-calendar.test.mjs scripts/agenda-premium.test.mjs scripts/agenda-visual-review.test.mjs scripts/agenda-mobile-final.test.mjs scripts/agenda-reconnection-visual.test.mjs 2>&1 | tee /tmp/forja-frontend-tests.log
       - name: Anotar falhas de navegador sem payloads ou credenciais
         if: failure() && steps.browser_tests.outcome == 'failure'
         run: node scripts/report-browser-failures.mjs /tmp/forja-frontend-tests.log
