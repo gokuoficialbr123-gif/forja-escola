@@ -84,6 +84,12 @@ body:has(#workspaceContent .forja2-agenda) .v630-edge-tab{display:none!important
 .forja2-cancelled{border:1px solid #cbd5e1;border-radius:5px;background:#f1f5f9;color:#475569;font:inherit;font-size:10px;padding:3px 5px;text-align:left;cursor:pointer}
 #workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag).cancelled{background:#f1f5f9!important;color:#475569!important}
 .forja2-origin{display:block;font-size:9px;line-height:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+#workspaceContent .forja2-agenda .forja2-busy b{white-space:nowrap;font-variant-numeric:tabular-nums;font-size:11px;line-height:14px}
+#workspaceContent .forja2-agenda .forja2-busy .forja2-origin{font-size:10px;line-height:12px;white-space:normal;overflow-wrap:anywhere}
+#workspaceContent .forja2-agenda .v621-block.busy.forja2-busy.forja2-historical,#workspaceContent .forja2-agenda .v621-month-tag.forja2-historical{background:repeating-linear-gradient(135deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 8px)!important;color:#475569!important;border:1px dashed #64748b!important;cursor:default}
+#workspaceContent .forja2-agenda .forja2-historical .forja2-origin{font-size:9px;line-height:11px}
+#workspaceContent .forja2-agenda :is(.v621-block.lesson.forja2-lesson,.v621-month-tag.lesson,.v629-month-tag.lesson,.forja2-cancelled).forja2-native-history{background:repeating-linear-gradient(135deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 8px)!important;color:#475569!important;border:1px dashed #64748b!important}
+.forja2-native-notice{display:block;font-size:inherit;font-weight:700;line-height:inherit;color:inherit}
 #workspaceContent .forja2-agenda .v623-now-line{height:1px!important;background:#123049!important;opacity:.55;z-index:3!important;pointer-events:none}
 #workspaceContent .forja2-agenda .v623-now-line i{width:5px!important;height:5px!important;top:-2px!important;background:#123049!important}
 .forja2-legend{display:flex;flex-wrap:wrap;gap:8px 16px;padding:11px 13px;color:var(--forja-agenda-neutral-text);font-size:11px;line-height:16px;border-bottom:1px solid var(--forja-agenda-border);background:#fff}

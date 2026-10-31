@@ -293,7 +293,10 @@ for(const role of ['admin','teacher'])for(const mobile of [false,true])test(`ren
   assert.ok(await p.locator('.forja2-band.busy').count()>0,'confirmed red blocking also remains during renewal');
   await p.clock.fastForward(5500);
   assert.equal(await p.locator('.v621-block.availability').count(),0,'expired DOM must not stay green while the next GET is pending');
-  assert.equal(await p.locator('.forja2-band.busy').count(),0,'expired blocking is unknown, not a fresh red confirmation');
+  assert.equal(await p.locator('.forja2-band.busy:not(.forja2-historical)').count(),0,'expired blocking is unknown, not a fresh red confirmation');
+  const history=p.locator('.forja2-band.busy.forja2-historical');assert.ok(await history.count()>0,'expired blocking remains identifiable only as history');
+  assert.match(await history.first().getAttribute('aria-label'),/Última informação conhecida/);
+  assert.equal(await history.first().evaluate(el=>getComputedStyle(el).color),'rgb(71, 85, 105)','history must be gray, never confirmed red');
   assert.ok(await p.locator('.forja2-band.unknown').count()>0);
   assert.equal(f.count(),before+1,'expiry repaint never starts a duplicate request');
  }finally{f.release();}

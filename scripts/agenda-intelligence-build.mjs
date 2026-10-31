@@ -210,6 +210,7 @@ const hooks=`
         const day=cell.dataset.v629MonthDay||cell.dataset.v625MonthDay;if(!day)continue;cell.classList.add('forja2-month');
         const people=admin?v629SelectedTeachers():[{uid:state.user.uid}],bucket=cell.querySelector('.v621-month-tags');
         for(const person of people){const kind=window.forjaAgenda2DayKind(person.uid,day);if(!['unknown','outside'].includes(kind))continue;
+          if(window.forjaAgenda2HistoricalMonth(person.uid,day)){const history=document.createElement('div');history.className='v621-month-tag forja2-historical';history.textContent='Última informação conhecida · Ocupado';history.setAttribute('aria-label',(person.fullName||'Professor')+' · '+history.textContent);bucket?.prepend(history);}
           const tag=document.createElement(admin?'button':'div');tag.className=(admin?'v629':'v621')+'-month-tag '+kind;tag.dataset.forja2MonthStatus=person.uid;tag.textContent=(admin?(person.fullName||'Professor')+' · ':'')+(kind==='unknown'?'Não confirmado':'Fora da publicação');tag.title=tag.textContent;
           if(admin){tag.type='button';tag.dataset.v629OpenTeacherDay=person.uid;tag.dataset.date=day;}bucket?.prepend(tag);
         }

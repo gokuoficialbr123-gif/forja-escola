@@ -35,7 +35,9 @@ export async function agendaPresentationFixture(browser,{role='teacher',mobile=f
    // Playwright route callbacks can still be resolving a synthetic page clock
    // when node:test ends. Dispose page interception before closing context.
    // Do not mask assertions or swallow route errors while tests are running.
-   await f.context.setOffline(true);await p.unrouteAll({behavior:'ignoreErrors'});
+   // Remove the context firewall before page handlers: a cancelled fallback must
+   // not abort the same request twice. Offline remains enforced during disposal.
+   await f.context.setOffline(true);await f.context.unrouteAll({behavior:'ignoreErrors'});await p.unrouteAll({behavior:'ignoreErrors'});
    await f.close();
   }};
 }
