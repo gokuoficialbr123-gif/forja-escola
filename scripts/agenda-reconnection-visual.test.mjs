@@ -24,7 +24,7 @@ for(const role of ['admin','teacher'])for(const width of [1366,1920,360,390])tes
   assert.equal(geometry.overflow,false);assert.equal(geometry.private,false);
   if(!baseline&&view!=='month'){
    assert.equal(geometry.cards.length,2,'overlapping busy intervals form one block plus the short block');
-   for(const card of geometry.cards){assert.match(card.text,/^\d{2}:\d{2}–\d{2}:\d{2}$/);assert.equal(card.clipped,false);assert.equal(card.origin,'Ocupado · Google central');assert.match(card.label,/Google central/);if(role==='admin')assert.match(card.label,/Professor sintético/);}
+   for(const card of geometry.cards){assert.match(card.text,/^\d{2}:\d{2}–\d{2}:\d{2}$/);assert.equal(card.clipped,false);assert.equal(card.origin,'Google central');assert.match(card.label,/Google central/);assert.match(card.label,/Ocupado/);if(role==='admin')assert.match(card.label,/Professor sintético/);}
   }
   assert.deepEqual(f.errors,[]);
   if(evidence)writeFileSync(resolve(evidence,`${role}-${width}-${view}.json`),JSON.stringify(geometry,null,2));

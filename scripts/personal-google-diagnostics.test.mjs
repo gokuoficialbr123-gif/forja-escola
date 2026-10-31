@@ -41,13 +41,15 @@ async function fixture(t,{ignoreAbort=false,mobile=false,connected=true,failure=
  const hold=options=>{let ready,release;const item={...options,used:false,ready:()=>ready(),promise:new Promise(r=>release=r)};const started=new Promise(r=>ready=r);holds.push(item);return {started,release}};
  return {page,login,hold,requests,errors};
 }
+async function showGoogleControls(p){const details=p.locator('.forja2-diagnostic');if(await details.count()&&!await details.evaluate(el=>el.open))await details.locator('summary').click();}
+async function diagnose(p){await showGoogleControls(p);await p.locator('[data-v620-google-diagnostics]:visible,[data-personal-google-diagnose]:visible').click();}
 const policy='personal-google-diagnostics-v1';
 const fail=(kind='authorization_invalid',resolution='professional_reconnect')=>({policy,status:'unavailable',failureKind:kind,resolution,reconnectRequired:resolution==='professional_reconnect',stage:'token',checkedAt:'2026-10-14T19:00:00.000Z',providerHttpStatus:400});
 for(const mobile of [false,true])test(`personal recovery ${mobile?'mobile':'desktop'}: diagnosis then reconnect uses existing OAuth, never DELETE`,async t=>{
  const f=await fixture(t,{mobile,failure:fail()}),p=f.page;
  await p.evaluate(()=>navigate('agenda'));
  assert.equal(await p.locator('[data-personal-google-reconnect]').count(),1);
- await p.locator('[data-v620-google-diagnostics]:visible,[data-personal-google-diagnose]:visible').click();await p.waitForFunction(()=>!document.getElementById('modal').classList.contains('hidden'));
+ await diagnose(p);await p.waitForFunction(()=>!document.getElementById('modal').classList.contains('hidden'));
  assert.match(await p.locator('#modal').innerText(),/Autorização Google inválida/);assert.match(await p.locator('#modal').innerText(),/Testing/);
  assert.match(await p.locator('#modal').innerText(),/não distingue.*expiração de revogação/);
  assert.match(await p.locator('#modal').innerText(),/conexão anterior será preservada/);
@@ -58,22 +60,22 @@ for(const mobile of [false,true])test(`personal recovery ${mobile?'mobile':'desk
 for(const [kind,resolution,label] of [['server_configuration','administrator','Configuração OAuth'],['insufficient_scope','administrator','Permissão OAuth insuficiente'],['credential_decryption','administrator','descriptografia'],['network','retry_later','Falha de rede'],['timeout','retry_later','Tempo de consulta'],['access_denied','professional_and_administrator','Acesso ao calendário'],['rate_limited','retry_later','Limite de consultas'],['provider_unavailable','retry_later','temporariamente indisponível']])test(`personal ${kind}: actionable report without unnecessary reconnection`,async t=>{
  const f=await fixture(t,{failure:fail(kind,resolution)}),p=f.page;await p.evaluate(()=>navigate('agenda'));
  assert.equal(await p.locator('[data-personal-google-reconnect]').count(),0);
- await p.locator('[data-v620-google-diagnostics]:visible,[data-personal-google-diagnose]:visible').click();await p.waitForFunction(()=>!document.getElementById('modal').classList.contains('hidden'));
+ await diagnose(p);await p.waitForFunction(()=>!document.getElementById('modal').classList.contains('hidden'));
  assert.ok((await p.locator('#modal').innerText()).includes(label));assert.equal(await p.locator('[data-personal-google-reconnect]').count(),0);assert.deepEqual(f.errors,[]);
 });
 test('verified probe supersedes old failure without claiming sync or free slots',async t=>{
  const f=await fixture(t,{failure:fail(),diagnosticResult:{policy,status:'verified',stage:'calendar_api',checkedAt:'2026-10-14T19:05:00.000Z'}}),p=f.page;
- await p.evaluate(()=>navigate('agenda'));await p.locator('[data-v620-google-diagnostics]:visible,[data-personal-google-diagnose]:visible').click();await p.waitForFunction(()=>!document.getElementById('modal').classList.contains('hidden'));
+ await p.evaluate(()=>navigate('agenda'));await diagnose(p);await p.waitForFunction(()=>!document.getElementById('modal').classList.contains('hidden'));
  assert.match(await p.locator('#modal').innerText(),/Consulta Google verificada agora/);assert.match(await p.locator('#modal').innerText(),/não.*garante.*horário/);assert.equal(await p.locator('[data-personal-google-reconnect]').count(),0);
 });
 test('legacy API/generic error is inconclusive and never invents need for consent',async t=>{
  const f=await fixture(t,{legacy:true}),p=f.page;await p.evaluate(()=>{state.googleCalendar.item.lastSyncStatus='erro';navigate('agenda')});
- await p.locator('[data-v620-google-diagnostics]:visible,[data-personal-google-diagnose]:visible').click();await p.waitForFunction(()=>!document.getElementById('modal').classList.contains('hidden'));
+ await diagnose(p);await p.waitForFunction(()=>!document.getElementById('modal').classList.contains('hidden'));
  assert.match(await p.locator('#modal').innerText(),/não contém uma causa verificável/);assert.equal(await p.locator('[data-personal-google-reconnect]').count(),0);
 });
 test('concurrent diagnostic clicks share one call; late response cannot cross UID/session',async t=>{
  const f=await fixture(t,{failure:fail()}),p=f.page,held=f.hold({uid:'A',path:'/google/calendar/diagnostics',body:{googleDiagnosis:fail()}});
- await p.evaluate(()=>navigate('agenda'));await p.locator('[data-v620-google-diagnostics]').evaluate(b=>{window.oldDiagnostic=b.onclick();b.onclick()});await held.started;
+ await p.evaluate(()=>navigate('agenda'));await showGoogleControls(p);await p.locator('[data-v620-google-diagnostics]').evaluate(b=>{window.oldDiagnostic=b.onclick();b.onclick()});await held.started;
  assert.equal(f.requests.filter(r=>r.path==='/google/calendar/diagnostics').length,1);
  await f.login('B');await p.evaluate(()=>navigate('conta'));held.release();await p.evaluate(()=>window.oldDiagnostic);
  assert.equal(await p.locator('#modal:not(.hidden)').count(),0);assert.equal(await p.evaluate(()=>state.googleCalendar.personalDiagnosis||null),null);
@@ -84,7 +86,7 @@ test('psychologist has the same recovery and an actually disconnected account re
 });
 test('late reconnect response cannot redirect a different authenticated session',async t=>{
  const f=await fixture(t,{ignoreAbort:true,failure:fail()}),p=f.page,held=f.hold({uid:'A',path:'/google/calendar/connect',body:{authUrl:'https://accounts.google.com/o/oauth2/v2/auth?state=TEST_ONLY_OLD_SESSION'}});
- await p.evaluate(()=>{navigate('agenda');const previous=googleAction;googleAction=(...args)=>window.oldReconnect=previous(...args)});await p.locator('[data-personal-google-reconnect]').click();await p.waitForSelector('#googlePersonalConsentAccept');await p.check('#googlePersonalConsentAccept');await p.evaluate(()=>{const b=document.getElementById('modalSave'),fn=b.onclick;b.onclick=(...args)=>(window.oldConsentSave=fn(...args));});await p.click('#modalSave');await held.started;
+ await p.evaluate(()=>{navigate('agenda');const previous=googleAction;googleAction=(...args)=>window.oldReconnect=previous(...args)});await showGoogleControls(p);await p.locator('[data-personal-google-reconnect]').click();await p.waitForSelector('#googlePersonalConsentAccept');await p.check('#googlePersonalConsentAccept');await p.evaluate(()=>{const b=document.getElementById('modalSave'),fn=b.onclick;b.onclick=(...args)=>(window.oldConsentSave=fn(...args));});await p.click('#modalSave');await held.started;
  await f.login('B');held.release();await p.evaluate(()=>window.oldConsentSave);
  assert.equal(new URL(p.url()).origin,origin);assert.equal(f.requests.filter(r=>r.method==='DELETE').length,0);assert.equal(await p.evaluate(()=>state.user.uid),'B');
 });

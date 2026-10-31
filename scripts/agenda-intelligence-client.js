@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const POLICY='agenda-readonly-v1',BACKOFF_BASE=20000,SOURCE_LEAD=5000,MAX_AGE=25000,INSTITUTIONAL_MAX_AGE=300000;
- let context=null,record=null,flight=null,timer=null,sequence=0,failures=0,nextAt=0,lastSuccess=null,channel=null,failureReason=null;
+ let context=null,record=null,flight=null,timer=null,sequence=0,failures=0,nextAt=0,lastSuccess=null,channel=null,failureReason=null,observedLatency=0;
  // Bounded to one last confirmed set per source/professional in this context.
  // Display only: never feeds published periods, cuts or booking authorization.
  let knownRows=new Map(),accessDenied=false;
@@ -18,13 +18,21 @@
  const current=c=>!!c&&active()&&forjaSessionCurrent(c.scope)&&capture()?.key===c.key;
  const row=(uid,day)=>context&&current(context)&&record?.key===context.key&&day>=record.value.from&&day<=record.value.to?record.value.items.find(x=>x.professionalId===uid):null;
  const knownRow=(uid,day)=>row(uid,day)?knownRows.get(uid):null;
+ const accountLessons=uid=>(state.lessons||[]).filter(l=>l?.professorId===uid);
  function remember(value){for(const item of value.items){
   const old=knownRows.get(item.professionalId)||{},next={...old};
   if(item.nativeStatus==='success')Object.assign(next,{lessons:item.lessons,blocks:item.blocks,school:item.school});
   for(const source of ['personal','central'])if(['success','not_applicable'].includes(item[source].status))next[source]=item.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source);
   knownRows.set(item.professionalId,next);
  }}
- function displayRow(uid,day){const r=row(uid,day),old=knownRow(uid,day);if(!r)return null;return {...r,nativeHistorical:!timely()||r.nativeStatus!=='success',lessons:r.nativeStatus==='success'?r.lessons:old?.lessons||[],blocks:r.nativeStatus==='success'?r.blocks:old?.blocks||[],school:r.nativeStatus==='success'?r.school:old?.school||[],busy:['personal','central'].flatMap(source=>['success','not_applicable'].includes(r[source].status)?r.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source):old?.[source]||[])};}
+ function sourceCurrent(r,source){
+  if(!r||!record||record.revoked||record.invalidSources?.has(source))return false;
+  if(record.value.refreshMode==='events'&&(record.leaseLost||!streamSeenAt||Date.now()-streamSeenAt>=45000)){record.leaseLost=true;return false;}
+  const deadline=record.sources?.get(r.professionalId)?.[source],status=source==='native'?r.nativeStatus:r[source]?.status;
+  return ['success','not_applicable'].includes(status)&&!!deadline&&performance.now()<deadline.expires&&Date.now()<deadline.wallExpires;
+ }
+ function noteStream(){if(record?.value.refreshMode==='events'&&streamSeenAt&&Date.now()-streamSeenAt>=45000)record.leaseLost=true;streamSeenAt=Date.now();}
+ function displayRow(uid,day){const r=row(uid,day),old=knownRow(uid,day);if(!r)return null;return {...r,nativeHistorical:!sourceCurrent(r,'native'),lessons:sourceCurrent(r,'native')?r.lessons:old?.lessons??accountLessons(uid),blocks:r.nativeStatus==='success'?r.blocks:old?.blocks||[],school:r.nativeStatus==='success'?r.school:old?.school||[],busy:['personal','central'].flatMap(source=>['success','not_applicable'].includes(r[source].status)?r.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source):old?.[source]||[])};}
  const historical=(uid,day)=>!timely()||row(uid,day)?.status!=='success';
  // Some suspended mobile processes stop performance.now while wall time passes.
  // Either clock expiring invalidates the result; neither can extend its TTL.
@@ -59,7 +67,7 @@
  };
  window.forjaAgenda2LessonContent=(lesson,{name='',compact=false}={})=>{
   const subject=typeof lessonTitle==='function'?lessonTitle(lesson):lesson.disciplinaNome||'Aula',period=[lesson.horaAula,lesson.horaFim].filter(Boolean).join('–');
-  return (compact?window.forjaAgenda2MonthTime(lesson):'')+(compact&&lesson.forja2NativeHistorical?'<span class="forja2-native-notice">Histórico</span>':'')+'<b class="forja2-event-title">'+(lesson.forja2NativeHistorical&&!compact?'Histórico · ':'')+escape(name||lesson.nomeAluno||subject)+'</b><small class="forja2-event-time">'+escape([period,subject].filter(Boolean).join(' · '))+'</small>'+window.forjaAgenda2LessonMeta(lesson,{place:!compact});
+  return (compact?window.forjaAgenda2MonthTime(lesson):'')+(compact&&lesson.forja2NativeHistorical?'<span class="forja2-native-notice">Hist.</span>':'')+'<b class="forja2-event-title">'+escape(compact?name||lesson.nomeAluno||subject:period).replace('–','–<wbr>')+'</b><small class="forja2-event-time">'+escape(compact?[period,subject].filter(Boolean).join(' · '):name||lesson.nomeAluno||subject)+'</small>'+(!compact&&lesson.forja2NativeHistorical?'<span class="forja2-history-label">Histórico</span>':'')+window.forjaAgenda2LessonMeta(lesson,{place:!compact});
  };
  window.forjaAgenda2LessonLegend=()=>'<div class="forja2-legend" aria-label="Legenda das aulas"><span class="presencial">Presencial</span><span class="online">Online</span><span class="unknown">Modalidade não informada</span></div>';
  window.forjaAgenda2CalendarLesson=(lesson,role)=>{
@@ -89,10 +97,11 @@
   for(const button of workspace.querySelectorAll('[data-forja2-therapy-day]'))button.onclick=()=>{if(state.role!=='psychologist')return;state.agendaDate=button.dataset.forja2TherapyDay;state.agendaView='day';renderPage();};
  };
  const sourceLabel=source=>source==='google-central'?'Google central':'Google pessoal';
- const position=(style,a,b)=>style(time(a),time(b)).replace(/height:[\d.]+px/,'height:'+((b-a)*48/60).toFixed(1)+'px');
+ const position=(style,a,b)=>style(time(a),time(b)).replace(/height:[\d.]+px/,'height:'+((b-a)*96/60).toFixed(1)+'px');
  function busyFor(r,day){return (r?.busy||[]).flatMap(x=>{const a=part(x.startAt),b=part(x.endAt),ad=dayKey(a),bd=dayKey(b);if(day<ad||day>bd)return [];const start=day===ad?a.hour+':'+a.minute:'00:00',end=day===bd?b.hour+':'+b.minute:'24:00';return end>start?[{start,end,source:x.source}]:[];});}
  function cuts(r,day){return [...busyFor(r,day),...(r?.blocks||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})),...(r?.school||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})),...(r?.lessons||[]).filter(x=>String(x.dataAula).slice(0,10)===day&&!/cancel/i.test(x.status||'')).map(x=>({start:x.horaAula,end:x.horaFim}))];}
- window.forjaAgenda2Periods=(uid,day)=>{const r=row(uid,day);return fresh()&&r?.status==='success'?(r.days[day]||[]):[];};
+ const confirmedRow=r=>record&&!record.error&&r?.status==='success'&&['native','personal','central'].every(source=>sourceCurrent(r,source));
+ window.forjaAgenda2Periods=(uid,day)=>{const r=row(uid,day);return confirmedRow(r)?(r.days[day]||[]):[];};
  // Presentation metadata belongs to a clone, never to the source/native cache.
  // Google failure alone does not invalidate a currently confirmed native row.
  window.forjaAgenda2Lessons=(uid,day)=>{
@@ -103,39 +112,39 @@
   const lessons=r?.lessons??(state.lessons||[]).filter(l=>l?.professorId===uid);
   return lessons.filter(l=>String(l.dataAula||'').slice(0,10)===day).map(l=>({...l,forja2NativeHistorical:r?.nativeHistorical??true}));
  };
- window.forjaAgenda2Google=(uid,day)=>{const r=row(uid,day);return r&&timely()?busyFor(r,day):[];};
- window.forjaAgenda2School=(uid,day)=>{const r=row(uid,day);return r?.nativeStatus==='success'&&timely()?r.school.filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})):[];};
+ window.forjaAgenda2Google=(uid,day)=>{const r=row(uid,day);return busyFor(r,day).filter(x=>sourceCurrent(r,x.source==='google-central'?'central':'personal'));};
+ window.forjaAgenda2School=(uid,day)=>{const r=row(uid,day);return sourceCurrent(r,'native')?r.school.filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})):[];};
  window.forjaAgenda2SchoolCards=(uid,day,style)=>window.forjaAgenda2School(uid,day).map(x=>`<div class="v621-block busy school" style="${style(x.start,x.end)}" title="Calendário escolar bloqueia este período"><b>Bloqueio escolar</b><small>${x.start}–${x.end}</small></div>`).join('');
- window.forjaAgenda2Blocks=(uid,day)=>{const r=row(uid,day);return r?.nativeStatus==='success'&&timely()?r.blocks.filter(x=>String(x.data).slice(0,10)===day).map(x=>({id:x.id,start:x.horaInicio,end:x.horaFim,source:x})):[];};
+ window.forjaAgenda2Blocks=(uid,day)=>{const r=row(uid,day);return sourceCurrent(r,'native')?r.blocks.filter(x=>String(x.data).slice(0,10)===day).map(x=>({id:x.id,start:x.horaInicio,end:x.horaFim,source:x})):[];};
  function occupiedSources(r,day){return [
   ...busyFor(r,day).map(x=>({...x,label:sourceLabel(x.source)})),
   ...(r?.blocks||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim,label:'Bloqueio FORJA',manual:x})),
   ...(r?.school||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim,label:'Calendário escolar'}))
  ];}
- function displaySources(uid,day){const r=row(uid,day),live=timely();return occupiedSources(displayRow(uid,day),day).map(x=>({...x,historical:!live||(x.label.startsWith('Google')?r?.[x.label==='Google central'?'central':'personal']?.status!=='success':r?.nativeStatus!=='success')}));}
+ function displaySources(uid,day){const r=row(uid,day);return occupiedSources(displayRow(uid,day),day).map(x=>({...x,historical:!sourceCurrent(r,x.label==='Google central'?'central':x.label==='Google pessoal'?'personal':'native')}));}
  // Presentation only: union overlapping busy sources and leave native lesson
  // cards visible. This NEVER removes an interval from cuts(), booking or Google.
  window.forjaAgenda2BusyCards=(uid,day,style,role,filters={},name='')=>{
   const r=displayRow(uid,day);if(filters.busy===false||!r)return '';
-  const nativeKnown=timely()&&r.nativeStatus==='success';
+  const nativeKnown=sourceCurrent(row(uid,day),'native');
   const sources=displaySources(uid,day),lessons=r.lessons.filter(x=>String(x.dataAula).slice(0,10)===day&&!/cancel/i.test(x.status||'')),points=new Set([420,1320]);
   for(const x of [...sources,...lessons.map(x=>({start:x.horaAula,end:x.horaFim}))])for(const t of [x.start,x.end])points.add(Math.max(420,Math.min(1320,minutes(t))));
   const bounds=[...points].sort((a,b)=>a-b),parts=[];
   for(let i=0;i<bounds.length-1;i++){
    const a=bounds[i],b=bounds[i+1],active=sources.filter(x=>minutes(x.start)<b&&minutes(x.end)>a);
-   if(!active.length||filters.lesson!==false&&lessons.some(x=>minutes(x.horaAula)<b&&minutes(x.horaFim)>a))continue;
-   const labels=[...new Set(active.map(x=>x.label))].sort(),manual=[...new Map(active.filter(x=>x.manual).map(x=>[x.manual.id,x.manual])).values()],stale=active.every(x=>x.historical),key=JSON.stringify([labels,manual.map(x=>x.id).sort(),stale]),last=parts.at(-1);
-   if(last?.b===a&&last.key===key)last.b=b;else parts.push({a,b,labels,manual,key,stale});
+   if(!active.length||filters.lesson!==false&&(nativeKnown||active.every(x=>x.historical))&&lessons.some(x=>minutes(x.horaAula)<b&&minutes(x.horaFim)>a))continue;
+   const confirmed=active.filter(x=>!x.historical),shown=confirmed.length?confirmed:active,labels=[...new Set(shown.map(x=>x.label))].sort(),manual=[...new Map(shown.filter(x=>x.manual).map(x=>[x.manual.id,x.manual])).values()],stale=!confirmed.length,key=JSON.stringify([labels,manual.map(x=>x.id).sort(),stale]),last=parts.at(-1);
+   if(last?.b===a&&(last.key===key||last.stale===stale&&!last.manual.length&&!manual.length&&[...last.labels,...labels].every(x=>x.startsWith('Google')))){last.b=b;last.labels=[...new Set([...last.labels,...labels])].sort();}else parts.push({a,b,labels,manual,key,stale});
   }
   return parts.map(({a,b,labels,manual,stale})=>{
    const editable=nativeKnown&&role==='teacher'&&manual.length===1,m=manual[0],tag=editable?'button':'div',origin=labels.join(' · '),attrs=editable?`type="button" data-v625-busy="${escape(m.id)}" data-date="${escape(day)}" data-start="${escape(m.horaInicio)}" data-end="${escape(m.horaFim)}"`:'',extra=nativeKnown&&role==='teacher'&&manual.length>1?manual.map(x=>`<button type="button" data-v625-busy="${escape(x.id)}" data-date="${escape(day)}" data-start="${escape(x.horaInicio)}" data-end="${escape(x.horaFim)}">Ver bloqueio FORJA</button>`).join(''):'';
    const period=time(a)+'–'+time(b),label=[name,stale?'Última informação conhecida':'Ocupado',origin,period].filter(Boolean).join(' · '),shortOrigin=labels.some(x=>x.startsWith('Google'))&&labels.every(x=>x.startsWith('Google'))?(labels.length===1?labels[0]:'Google'):origin;
-   return `<${tag} ${attrs} class="v621-block ${role==='admin'?'v629-block':''} busy forja2-band forja2-busy ${stale?'forja2-historical':''} ${labels.includes('Calendário escolar')?'school':''} ${labels.some(x=>x.startsWith('Google'))?'google':''}" style="${position(style,a,b)}" data-forja2-origin="${escape(origin)}" data-forja2-start="${time(a)}" data-forja2-end="${time(b)}" aria-label="${escape(label)}" title="${escape(label)}"><b>${period}</b><span class="forja2-origin">${stale?'Histórico':'Ocupado'} · ${escape(shortOrigin)}</span>${extra}</${tag}>`;
+   return `<${tag} ${attrs} class="v621-block ${role==='admin'?'v629-block':''} busy forja2-band forja2-busy ${stale?'forja2-historical':''} ${labels.includes('Calendário escolar')?'school':''} ${labels.some(x=>x.startsWith('Google'))?'google':''}" style="${position(style,a,b)}" data-forja2-key="${escape(['busy',uid,a,b,origin].join(':'))}" data-forja2-professional="${escape(uid)}" data-forja2-origin="${escape(origin)}" data-forja2-start="${time(a)}" data-forja2-end="${time(b)}" aria-label="${escape(label)}" title="${escape(label)}"><b>${period.replace('–','–<wbr>')}</b><span class="forja2-origin">${stale?'Histórico · ':''}${escape(shortOrigin)}</span>${extra}</${tag}>`;
   }).join('');
  };
  window.forjaAgenda2HistoricalMonth=(uid,day)=>(state.role==='admin'?state.v629SecretaryFilters:state.v624Filters)?.busy!==false&&displaySources(uid,day).some(x=>x.historical);
  window.forjaAgenda2LessonOrigin=(uid,day,start,end)=>{
-  const r=row(uid,day);return timely()&&r?.nativeStatus==='success'?[...new Set(occupiedSources(r,day).filter(x=>minutes(x.start)<minutes(end)&&minutes(x.end)>minutes(start)).map(x=>x.label))].join(' · '):'';
+  const r=row(uid,day);return sourceCurrent(r,'native')?[...new Set(occupiedSources(r,day).filter(x=>minutes(x.start)<minutes(end)&&minutes(x.end)>minutes(start)).map(x=>x.label))].join(' · '):'';
  };
  window.forjaAgenda2DecorateLesson=button=>{
   const parent=button.closest('.v621-lane,.v621-month-cell'),day=parent?.dataset.date||parent?.dataset.v629Day||parent?.dataset.v625MonthDay||parent?.dataset.v629MonthDay;
@@ -165,11 +174,13 @@
  // cuts remain the full original intervals; no event is hidden or shortened.
  window.forjaAgenda2Polish=orderedIds=>{
   const calendar=document.querySelector('.v629-calendar-card');
-  if(calendar)calendar.style.setProperty('--forja2-lane-min',Math.max(112,(orderedIds?.length||1)*112)+'px');
+  if(calendar)calendar.style.setProperty('--forja2-lane-min',Math.max(144,(orderedIds?.length||1)*144)+'px');
   // Move the existing control node (and its handlers) beside the calendar's
   // filters, once per render. Do not recreate an edited select on each poll.
-  const entry=document.getElementById('forjaFixedEntry'),target=state.role==='admin'?document.querySelector('.v629-sidebar .forja2-filter-content'):null;
+  const entry=document.getElementById('forjaFixedEntry'),target=document.querySelector(state.role==='admin'?'.v629-sidebar .forja2-filter-content':'.forja2-teacher-filters .forja2-filter-content');
   if(entry&&target&&entry.parentElement!==target)target.append(entry);
+  const diagnostics=document.querySelector('[data-personal-google-status]'),googleActions=document.querySelector('.v622-topbar .v622-sync');
+  if(diagnostics&&googleActions&&!googleActions.contains(diagnostics))googleActions.append(diagnostics);
   const teacherFilters=document.querySelector('.forja2-teacher-filters');
   if(teacherFilters&&!teacherFilters.dataset.boundFine){teacherFilters.dataset.boundFine='1';teacherFilters.ontoggle=()=>{state.v625AgendaFiltersOpen=teacherFilters.open};}
   const viewport=document.querySelector('.forja2-agenda .v621-week-wrap'),c=context;
@@ -187,11 +198,12 @@
      const l=lessons.find(x=>x.id===button.dataset.lesson);if(!l)return [];
      const text=[l.nomeAluno||'Aluno',typeof lessonTitle==='function'?lessonTitle(l):'Aula FORJA',[l.horaAula,l.horaFim].filter(Boolean).join('–'),window.forjaAgenda2Modality(l).label,l.localAula||'',l.nomeProfessor||state.users?.find(x=>x.uid===uid)?.fullName||'Professor'].filter(Boolean).join(' · '),origin=window.forjaAgenda2LessonOrigin(uid,day,l.horaAula,l.horaFim);
      button.title=text+(origin?' · Também ocupado · '+origin:'')+(l.forja2NativeHistorical?' · '+nativeHistoryLabel:'');button.setAttribute('aria-label',button.title);
-     if(state.role==='admin')button.querySelector('b').textContent=(l.forja2NativeHistorical?'Histórico · ':'')+(l.nomeAluno||'Aluno');
      // Keep the native renderer's legacy layout if its cached duration is
      // incomplete. Only a valid snapshot can confirm the complete interval.
      return timeValid(l.horaAula)&&timeValid(l.horaFim)?[{button,start:minutes(l.horaAula),end:minutes(l.horaFim)}]:[];
-    }).sort((a,b)=>a.start-b.start||b.end-a.end||a.button.dataset.lesson.localeCompare(b.button.dataset.lesson));
+    });
+    if(!sourceCurrent(row(uid,day),'native'))for(const button of lane.querySelectorAll('.forja2-busy:not(.forja2-historical)'))if(button.dataset.forja2Professional===uid)cards.push({button,start:minutes(button.dataset.forja2Start),end:minutes(button.dataset.forja2End)});
+    cards.sort((a,b)=>a.start-b.start||b.end-a.end||(a.button.dataset.lesson||a.button.dataset.forja2Key||'').localeCompare(b.button.dataset.lesson||b.button.dataset.forja2Key||''));
     let group=[],until=-1;
     const layout=()=>{const ends=[];for(const item of group){let column=ends.findIndex(end=>end<=item.start);if(column<0)column=ends.length;ends[column]=item.end;item.column=column;}
      for(const item of group){const count=Math.max(1,ids.length),columns=ends.length,left=(index+item.column/columns)*100/count,width=100/count/columns;
@@ -204,12 +216,24 @@
   // Preserve an explicit state word even when a monthly professional name is
   // ellipsized. Full text remains in the accessible name and native tooltip.
   for(const tag of document.querySelectorAll('.forja2-agenda .v621-month-tag,.forja2-agenda .v629-month-tag')){
-   const text=tag.textContent.trim()+(tag.classList.contains('forja2-native-history')?' · '+nativeHistoryLabel:'');tag.title=text;tag.setAttribute('aria-label',text);
+   const text=(tag.dataset.forja2MonthStatus||tag.dataset.forja2Summary?tag.getAttribute('aria-label'):tag.textContent.trim())+(tag.classList.contains('forja2-native-history')?' · '+nativeHistoryLabel:'');tag.title=text;tag.setAttribute('aria-label',text);
    tag.dataset.forja2Label=tag.classList.contains('lesson')?(tag.classList.contains('forja2-online')?'Online':tag.classList.contains('forja2-presencial')?'Presencial':'Aula'):tag.classList.contains('availability')?'Livre':tag.classList.contains('busy')?'Ocupado':tag.classList.contains('unknown')?'Verificar':tag.classList.contains('outside')?'Fora':tag.classList.contains('cancelled')?'Cancelada':'';
   }
  };
+ window.forjaAgenda2MonthDensity=(root,admin)=>{
+  for(const cell of root.querySelectorAll('.v621-month-cell')){
+   for(const kind of ['availability','busy']){
+    const tags=[...cell.querySelectorAll('.v621-month-tag.'+kind+',.v629-month-tag.'+kind)],total=context?.ids.length||1;if(!tags.length)continue;
+    tags[0].dataset.forja2Compact=admin&&total>1?tags.length+'/'+total:kind==='availability'?'Livre':'Ocup.';
+    tags[0].setAttribute('aria-label',tags.length+' de '+total+' profissional(is) '+(kind==='availability'?'com horários livres confirmados':'com ocupação confirmada')+' · '+tags.map(x=>x.textContent).join(' · '));tags[0].dataset.forja2Summary='1';for(const tag of tags.slice(1))tag.remove();
+   }
+   const lessons=[...cell.querySelectorAll('button[data-lesson]')],day=cell.dataset.v629MonthDay||cell.dataset.v625MonthDay;if(!day||lessons.length<=2)continue;
+   const hidden=lessons.slice(2);for(const card of hidden)card.remove();
+   const button=document.createElement('button');button.type='button';button.className='forja2-more-lessons';button.dataset.forja2Date=day;button.textContent='+'+hidden.length;button.setAttribute('aria-label',hidden.length+' aula(s) adicional(is). Ver todas as aulas de '+day);cell.querySelector('.v621-month-tags')?.append(button);
+  }
+ };
  window.forjaAgenda2Bands=(uid,day,style)=>{
-  const r=row(uid,day),known=fresh()&&r?.status==='success',native=r?.nativeStatus==='success'&&timely(),published=native?(r?.days?.[day]||[]):[],occupied=native?cuts(r,day):[],points=new Set([420,1320]);
+  const r=row(uid,day),known=confirmedRow(r),native=sourceCurrent(r,'native'),published=native?(r?.days?.[day]||[]):[],occupied=native?cuts(r,day):[],points=new Set([420,1320]);
   for(const p of published)for(const t of [p.inicio,p.fim])points.add(Math.max(420,Math.min(1320,minutes(t))));
   for(const p of occupied)for(const t of [p.start,p.end])points.add(Math.max(420,Math.min(1320,minutes(t))));
   const bounds=[...points].sort((a,b)=>a-b);let html='';
@@ -217,16 +241,16 @@
    // Available/busy/lessons already have one native card with its official action.
    // Only unrepresented neutral/unknown intervals need a background band.
    if(kind==='busy'||kind==='available')continue;
-   const label=kind==='unknown'?'Disponibilidade não confirmada':'Fora da publicação';html+=`<div class="forja2-band forja2-state ${kind}" style="${position(style,a,b)};--forja2-grid-offset:${(-((a-420)*48/60)).toFixed(1)}px" role="img" aria-label="${label} ${time(a)}–${time(b)}" title="${label}"><span>${label}</span></div>`;
+   const label=kind==='unknown'?'Disponibilidade não confirmada':'Fora da publicação';html+=`<div class="forja2-band forja2-state ${kind}" style="${position(style,a,b)};--forja2-grid-offset:${(-((a-420)*96/60)).toFixed(1)}px" data-forja2-key="${escape(['state',uid,a,b,kind].join(':'))}" role="img" aria-label="${label} ${time(a)}–${time(b)}" title="${label}"></div>`;
   }
   return html;
  };
  window.forjaAgenda2DayKind=(uid,day)=>{
-  const r=row(uid,day);if(r?.nativeStatus!=='success'||!timely())return 'unknown';const periods=r.days[day]||[],occupied=cuts(r,day);if(!periods.length)return occupied.length?'busy':'outside';if(!fresh()||r.status!=='success')return 'unknown';
+  const r=row(uid,day);if(!sourceCurrent(r,'native'))return 'unknown';const periods=r.days[day]||[],occupied=cuts(r,day);if(!periods.length)return occupied.length?'busy':'outside';if(!confirmedRow(r))return 'unknown';
   for(const p of periods){let parts=[[minutes(p.inicio),minutes(p.fim)]];for(const cut of occupied){const a=minutes(cut.start),b=minutes(cut.end);parts=parts.flatMap(([s,e])=>b<=s||a>=e?[[s,e]]:[...(a>s?[[s,a]]:[]),...(b<e?[[b,e]]:[])]);}if(parts.some(([s,e])=>e>s))return 'available';}return 'busy';
  };
  function paint(){window.forjaAgenda2Paint?.();for(const host of document.querySelectorAll('[data-forja2-status]')){
-  const unavailable=!record||record.error||!fresh()||!record.value.complete;
+  const unavailable=!record||record.error||!record.value.complete||record.value.items.some(x=>!confirmedRow(x));
   if(context?.ids.length>50){host.classList.add('unavailable');host.textContent='Selecione até 50 professores para confirmar a consulta automática.';continue;}
   // Preserve fail-closed colors. Explain only safe, fixed source states to the
   // Secretariat; never display personal Google event content or credentials.
@@ -243,53 +267,78 @@
   if(institutionalIssue)details.push(institutionalIssue);
   const institutional=(record?.value.items||[]).some(x=>x.personal?.sourceMode==='institutional-events-v1');
   const phase=(failureReason||(quota?'Limite temporário na fonte Google; aguardando prazo de nova consulta':!record?'Carregamento inicial; horários ainda não confirmados':!timely()?'Dados vencidos; aguardando nova confirmação':!record.value.complete?'Fontes incompletas; horários não confirmados':''))+(!fresh()&&knownRows.size?' · Última informação conhecida nas ocupações; horários sem confirmação para agendar':'');
-  host.classList.toggle('unavailable',!!unavailable);host.textContent=(flight?'Consultando… · ':unavailable?'Consulta incompleta ou vencida · ':'Consulta confirmada · ')+(lastSuccess?'Última consulta completa: '+new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Aguardando primeira consulta completa')+(phase?' · '+phase:'')+(details.length?' · '+details.join(' · '):'')+(institutional?' · Fonte Google institucional administrada pela Secretaria':'')+(streamStatus?' · '+streamStatus:'');
+  host.classList.toggle('unavailable',!!unavailable);
+  if(!host.querySelector('.forja2-status-main')){const main=document.createElement('strong'),sources=document.createElement('div'),info=document.createElement('span'),diagnostic=document.createElement('details'),summary=document.createElement('summary'),body=document.createElement('div');main.className='forja2-status-main';sources.className='forja2-source-status';info.className='forja2-status-message';diagnostic.className='forja2-diagnostic';summary.textContent='Fontes e diagnóstico';body.className='forja2-diagnostic-body';diagnostic.append(summary,body);host.replaceChildren(main,sources,info,diagnostic);}
+  const timestamp=lastSuccess?new Date(lastSuccess).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo'}):'—',prefix=flight?'Consultando…':unavailable?'Consulta incompleta ou vencida':'Consulta confirmada';
+  const main=host.querySelector('.forja2-status-main'),mainText=prefix+' · última completa '+timestamp;if(main.textContent!==mainText)main.textContent=mainText;
+  const items=record?.value.items||[],sourceStates=['native','personal','central'].map(source=>({source,label:source==='native'?'FORJA':source==='personal'?'Google pessoal':'Google central',known:items.length>0&&items.every(x=>sourceCurrent(x,source)),notRequired:source!=='native'&&items.length>0&&items.every(x=>x[source]?.status==='not_applicable')}));
+  const pills=sourceStates.filter(x=>!x.notRequired).map(x=>'<span class="forja2-source-pill '+(x.known?'confirmed':'unavailable')+'">'+x.label+(x.known?' ✓':': pendente')+'</span>').join(''),sourceHost=host.querySelector('.forja2-source-status');if(sourceHost.innerHTML!==pills)sourceHost.innerHTML=pills;
+  const message=(failureReason||institutionalIssue||(centralConsent?'Google central: autorização pendente.':consent?'Google pessoal: consentimento pendente.':quota?'Limite temporário na fonte Google; horários sem confirmação para agendar.':unavailable?'Fontes incompletas ou vencidas; horários sem confirmação para agendar.':streamStatus.includes('indisponível')?streamStatus:institutional?'Agenda institucional gerenciada pela Secretaria.':'Atualização automática ativa.'))+(document.querySelector('.forja2-historical,.forja2-native-history')?' Há ocupações em histórico, sem confirmação atual.':'');
+  const info=host.querySelector('.forja2-status-message');if(info.textContent!==message)info.textContent=message;
+  const diagnostic=(phase||'Todas as fontes necessárias confirmadas')+(details.length?' · '+details.join(' · '):'')+(institutional?' · Fonte Google institucional administrada pela Secretaria':'')+(streamStatus?' · '+streamStatus:'')+(lastSuccess?' · Última consulta completa: '+timestamp:' · Aguardando primeira consulta completa'),body=host.querySelector('.forja2-diagnostic-body');if(body.textContent!==diagnostic)body.textContent=diagnostic;
+  if(state.role==='teacher'){
+   const controls=host.closest('.v622-topbar')?.querySelector('.v622-sync'),diagnostic=host.querySelector('.forja2-diagnostic'),refresh=controls?.querySelector('[data-forja2-refresh]');
+   if(refresh){refresh.classList.add('forja2-refresh-inline');host.append(refresh);}
+   if(controls&&!diagnostic.contains(controls))diagnostic.append(controls);
+  }
  }}
  const timeValid=x=>typeof x==='string'&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(x);
  function valid(value,c){
+  if(value?.collectionStartedAt!==undefined&&(!Number.isFinite(Date.parse(value.collectionStartedAt))||Date.parse(value.collectionStartedAt)>Date.parse(value.servedAt)))return false;
   if(value?.refreshMode!==undefined&&(value.refreshMode!=='events'||value.complete!==true||!Number.isFinite(Date.parse(value.sourceExpiresAt))||Date.parse(value.sourceExpiresAt)<=Date.parse(value.servedAt)||Date.parse(value.sourceExpiresAt)-Date.parse(value.servedAt)>INSTITUTIONAL_MAX_AGE||!value.items?.every(x=>x.personal?.sourceMode==='institutional-events-v1'&&x.personal?.status==='not_applicable')))return false;
   if(value?.policy!==POLICY||value.from!==c.from||value.to!==c.to||!Array.isArray(value.professionalIds)||JSON.stringify([...value.professionalIds].sort())!==JSON.stringify([...c.ids].sort())||!Array.isArray(value.items)||value.items.length!==c.ids.length||new Set(value.items.map(x=>x.professionalId)).size!==c.ids.length||typeof value.complete!=='boolean'||![value.checkedAt,value.expiresAt,value.servedAt].every(x=>Number.isFinite(Date.parse(x)))||Date.parse(value.expiresAt)-Date.parse(value.checkedAt)!==MAX_AGE||Date.parse(value.expiresAt)<=Date.parse(value.servedAt))return false;
   return value.complete===value.items.every(x=>x.status==='success')&&value.items.every(x=>{
    if(!c.ids.includes(x.professionalId)||!['success','unavailable'].includes(x.status)||!['success','unavailable'].includes(x.nativeStatus)||!['success','not_applicable','unavailable'].includes(x.personal?.status)||!['success','unavailable'].includes(x.central?.status)||x.status==='success'&&(x.nativeStatus!=='success'||x.personal.status==='unavailable'||x.central.status==='unavailable')||!x.days||typeof x.days!=='object'||!Array.isArray(x.lessons)||!Array.isArray(x.blocks)||!Array.isArray(x.school)||!Array.isArray(x.busy))return false;
    for(let d=c.from;d<=c.to;d=gAddDays(d,1))if(x.nativeStatus==='success'&&(!Array.isArray(x.days[d])||x.days[d].some(p=>!timeValid(p.inicio)||!timeValid(p.fim)||p.fim<=p.inicio)))return false;
-   return x.busy.every(b=>Number.isFinite(Date.parse(b.startAt))&&Date.parse(b.endAt)>Date.parse(b.startAt))&&x.blocks.every(b=>timeValid(b.horaInicio)&&timeValid(b.horaFim)&&b.horaFim>b.horaInicio)&&x.school.every(b=>timeValid(b.horaInicio)&&timeValid(b.horaFim)&&b.horaFim>b.horaInicio)&&x.lessons.every(l=>timeValid(l.horaAula)&&timeValid(l.horaFim)&&l.horaFim>l.horaAula);
+   return [x.personal.checkedAt,x.central.checkedAt].every(t=>t==null||Number.isFinite(Date.parse(t))&&Date.parse(t)<=Date.parse(value.servedAt))&&x.busy.every(b=>Number.isFinite(Date.parse(b.startAt))&&Date.parse(b.endAt)>Date.parse(b.startAt))&&x.blocks.every(b=>timeValid(b.horaInicio)&&timeValid(b.horaFim)&&b.horaFim>b.horaInicio)&&x.school.every(b=>timeValid(b.horaInicio)&&timeValid(b.horaFim)&&b.horaFim>b.horaInicio)&&x.lessons.every(l=>timeValid(l.horaAula)&&timeValid(l.horaFim)&&l.horaFim>l.horaAula);
   });
  }
- function accept(value,c,transferredTtl=null){
+ function accept(value,c,transferredTtl=null,transferredAge=null){
   if(!current(c)||!valid(value,c)||changeVersion&&value.changeVersion!==changeVersion)throw Error('AGENDA_RESULT_INVALID');
   // Deduct transport/Auth time as well as server-side source age. A transfer
   // between tabs carries the remaining lifetime, never a fresh full lifetime.
   const serviceTime=Number.isFinite(Date.parse(value.deliveryStartedAt))?Math.max(0,Date.parse(value.servedAt)-Date.parse(value.deliveryStartedAt)):0;
-  const requestAge=flight&&!flight.shared?Math.max(0,performance.now()-flight.startedAt-serviceTime):0;
-  const eventDriven=value.refreshMode==='events';
+  const requestAge=transferredAge??(flight&&!flight.shared?Math.max(0,performance.now()-flight.startedAt-serviceTime):0);
+  const eventDriven=value.refreshMode==='events',previousDeadline=record?.value.sourceExpiresAt;
   if(eventDriven&&(!streamSeenAt||Date.now()-streamSeenAt>=45000))throw Error('AGENDA_STREAM_UNAVAILABLE');
   const maxAge=eventDriven?INSTITUTIONAL_MAX_AGE:MAX_AGE,sourceTtl=eventDriven?Date.parse(value.sourceExpiresAt)-Date.parse(value.servedAt):Date.parse(value.expiresAt)-Date.parse(value.servedAt);
-  const ttl=Math.min(maxAge,sourceTtl,transferredTtl??maxAge)-requestAge;
+  const ttl=Math.min(maxAge,sourceTtl-requestAge,transferredTtl??maxAge);
   if(!Number.isFinite(ttl)||ttl<=0)throw Error('AGENDA_RESULT_EXPIRED');
-  awaitingStream=false;accessDenied=false;remember(value);record={key:c.key,value,expires:performance.now()+ttl,wallExpires:Date.now()+ttl,error:false};failureReason=null;
+  const sources=new Map(value.items.map(item=>[item.professionalId,Object.fromEntries(['native','personal','central'].map(source=>{
+   const stamp=source==='native'?value.collectionStartedAt||value.checkedAt:item[source]?.checkedAt||value.collectionStartedAt||value.checkedAt;
+   const explicit=source==='native'?NaN:Date.parse(item[source]?.expiresAt),remaining=eventDriven?(source==='central'?(Number.isFinite(explicit)?explicit:Date.parse(value.sourceExpiresAt)):Date.parse(value.collectionStartedAt||value.checkedAt)+INSTITUTIONAL_MAX_AGE)-Date.parse(value.servedAt):Number.isFinite(explicit)?Math.min(MAX_AGE,explicit-Date.parse(value.servedAt)):Date.parse(stamp)+MAX_AGE-Date.parse(value.servedAt),life=Math.max(0,Math.min(maxAge,remaining,transferredTtl!==null&&transferredAge===null?transferredTtl:maxAge)-requestAge);
+   return [source,{expires:performance.now()+life,wallExpires:Date.now()+life}];
+  }))]));
+  observedLatency=Math.max(flight&&!flight.shared?performance.now()-flight.startedAt:serviceTime+requestAge,observedLatency*.8);
+  clearTimeout(changeTimer);changeTimer=null;
+  awaitingStream=false;accessDenied=false;remember(value);record={key:c.key,value,sources,transportAge:requestAge,expires:performance.now()+ttl,wallExpires:Date.now()+ttl,error:false,revoked:false,leaseLost:false};failureReason=null;
   for(const item of value.items)if(typeof item.personal.connected==='boolean'){
    const metadata={connected:item.personal.connected,lastSyncAt:(item.personal.sourceMode==='institutional-events-v1'?item.central.checkedAt:item.personal.lastSyncAt)||null,...(item.personal.sourceMode?{sourceMode:item.personal.sourceMode,managedBySecretaria:true}:{})};
    if(state.role==='admin'){const old=(state.googleConnections||[]).find(x=>x.uid===item.professionalId)||{};state.googleConnections=[...(state.googleConnections||[]).filter(x=>x.uid!==item.professionalId),{...old,uid:item.professionalId,...metadata}];}
    else state.googleCalendar={...state.googleCalendar,item:{...state.googleCalendar?.item,...metadata}};
   }
   if(value.complete){lastSuccess=value.checkedAt;failures=0;retryUntil=0;}else failures++;
-  const retry=Math.min(86400000,Math.max(0,Number(value.retryAfterMs)||0));if(!value.complete&&retry>0)retryUntil=performance.now()+retry;
+  const retry=Math.min(86400000,Math.max(0,Number(value.retryAfterMs)||0));record.sourceRetryAt=retry?performance.now()+retry:0;
   // Source cache age shortens the next deadline; it never grants another 25s.
   // Native writes arrive independently through the authenticated change stream.
-  nextAt=Math.max(retryUntil,performance.now()+(value.complete?Math.max(1000,eventDriven?ttl:ttl-SOURCE_LEAD):retry>0?retry:Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3))));}
+  // Read before expiry, including institutional projections. If the server has
+  // not renewed that projection yet, wait for its existing deadline, not a loop
+  // of one-second reads. No deadline is extended by this scheduling decision.
+  const lead=Math.min(MAX_AGE-15000,Math.max(SOURCE_LEAD,observedLatency+2000)),unchanged=eventDriven&&previousDeadline===value.sourceExpiresAt&&ttl<=lead,normal=Math.max(1000,unchanged?ttl:ttl-lead),healthy=value.items.some(x=>x.nativeStatus==='success'||x.personal.status==='success'||x.central.status==='success');
+  nextAt=Math.max(retryUntil,performance.now()+(value.complete?normal:healthy?Math.min(BACKOFF_BASE,retry||BACKOFF_BASE):retry||Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3))));}
  function connectChannel(c){
   if(typeof BroadcastChannel!=='function')return;
   // Different UIDs, generations, roles and periods do not receive this payload.
   channel=new BroadcastChannel('forja-agenda-readonly-v1:'+c.key);
   channel.addEventListener('message',event=>{const m=event.data,age=Date.now()-m?.sentAt;if(m?.key!==c.key||!current(c)||!(age>=0&&age<(m?.value?.refreshMode==='events'?INSTITUTIONAL_MAX_AGE:MAX_AGE)))return;
-   if(m.kind==='changes'){streamSeenAt=Date.now();handleChange(c,m.event);return;}
+   if(m.kind==='changes'){noteStream();handleChange(c,m.event);return;}
    if(m.kind==='cooldown'&&Number.isFinite(m.wait)&&m.wait>age){retryUntil=Math.max(retryUntil,performance.now()+Math.min(86400000,m.wait-age));nextAt=Math.max(nextAt,retryUntil);failureReason='Limite temporário de consultas; nova tentativa automática';if(record)record.error=true;paint();schedule();return;}
-   if(m.kind==='snapshot'&&!accessDenied&&performance.now()>=retryUntil&&!localDirty&&!flight&&Number.isFinite(m.ttlMs)&&m.ttlMs>0){try{accept(m.value,c,m.ttlMs-age);paint();schedule();}catch{}}
+   if(m.kind==='snapshot'&&!accessDenied&&performance.now()>=retryUntil&&!localDirty&&!flight&&Number.isFinite(m.ttlMs)&&m.ttlMs>0){try{accept(m.value,c,m.ttlMs-age,Number.isFinite(m.elapsedMs)&&m.elapsedMs>=0?m.elapsedMs+age:null);paint();schedule();}catch{}}
   });
  }
  const queryFor=c=>{const query=new URLSearchParams({from:c.from,to:c.to});for(const id of c.ids)query.append('professionalId',id);return query;};
- function changed(c){
-  if(!current(c))return;revision++;if(record)record.error=true;failureReason='Alteração detectada; confirmando horários';paint();
+ function changed(c,sources=null,refreshOnly=false){
+  if(!current(c))return;revision++;if(!refreshOnly){if(record){record.error=true;if(Array.isArray(sources)&&sources.length&&sources.every(x=>['native','personal','central'].includes(x))){record.invalidSources||=new Set();for(const source of sources)record.invalidSources.add(source);}else record.revoked=true;}failureReason='Alteração detectada; confirmando horários';}paint();
   clearTimeout(changeTimer);changeTimer=setTimeout(()=>{if(!current(c))return;nextAt=Math.max(retryUntil,performance.now());schedule();},250);
  }
  function handleChange(c,event){
@@ -303,7 +352,7 @@
    else if((!record||record.error)&&!flight){nextAt=Math.max(retryUntil,performance.now());schedule();}
    if(event.kind==='ready')paint();
   }
-  else if(event.kind==='changed')changed(c);
+  else if(event.kind==='changed')changed(c,event.sources,event.refreshOnly===true&&Array.isArray(event.sources)&&event.sources.length===1&&event.sources[0]==='central');
   else if(event.kind==='unauthorized'){revision++;denyAccess();failureReason='Consulta sem autorização; conferir acesso da conta';paint();}
   else if(event.kind==='unavailable'){streamStatus='Acompanhamento de alterações indisponível; recuperando consulta';if(record?.value.refreshMode==='events'){record.error=true;failureReason='Acompanhamento interrompido; horários não confirmados';paint();}}
  }
@@ -325,7 +374,7 @@
     clearTimeout(deadline);const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
     const watchdog=setInterval(()=>{if(Date.now()-connection.last>45000)connection.controller.abort();},15000);
     try{for(;;){const part=await reader.read();if(part.done)break;if(!current(c))break;buffer+=decoder.decode(part.value,{stream:true});if(buffer.length>8192)throw Error('AGENDA_STREAM_INVALID');let boundary;
-     while((boundary=buffer.indexOf('\n\n'))>=0){const frame=buffer.slice(0,boundary);buffer=buffer.slice(boundary+2);if(!frame.startsWith('data: '))continue;const event=JSON.parse(frame.slice(6));if(!['ready','changed','heartbeat','unavailable','unauthorized','reconnect'].includes(event.kind))throw Error('AGENDA_STREAM_INVALID');connection.last=Date.now();streamSeenAt=Date.now();streamFailures=0;handleChange(c,event);channel?.postMessage({kind:'changes',key:c.key,event,sentAt:Date.now()});if(['reconnect','unauthorized','unavailable'].includes(event.kind))return;}
+     while((boundary=buffer.indexOf('\n\n'))>=0){const frame=buffer.slice(0,boundary);buffer=buffer.slice(boundary+2);if(!frame.startsWith('data: '))continue;const event=JSON.parse(frame.slice(6));if(!['ready','changed','heartbeat','unavailable','unauthorized','reconnect'].includes(event.kind))throw Error('AGENDA_STREAM_INVALID');connection.last=Date.now();noteStream();streamFailures=0;handleChange(c,event);channel?.postMessage({kind:'changes',key:c.key,event,sentAt:Date.now()});if(['reconnect','unauthorized','unavailable'].includes(event.kind))return;}
      }}finally{clearInterval(watchdog);await reader.cancel().catch(()=>{});reader.releaseLock();}
      // An unexpected EOF is also a transport failure. Explicit reconnect frames
      // return above; they do not pass through this fail-closed path.
@@ -342,17 +391,17 @@
  }
  function schedule(){
   clearTimeout(timer);if(!context||!current(context))return;
-  const now=performance.now(),expiry=record&&!record.error&&record.expires>now?record.expires:Infinity,liveness=record?.value.refreshMode==='events'&&!record.error&&streamSeenAt&&Date.now()-streamSeenAt<45000?now+45000-(Date.now()-streamSeenAt):Infinity,due=Math.min(flight?Infinity:nextAt,expiry,liveness);
+  const now=performance.now(),expiry=record&&!record.error&&record.expires>now?record.expires:Infinity,sourceExpiry=Math.min(Infinity,...[...(record?.sources?.values()||[])].flatMap(x=>Object.values(x)).map(x=>Math.min(x.expires,now+x.wallExpires-Date.now())).filter(x=>x>now)),liveness=record?.value.refreshMode==='events'&&!record.leaseLost&&streamSeenAt&&Date.now()-streamSeenAt<45000?now+45000-(Date.now()-streamSeenAt):Infinity,due=Math.min(flight?Infinity:nextAt,expiry,sourceExpiry,liveness);
   // Keep the original expiry armed during renewal. Do not spin or launch a
   // second GET while the existing request owns the refresh slot.
   if(!Number.isFinite(due))return;
-  timer=setTimeout(()=>{if(record?.value.refreshMode==='events'&&Date.now()-streamSeenAt>=45000){record.error=true;nextAt=Math.max(retryUntil,performance.now());}paint();if(!flight&&performance.now()>=nextAt)void refresh();else schedule();},Math.max(20,due-now));
+  timer=setTimeout(()=>{if(record?.value.refreshMode==='events'&&Date.now()-streamSeenAt>=45000){record.error=true;record.leaseLost=true;nextAt=navigator.onLine===false?Infinity:Math.max(retryUntil,performance.now());}paint();if(!flight&&performance.now()>=nextAt)void refresh();else schedule();},Math.max(20,due-now));
  }
  async function collect(c,request){
   const query=queryFor(c);
   let aborted;const cancel=new Promise((_,reject)=>{aborted=()=>reject(Error('AGENDA_ABORTED'));request.controller.signal.addEventListener('abort',aborted,{once:true});});
   let value;try{value=await Promise.race([api('/agenda/snapshot?'+query,{session:c.scope,signal:request.controller.signal}),cancel]);}finally{request.controller.signal.removeEventListener('abort',aborted);}
-  if(flight!==request||!current(c))return;if(request.revision!==revision){nextAt=Math.max(retryUntil,performance.now()+250);return false;}accept(value,c);localDirty=false;channel?.postMessage({kind:'snapshot',key:c.key,value,ttlMs:record.expires-performance.now(),sentAt:Date.now()});return value.complete;
+  if(flight!==request||!current(c))return;if(request.revision!==revision){nextAt=Math.max(retryUntil,performance.now()+250);return false;}accept(value,c);localDirty=false;channel?.postMessage({kind:'snapshot',key:c.key,value,ttlMs:record.expires-performance.now(),elapsedMs:record.transportAge,sentAt:Date.now()});return value.complete;
  }
  async function refresh({manual=false}={}){
   lifecycle(false);const c=context;if(!c||!current(c)||!c.ids.length||c.ids.length>50||navigator.onLine===false)return false;if(flight)return flight.promise;if(performance.now()<retryUntil){nextAt=retryUntil;schedule();return false;}
@@ -367,16 +416,24 @@
   })();return request.promise;
  }
  // Pause transport, never renew or extend the retained snapshot's expiry.
- function pause(){if(record?.value.refreshMode==='events'){record.error=true;streamSeenAt=0;}sequence++;clearTimeout(timer);clearTimeout(changeTimer);clearTimeout(streamTimer);streamTimer=null;stream?.controller.abort();stream=null;flight?.controller.abort();channel?.close();channel=null;flight=null;}
- function reset(){pause();context=null;record=null;knownRows.clear();accessDenied=false;lastSuccess=null;failureReason=null;failures=0;nextAt=0;retryUntil=0;revision=0;streamSeenAt=0;streamFailures=0;streamStatus='';changeVersion=null;localDirty=false;awaitingStream=false;}
+ function pause(){if(record?.value.refreshMode==='events')record.error=true;sequence++;clearTimeout(timer);clearTimeout(changeTimer);clearTimeout(streamTimer);streamTimer=null;stream?.controller.abort();stream=null;flight?.controller.abort();channel?.close();channel=null;flight=null;}
+ function reset(){pause();context=null;record=null;knownRows.clear();accessDenied=false;lastSuccess=null;failureReason=null;failures=0;nextAt=0;retryUntil=0;revision=0;streamSeenAt=0;streamFailures=0;streamStatus='';changeVersion=null;localDirty=false;awaitingStream=false;observedLatency=0;}
  function lifecycle(start=true){const c=capture(!document.hidden);if(!c){if(context)reset();return;}if(document.hidden){if(context?.key!==c.key)reset();else pause();return;}if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start){if(!channel)connectChannel(c);paint();}if(start){if(!stream&&!streamTimer)startChanges(c);if(!flight&&performance.now()>=nextAt)void refresh();}}
  window.forjaAgenda2Refresh=refresh;
- window.forjaAgenda2Mutation=path=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;if(context){localDirty=true;changed(context);}else lifecycle();};
+ window.forjaAgenda2Mutation=(path,result)=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;
+  // api() invokes this only after a successful response and its session fence.
+  // Keep canonical write receipts in the EXISTING display-only history, never
+  // in source proofs. A fresh native snapshot still replaces this entire set.
+  if(current(context)&&!accessDenied&&/^\/aulas(?:\/|$|-recorrentes(?:\/|$))/.test(path))for(const lesson of [result?.item,...(Array.isArray(result?.items)?result.items:[])]){
+   if(!lesson||typeof lesson.id!=='string'||!context.ids.includes(lesson.professorId)||!/^\d{4}-\d{2}-\d{2}$/.test(lesson.dataAula||'')||!timeValid(lesson.horaAula)||!timeValid(lesson.horaFim)||lesson.horaFim<=lesson.horaAula)continue;
+   const old=knownRows.get(lesson.professorId)||{};knownRows.set(lesson.professorId,{...old,lessons:[...(old.lessons??accountLessons(lesson.professorId)).filter(x=>x.id!==lesson.id),{...lesson}]});
+  }
+  if(context){localDirty=true;changed(context);}else lifecycle();};
  const previousBind=bindPage;bindPage=function(){previousBind();window.forjaAgenda2ProfilePolish();lifecycle();};
  const previousNavigate=navigate;navigate=function(...args){const result=previousNavigate(...args);lifecycle();return result;};
  const previousSession=forjaChangeSession;forjaChangeSession=function(...args){reset();return previousSession(...args);};
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)nextAt=performance.now();lifecycle();});
- window.addEventListener('offline',()=>{pause();if(record)record.error=true;failureReason='Sem conexão; horários não confirmados';paint();});
+ window.addEventListener('offline',()=>{pause();if(record)record.error=true;nextAt=Infinity;failureReason='Sem conexão; horários não confirmados';paint();schedule();});
  window.addEventListener('online',()=>{nextAt=Math.max(retryUntil,performance.now());lifecycle();if(context)startChanges(context);});
  window.addEventListener('beforeunload',()=>{reset();channel?.close();},{once:true});
 })();

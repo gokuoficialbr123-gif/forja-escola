@@ -47,8 +47,8 @@ for(const role of ['teacher','admin'])for(const mobile of [false,true])for(const
   assert.match(await lane.locator('[data-forja2-start="09:00"]').getAttribute('data-forja2-origin'),/Google central · Google pessoal/);
   assert.equal(await lane.locator('.v621-block.lesson').count(),1);assert.match(await lane.locator('.v621-block.lesson').getAttribute('title'),/Também ocupado · Google pessoal/);
   assert.equal(await lane.locator('[data-forja2-start="13:00"]').count(),0,'blue keeps priority without a second red layer');
-  const g=await geometry(lane);assert.equal(g.height,720);assert.deepEqual(g.overlaps,[],'no backgrounds or cards obscure other cards');
-  const expected=await p.evaluate(()=>{const n=zonedDateParts(new Date());return ((Number(n.hour)*60+Number(n.minute)-420)*48/60)});assert.ok(Math.abs(parseFloat(g.now)-expected)<1,'current-time line uses the minute scale');
+  const g=await geometry(lane);assert.equal(g.height,1440);assert.deepEqual(g.overlaps,[],'no backgrounds or cards obscure other cards');
+  const expected=await p.evaluate(()=>{const n=zonedDateParts(new Date());return ((Number(n.hour)*60+Number(n.minute)-420)*96/60)});assert.ok(Math.abs(parseFloat(g.now)-expected)<1,'current-time line uses the minute scale');
   const key=mobile+':'+view,sig=g.cards.map(x=>[x.cls.includes('availability')?'available':x.cls.includes('lesson')?'lesson':x.cls.includes('unknown')?'unknown':x.cls.includes('outside')?'outside':'busy',x.top,x.height]);
   if(role==='teacher')signatures.set(key,sig);else assert.deepEqual(sig,signatures.get(key),'teacher and secretary use the same occupied/free intervals');
   before=await lane.locator('.v621-block,.forja2-state').count();
@@ -65,13 +65,13 @@ for(const role of ['teacher','admin'])for(const mobile of [false,true])for(const
  await refresh(f,'external');
  if(view!=='month'){
   const lane=laneFor(p,role);assert.equal(await lane.locator('[data-forja2-start="11:00"][data-forja2-end="12:00"]').count(),1);
-  const greens=await lane.locator('.availability').evaluateAll(xs=>xs.map(x=>({top:parseFloat(x.style.top),bottom:parseFloat(x.style.top)+parseFloat(x.style.height)})));assert.ok(greens.every(x=>x.bottom<=192||x.top>=240),'external busy removes green immediately after read');
+  const greens=await lane.locator('.availability').evaluateAll(xs=>xs.map(x=>({top:parseFloat(x.style.top),bottom:parseFloat(x.style.top)+parseFloat(x.style.height)})));assert.ok(greens.every(x=>x.bottom<=384||x.top>=480),'external busy removes green immediately after read');
  }
  for(const mode of ['all-day','multi-day']){
   await refresh(f,mode);
   const cell=view==='month'?p.locator(role==='admin'?`[data-v629-month-day="${reviewDay}"]`:`[data-v625-month-day="${reviewDay}"]`):laneFor(p,role);
   assert.equal(await cell.locator('.availability,.forja2-band.available').count(),0,mode+' never displays green');
-  if(view!=='month'){const busy=cell.locator('.forja2-busy');assert.equal(await busy.count(),1);assert.equal(await busy.evaluate(el=>parseFloat(el.style.height)),720);}
+  if(view!=='month'){const busy=cell.locator('.forja2-busy');assert.equal(await busy.count(),1);assert.equal(await busy.evaluate(el=>parseFloat(el.style.height)),1440);}
   const covered=mode==='multi-day'?['2026-10-21','2026-10-22']:[],exclusive=mode==='multi-day'?'2026-10-23':'2026-10-21';
   for(const day of [...covered,exclusive]){
    if(view==='day')await setDay(f,role,day);
@@ -90,14 +90,14 @@ for(const mobile of [false,true])test(`monthly professionals have independent st
  const f=await agendaPresentationFixture(browser,{role:'admin',mobile,mode:'professionals'});t.after(()=>f.close());await setView(f,'admin','month');const p=f.page,cell=p.locator(`[data-v629-month-day="${reviewDay}"]`);
  assert.equal(await cell.locator('.availability').count(),1);assert.match(await cell.locator('.availability').textContent(),/Professor sintético/);
  assert.equal(await cell.locator('.busy').count(),1);assert.match(await cell.locator('.busy').textContent(),/Professor ocupado/);
- assert.equal(await cell.locator('[data-forja2-month-status="REVIEW_UNKNOWN"]').count(),1);assert.match(await cell.locator('.unknown').textContent(),/Professor desconhecido · Não confirmado/);
+ assert.equal(await cell.locator('[data-forja2-month-status="REVIEW_UNKNOWN"]').count(),1);assert.equal(await cell.locator('.unknown').textContent(),'?');assert.match(await cell.locator('.unknown').getAttribute('aria-label'),/Professor desconhecido · Disponibilidade não confirmada/);
  assert.equal(await cell.evaluate(el=>el.classList.contains('available')),false);assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
 });
 
 for(const mobile of [false,true])test(`teacher editing and official busy handler survive five polls ${mobile?'mobile':'desktop'}`,async t=>{
  const f=await agendaPresentationFixture(browser,{mobile});t.after(()=>f.close());const p=f.page;await setView(f,'teacher','day');await cycles(f);
  await p.locator('[data-v625-busy="REVIEW_BLOCK"]').click();assert.match(await p.locator('#modal').textContent(),/Horário ocupado/);assert.match(await p.locator('#modal').textContent(),/14:00–15:00/);await p.evaluate(()=>closeModal());
- await p.locator('[data-v625-new-slot="busy"]').first().click();const fields=p.locator('#modal input');assert.ok(await fields.count()>0);
+ const filters=p.locator('.forja2-filters');if(!await filters.evaluate(el=>el.open))await filters.locator('summary').click();await p.locator('[data-v625-new-slot="busy"]').first().click();const fields=p.locator('#modal input');assert.ok(await fields.count()>0);
  const input=fields.last();await input.fill('19:30');const node=await input.elementHandle(),value=await input.inputValue(),html=await p.locator('#modal').innerHTML();await cycles(f);
  assert.equal(await input.inputValue(),value);assert.equal(await p.locator('#modal').innerHTML(),html);assert.equal(await node.evaluate(el=>el===document.querySelector('#'+el.id)),true);assert.deepEqual(f.errors,[]);
 });
