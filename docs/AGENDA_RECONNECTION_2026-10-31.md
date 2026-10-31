@@ -96,6 +96,15 @@ cinza identificado. Continuam exigindo vencimento no prazo original e exatamente
 uma renovação pendente, sem consulta duplicada. As quatro passaram após o ajuste;
 não houve alteração funcional adicional nem mudança de TTL.
 
+A execução local completa também revelou uma corrida de teardown no novo
+firewall de QA: depois de os9 cenários institucionais passarem, uma rota já
+cancelada recebia outro abort e gerava rejeição assíncrona. A fixture agora fica
+offline antes de remover as rotas de contexto e, depois, as rotas da página.
+Erros durante testes ativos continuam falhando; somente o encerramento usa a
+política de descarte do Playwright. A validação repetida desse arquivo e os
+resultados da CI final constam no comentário técnico. Nenhum código funcional,
+timeout, guarda de integridade ou proteção contra rede real foi relaxado.
+
 Galeria: [antes/depois com dados fictícios](evidence/agenda-reconnection-2026-10-31/README.md).
 
 ## Google: conclusão comprovada e pendência real
