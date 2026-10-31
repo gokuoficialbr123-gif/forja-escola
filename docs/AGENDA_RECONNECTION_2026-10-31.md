@@ -90,6 +90,11 @@ ambas corrigidas com asserções permanentes. A regressão de perda de autoriza�
 também falhou antes da proteção e passou depois. O checkpoint de logout usa
 `executeLogout()` e verifica tanto descarte lógico quanto ausência visual; chamar
 somente `forjaEndSession()` não representa o fluxo completo de saída.
+As quatro regressões antigas de vencimento foram adaptadas ao requisito novo:
+zero verde e zero vermelho confirmado, mantendo a ocupação somente como histórico
+cinza identificado. Continuam exigindo vencimento no prazo original e exatamente
+uma renovação pendente, sem consulta duplicada. As quatro passaram após o ajuste;
+não houve alteração funcional adicional nem mudança de TTL.
 
 Galeria: [antes/depois com dados fictícios](evidence/agenda-reconnection-2026-10-31/README.md).
 
