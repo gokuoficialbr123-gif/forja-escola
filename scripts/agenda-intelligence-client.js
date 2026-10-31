@@ -24,7 +24,7 @@
   for(const source of ['personal','central'])if(['success','not_applicable'].includes(item[source].status))next[source]=item.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source);
   knownRows.set(item.professionalId,next);
  }}
- function displayRow(uid,day){const r=row(uid,day),old=knownRow(uid,day);if(!r)return null;return {...r,lessons:r.nativeStatus==='success'?r.lessons:old?.lessons||[],blocks:r.nativeStatus==='success'?r.blocks:old?.blocks||[],school:r.nativeStatus==='success'?r.school:old?.school||[],busy:['personal','central'].flatMap(source=>['success','not_applicable'].includes(r[source].status)?r.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source):old?.[source]||[])};}
+ function displayRow(uid,day){const r=row(uid,day),old=knownRow(uid,day);if(!r)return null;return {...r,nativeHistorical:!timely()||r.nativeStatus!=='success',lessons:r.nativeStatus==='success'?r.lessons:old?.lessons||[],blocks:r.nativeStatus==='success'?r.blocks:old?.blocks||[],school:r.nativeStatus==='success'?r.school:old?.school||[],busy:['personal','central'].flatMap(source=>['success','not_applicable'].includes(r[source].status)?r.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source):old?.[source]||[])};}
  const historical=(uid,day)=>!timely()||row(uid,day)?.status!=='success';
  // Some suspended mobile processes stop performance.now while wall time passes.
  // Either clock expiring invalidates the result; neither can extend its TTL.
@@ -46,7 +46,8 @@
   const icon=kind==='online'?'<rect x="2" y="4" width="12" height="12" rx="2"/><path d="m14 8 5-3v10l-5-3z"/>':kind==='presencial'?'<path d="M3 18V7l7-4 7 4v11M7 18v-5h6v5M7 8h.01M13 8h.01M2 18h16"/>':'<circle cx="10" cy="10" r="7"/><path d="M8 8a2 2 0 1 1 3 2c-1 0-1 1-1 2M10 15h.01"/>';
   return {kind,label,icon:'<svg viewBox="0 0 20 20" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">'+icon+'</svg>'};
  };
- window.forjaAgenda2LessonClass=lesson=>'forja2-lesson forja2-'+window.forjaAgenda2Modality(lesson).kind;
+ const nativeHistoryLabel='Última informação conhecida · Aula não confirmada';
+ window.forjaAgenda2LessonClass=lesson=>'forja2-lesson forja2-'+window.forjaAgenda2Modality(lesson).kind+(lesson?.forja2NativeHistorical?' forja2-native-history':'');
  window.forjaAgenda2LessonMeta=(lesson,{place=true}={})=>{
   const m=window.forjaAgenda2Modality(lesson),location=place&&m.kind==='presencial'?String(lesson.localAula||'').trim():'';
   return '<span class="forja2-mode">'+m.icon+escape(m.label)+(location?'<span class="forja2-place"> · '+escape(location)+'</span>':'')+'</span>';
@@ -58,7 +59,7 @@
  };
  window.forjaAgenda2LessonContent=(lesson,{name='',compact=false}={})=>{
   const subject=typeof lessonTitle==='function'?lessonTitle(lesson):lesson.disciplinaNome||'Aula',period=[lesson.horaAula,lesson.horaFim].filter(Boolean).join('–');
-  return (compact?window.forjaAgenda2MonthTime(lesson):'')+'<b class="forja2-event-title">'+escape(name||lesson.nomeAluno||subject)+'</b><small class="forja2-event-time">'+escape([period,subject].filter(Boolean).join(' · '))+'</small>'+window.forjaAgenda2LessonMeta(lesson,{place:!compact});
+  return (compact?window.forjaAgenda2MonthTime(lesson):'')+(compact&&lesson.forja2NativeHistorical?'<span class="forja2-native-notice">Histórico</span>':'')+'<b class="forja2-event-title">'+(lesson.forja2NativeHistorical&&!compact?'Histórico · ':'')+escape(name||lesson.nomeAluno||subject)+'</b><small class="forja2-event-time">'+escape([period,subject].filter(Boolean).join(' · '))+'</small>'+window.forjaAgenda2LessonMeta(lesson,{place:!compact});
  };
  window.forjaAgenda2LessonLegend=()=>'<div class="forja2-legend" aria-label="Legenda das aulas"><span class="presencial">Presencial</span><span class="online">Online</span><span class="unknown">Modalidade não informada</span></div>';
  window.forjaAgenda2CalendarLesson=(lesson,role)=>{
@@ -92,7 +93,16 @@
  function busyFor(r,day){return (r?.busy||[]).flatMap(x=>{const a=part(x.startAt),b=part(x.endAt),ad=dayKey(a),bd=dayKey(b);if(day<ad||day>bd)return [];const start=day===ad?a.hour+':'+a.minute:'00:00',end=day===bd?b.hour+':'+b.minute:'24:00';return end>start?[{start,end,source:x.source}]:[];});}
  function cuts(r,day){return [...busyFor(r,day),...(r?.blocks||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})),...(r?.school||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})),...(r?.lessons||[]).filter(x=>String(x.dataAula).slice(0,10)===day&&!/cancel/i.test(x.status||'')).map(x=>({start:x.horaAula,end:x.horaFim}))];}
  window.forjaAgenda2Periods=(uid,day)=>{const r=row(uid,day);return fresh()&&r?.status==='success'?(r.days[day]||[]):[];};
- window.forjaAgenda2Lessons=(uid,day)=>displayRow(uid,day)?.lessons.filter(x=>String(x.dataAula).slice(0,10)===day)??null;
+ // Presentation metadata belongs to a clone, never to the source/native cache.
+ // Google failure alone does not invalidate a currently confirmed native row.
+ window.forjaAgenda2Lessons=(uid,day)=>{
+  if(accessDenied)return [];
+  const r=displayRow(uid,day);if(!r&&!current(context))return null;
+  // The legacy state cache has no current snapshot proof. Keep it identifiable
+  // during a new read, but never let a refused read fall back into that cache.
+  const lessons=r?.lessons??(state.lessons||[]).filter(l=>l?.professorId===uid);
+  return lessons.filter(l=>String(l.dataAula||'').slice(0,10)===day).map(l=>({...l,forja2NativeHistorical:r?.nativeHistorical??true}));
+ };
  window.forjaAgenda2Google=(uid,day)=>{const r=row(uid,day);return r&&timely()?busyFor(r,day):[];};
  window.forjaAgenda2School=(uid,day)=>{const r=row(uid,day);return r?.nativeStatus==='success'&&timely()?r.school.filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})):[];};
  window.forjaAgenda2SchoolCards=(uid,day,style)=>window.forjaAgenda2School(uid,day).map(x=>`<div class="v621-block busy school" style="${style(x.start,x.end)}" title="Calendário escolar bloqueia este período"><b>Bloqueio escolar</b><small>${x.start}–${x.end}</small></div>`).join('');
@@ -129,8 +139,8 @@
  };
  window.forjaAgenda2DecorateLesson=button=>{
   const parent=button.closest('.v621-lane,.v621-month-cell'),day=parent?.dataset.date||parent?.dataset.v629Day||parent?.dataset.v625MonthDay||parent?.dataset.v629MonthDay;
-  for(const uid of context?.ids||[]){const l=row(uid,day)?.lessons.find(x=>x.id===button.dataset.lesson);if(!l)continue;
-   if(/cancel/i.test(l.status||'')){button.classList.add('cancelled');button.textContent='Cancelada · '+l.horaAula+' · '+(l.nomeAluno||'Aula FORJA');button.title=button.textContent+' · Não ocupa o horário';return;}
+  for(const uid of context?.ids||[]){const l=window.forjaAgenda2Lessons(uid,day)?.find(x=>x.id===button.dataset.lesson);if(!l)continue;
+   if(/cancel/i.test(l.status||'')){button.classList.add('cancelled');button.textContent=(l.forja2NativeHistorical?'Histórico · ':'')+'Cancelada · '+[l.horaAula,l.horaFim].filter(Boolean).join('–')+' · '+(l.nomeAluno||'Aula FORJA');button.title=button.textContent+' · '+(l.forja2NativeHistorical?nativeHistoryLabel:'Não ocupa o horário');button.setAttribute('aria-label',button.title);return;}
    button.classList.add(...window.forjaAgenda2LessonClass(l).split(' '));button.dataset.forja2Modality=window.forjaAgenda2Modality(l).kind;
    if(!button.classList.contains('v621-block'))return;
    const origin=window.forjaAgenda2LessonOrigin(uid,day,l.horaAula,l.horaFim);if(!origin)return;
@@ -138,8 +148,11 @@
    return; // The source stays in the accessible description, without a duplicate row.
   }
  };
- window.forjaAgenda2Cancelled=(uid,day,name='')=>(row(uid,day)?.lessons||[]).filter(l=>String(l.dataAula).slice(0,10)===day&&/cancel/i.test(l.status||'')).map(l=>`<button type="button" class="forja2-cancelled" data-lesson="${escape(l.id)}" title="Aula cancelada · Não ocupa o horário">${escape([name,'Cancelada',l.horaAula+'–'+l.horaFim,l.nomeAluno||'Aula FORJA'].filter(Boolean).join(' · '))}</button>`).join('');
- window.forjaAgenda2LessonCounts=(uid,day)=>{const all=(row(uid,day)?.lessons||[]).filter(l=>String(l.dataAula).slice(0,10)===day),cancelled=all.filter(l=>/cancel/i.test(l.status||'')).length;return {active:all.length-cancelled,cancelled};};
+ window.forjaAgenda2Cancelled=(uid,day,name='')=>(window.forjaAgenda2Lessons(uid,day)||[]).filter(l=>/cancel/i.test(l.status||'')).map(l=>{
+  const caption=[name,l.forja2NativeHistorical?'Histórico · Cancelada':'Cancelada',[l.horaAula,l.horaFim].filter(Boolean).join('–'),l.nomeAluno||'Aula FORJA'].filter(Boolean).join(' · '),label=caption+' · '+(l.forja2NativeHistorical?nativeHistoryLabel:'Não ocupa o horário');
+  return `<button type="button" class="forja2-cancelled ${l.forja2NativeHistorical?'forja2-native-history':''}" data-lesson="${escape(l.id)}" aria-label="${escape(label)}" title="${escape(label)}">${escape(caption)}</button>`;
+ }).join('');
+ window.forjaAgenda2LessonCounts=(uid,day)=>{const all=window.forjaAgenda2Lessons(uid,day)||[],cancelled=all.filter(l=>/cancel/i.test(l.status||'')).length;return {active:all.length-cancelled,cancelled};};
  window.forjaAgenda2PlannedDuration=l=>{const duration=minutes(l.horaFim||'00:00')-minutes(l.horaAula||'00:00');return duration>0?duration+' min (prevista)':'—';};
  window.forjaAgenda2DetailScope=()=>state.page==='agenda'&&['admin','teacher'].includes(state.role)?{...forjaCaptureSession(),role:state.role}:null;
  window.forjaAgenda2DetailCurrent=(dialog,scope)=>!!dialog&&forjaSessionCurrent(scope)&&state.page==='agenda'&&state.role===scope.role&&document.querySelector('#modal .modal')===dialog;
@@ -170,12 +183,14 @@
   for(const lane of document.querySelectorAll('.forja2-agenda .v621-lane')){
    const day=lane.dataset.date||lane.dataset.v629Day,ids=orderedIds||context?.ids||[];
    for(const [index,uid] of ids.entries()){
-    const lessons=row(uid,day)?.lessons||[],cards=[...lane.querySelectorAll('button[data-lesson]')].flatMap(button=>{
+    const lessons=window.forjaAgenda2Lessons(uid,day)||[],cards=[...lane.querySelectorAll('button[data-lesson]')].flatMap(button=>{
      const l=lessons.find(x=>x.id===button.dataset.lesson);if(!l)return [];
-     const text=[l.nomeAluno||'Aluno',typeof lessonTitle==='function'?lessonTitle(l):'Aula FORJA',l.horaAula+'–'+l.horaFim,window.forjaAgenda2Modality(l).label,l.localAula||'',l.nomeProfessor||state.users?.find(x=>x.uid===uid)?.fullName||'Professor'].filter(Boolean).join(' · '),origin=window.forjaAgenda2LessonOrigin(uid,day,l.horaAula,l.horaFim);
-     button.title=text+(origin?' · Também ocupado · '+origin:'');button.setAttribute('aria-label',button.title);
-     if(state.role==='admin')button.querySelector('b').textContent=l.nomeAluno||'Aluno';
-     return [{button,start:minutes(l.horaAula),end:minutes(l.horaFim)}];
+     const text=[l.nomeAluno||'Aluno',typeof lessonTitle==='function'?lessonTitle(l):'Aula FORJA',[l.horaAula,l.horaFim].filter(Boolean).join('–'),window.forjaAgenda2Modality(l).label,l.localAula||'',l.nomeProfessor||state.users?.find(x=>x.uid===uid)?.fullName||'Professor'].filter(Boolean).join(' · '),origin=window.forjaAgenda2LessonOrigin(uid,day,l.horaAula,l.horaFim);
+     button.title=text+(origin?' · Também ocupado · '+origin:'')+(l.forja2NativeHistorical?' · '+nativeHistoryLabel:'');button.setAttribute('aria-label',button.title);
+     if(state.role==='admin')button.querySelector('b').textContent=(l.forja2NativeHistorical?'Histórico · ':'')+(l.nomeAluno||'Aluno');
+     // Keep the native renderer's legacy layout if its cached duration is
+     // incomplete. Only a valid snapshot can confirm the complete interval.
+     return timeValid(l.horaAula)&&timeValid(l.horaFim)?[{button,start:minutes(l.horaAula),end:minutes(l.horaFim)}]:[];
     }).sort((a,b)=>a.start-b.start||b.end-a.end||a.button.dataset.lesson.localeCompare(b.button.dataset.lesson));
     let group=[],until=-1;
     const layout=()=>{const ends=[];for(const item of group){let column=ends.findIndex(end=>end<=item.start);if(column<0)column=ends.length;ends[column]=item.end;item.column=column;}
@@ -189,7 +204,7 @@
   // Preserve an explicit state word even when a monthly professional name is
   // ellipsized. Full text remains in the accessible name and native tooltip.
   for(const tag of document.querySelectorAll('.forja2-agenda .v621-month-tag,.forja2-agenda .v629-month-tag')){
-   const text=tag.textContent.trim();tag.title=text;tag.setAttribute('aria-label',text);
+   const text=tag.textContent.trim()+(tag.classList.contains('forja2-native-history')?' · '+nativeHistoryLabel:'');tag.title=text;tag.setAttribute('aria-label',text);
    tag.dataset.forja2Label=tag.classList.contains('lesson')?(tag.classList.contains('forja2-online')?'Online':tag.classList.contains('forja2-presencial')?'Presencial':'Aula'):tag.classList.contains('availability')?'Livre':tag.classList.contains('busy')?'Ocupado':tag.classList.contains('unknown')?'Verificar':tag.classList.contains('outside')?'Fora':tag.classList.contains('cancelled')?'Cancelada':'';
   }
  };

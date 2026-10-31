@@ -44,8 +44,8 @@ quota, fluxo oficial do drawer, edição, filtros e scroll foram preservados.
 Heartbeat sem alteração não repinta a grade. `index.html` foi regenerado por
 `agenda-intelligence-build.mjs`, incluindo camadas posteriores e hashes/guards.
 
-Fonte HTML SHA256: `ba74193627434d2da4be99d3fafb8718a8ae301659023f621992845f98a07c51`.
-Artefato preparado SHA256: `05c272c5f9350503a5f9b7f8ec11c6298544f48b15efb4f19532c934f45e7c86`.
+Fonte HTML SHA256: `6bee41d5aba0dda2213077a2830c3cc5b451e9f9d6ede35f0d458f0a6e43c179`.
+Artefato preparado SHA256: `52eb71a9e3bf39f4b383f0d079baa5110f9761d77c74e5336058cb92d8b01e75`.
 O nome técnico target=production do gerador apenas prepara bytes localmente;
 não executa deploy. Testes, fixtures e documentos não integram o Hosting.
 
@@ -138,3 +138,59 @@ Intocados: aulas e compromissos reais, IDs/vínculos, eventos Google, credenciai
 OAuth, Firestore/Auth reais, Rules, DNS e infraestrutura. Nenhum POST/PATCH/DELETE,
 backfill, migração, sincronização manual ou manutenção foi dirigido à produção.
 PR Draft; sem merge, Preview ou deploy.
+
+## Revisão complementar — aulas nativas históricas
+
+Reproduzido no head anterior b37580b: `displayRow` recuperava aulas da última
+consulta nativa, mas `forjaAgenda2Lessons` não levava a qualidade dessa informação
+ao renderizador. Doze cenários ADM/Professor, desktop/mobile e Dia/Semana/Mês
+falharam por exibir a aula retida sem indicação histórica.
+
+A correção acrescenta qualidade **somente de apresentação**, derivada de
+`nativeStatus` e da validade original. O getter devolve cópias com esse marcador;
+não modifica o snapshot, a aula canônica, o Firestore ou payloads de reserva.
+Aula retida fica cinza tracejado, com “Histórico” visível e descrição acessível
+“Última informação conhecida · Aula não confirmada”. Modalidade, aluno e horário
+continuam identificados. O posicionamento também usa as aulas retidas, evitando
+perder o layout de sobreposição durante uma falha. Cancelamentos preservam a
+distinção entre cancelamento conhecido e histórico sem confirmar disponibilidade.
+Sucesso nativo posterior limpa o marcador; fonte vazia remove a aula antiga.
+
+Falha **apenas Google**, com fonte nativa ainda confirmada, não converte a aula
+nativa em histórica. Já a expiração do snapshot não prolonga a validade nativa
+nem fornece horários de reserva. Os checkpoints usam um relógio de teste pausado
+com avanço explícito, sem mudar TTL,20s, timeout ou backoff do produto.
+
+**Ações já protegidas por outra camada:** o fluxo oficial `openLesson` consulta
+a aula canônica, histórico e materiais antes de montar as ações. Os quatro
+cenários de ADM/Professor desktop/mobile já passaram nessa proteção antes da
+correção visual: pendência ou falha do detalhe não usa ações da aula retida.
+Essa camada não foi substituída nem ganhou outro fluxo de edição. Leitura nativa
+canônica bem-sucedida preserva as ações permitidas; cancelamento canônico prevalece
+sobre um cartão antigo. Resposta atrasada após logout não pode reabrir o detalhe
+nem popular a sessão anterior. Abrir o cartão só executa leituras.
+
+Outros quatro casos reproduziram um fallback sem prova: na ausência de uma linha
+do snapshot, os renderizadores podiam recuperar `state.lessons` sem marcador,
+inclusive após HTTP403. Agora o getter identifica o cache legado como histórico
+enquanto aguarda a consulta; recusa de autorização devolve lista vazia. Uma fonte
+nativa confirmada vazia continua prevalecendo sobre o cache. Não se estende TTL.
+Os dois cenários de leitura pendente também reproduziram erro de renderização
+quando o cache legado não tinha `horaFim`. A apresentação mantém o horário
+conhecido e o layout nativo, sem inventar duração nem chamar o cálculo de
+sobreposições com um intervalo incompleto.
+
+O rótulo compacto mensal foi conferido também em360px: herda a tipografia do
+componente para mostrar “Histórico” inteiro, com a mesma asserção de ausência de
+corte e sem criar rolagem horizontal da página.
+
+Regressão permanente: `scripts/agenda-native-history.test.mjs`,20 cenários cobrindo
+indisponibilidade nativa, vencimento durante renovação, recuperação, cancelamento,
+remoção, falha Google independente, detalhe canônico, cache legado, HTTP403 e
+troca de sessão. Os20 passaram localmente com Node22.23.3 e Chrome/Playwright.
+Os testes
+de criação/locks/idempotência/validação final continuam usando os endpoints nativos
+nos emuladores. Nenhuma mudança de backend, arquitetura, OAuth, Rules ou dados.
+As contagens finais e os SHAs efetivamente testados ficam no comentário técnico
+atualizado do PR. As evidências da primeira galeria correspondem à primeira fase;
+ver também a [comparação de aulas nativas](evidence/agenda-native-history/README.md).
