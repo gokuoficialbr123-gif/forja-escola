@@ -8,9 +8,9 @@ not ok 1 - native initial outage preserves authorized cached lessons only as his
   failureType: 'testCodeFailure'
   error: |-
     the authorized account cache remains visible during an initial native outage
-    
+
     0 !== 1
-    
+
   code: 'ERR_ASSERTION'
   name: 'AssertionError'
   expected: 1
@@ -30,9 +30,9 @@ not ok 2 - native initial outage preserves authorized cached lessons only as his
   failureType: 'testCodeFailure'
   error: |-
     the authorized account cache remains visible during an initial native outage
-    
+
     0 !== 1
-    
+
   code: 'ERR_ASSERTION'
   name: 'AssertionError'
   expected: 1

@@ -8,9 +8,9 @@ not ok 1 - native write receipt survives an unavailable snapshot as history, nev
   failureType: 'testCodeFailure'
   error: |-
     successful canonical receipt cannot disappear because the snapshot native source is unavailable
-    
+
     0 !== 1
-    
+
   code: 'ERR_ASSERTION'
   name: 'AssertionError'
   expected: 1
@@ -30,9 +30,9 @@ not ok 2 - native write receipt survives an unavailable snapshot as history, nev
   failureType: 'testCodeFailure'
   error: |-
     successful canonical receipt cannot disappear because the snapshot native source is unavailable
-    
+
     0 !== 1
-    
+
   code: 'ERR_ASSERTION'
   name: 'AssertionError'
   expected: 1
