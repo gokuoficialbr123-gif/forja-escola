@@ -28,8 +28,18 @@
 #workspaceContent .forja2-agenda .sync-copy b{font-size:12px;color:var(--forja-agenda-navy)}
 #workspaceContent .forja2-agenda .sync-copy span{font-size:10px;color:var(--forja-agenda-muted)}
 #workspaceContent .forja2-agenda .v622-sync .google-dot{color:var(--forja-agenda-muted);background:var(--forja-agenda-canvas)}
-.forja2-status{position:static!important;order:3;font-size:11px;line-height:1.6;color:var(--forja-agenda-muted);flex:0 0 100%!important;width:100%;height:auto;min-width:0;padding:5px 0;overflow-wrap:anywhere;white-space:normal!important}
+.forja2-status{position:static!important;order:3;font-size:12px;line-height:1.6;color:var(--forja-agenda-muted);flex:0 0 100%!important;width:100%;height:auto;min-width:0;padding:8px 0;overflow-wrap:anywhere;white-space:normal!important}
 .forja2-status.unavailable{color:var(--forja-agenda-neutral-text)}
+.forja2-status-main{display:block;font-size:13px;color:#123049}
+.forja2-source-status{display:flex;flex-wrap:wrap;gap:6px;margin:7px 0}
+.forja2-source-pill{font-size:12px;padding:3px 7px;border:1px solid #dbe4ec;background:#f8fafc;border-radius:6px;color:#334155}
+.forja2-source-pill.unavailable{border-style:dashed;color:#64748b}
+.forja2-status-message{display:block;font-size:12px;line-height:18px}
+.forja2-diagnostic{font-size:12px;margin-top:6px}
+.forja2-diagnostic summary{cursor:pointer;color:#64748b}
+.forja2-diagnostic-body{padding:8px 0;line-height:18px}
+.v625-professor-agenda .forja2-diagnostic:not([open]){display:inline-block;margin-right:8px}
+.forja2-refresh-inline{margin-top:6px;min-height:30px!important;padding:5px 8px!important;font-size:12px!important}
 #workspaceContent .forja2-agenda .v629-secretary-summary{display:none}
 body:has(#workspaceContent .forja2-agenda) .v630-edge-tab{display:none!important}
 #workspaceContent .forja2-agenda .v630-inline-action{min-width:120px;justify-content:center;white-space:nowrap;background:var(--forja-agenda-navy)!important;color:#fff!important}
@@ -44,18 +54,26 @@ body:has(#workspaceContent .forja2-agenda) .v630-edge-tab{display:none!important
 #workspaceContent .forja2-agenda .v621-view-switch button.active{background:var(--forja-agenda-navy)!important;color:#fff!important}
 #workspaceContent .forja2-agenda :is(.v621-day-head,.v621-time-head){background:#fff!important;border-color:var(--forja-agenda-border)!important}
 #workspaceContent .forja2-agenda .v621-day-head.today b,#workspaceContent .forja2-agenda .v621-month-cell.today button.v621-month-num{background:var(--forja-agenda-navy)!important;color:#fff!important}
-#workspaceContent .forja2-agenda :is(.v621-time-axis,.v621-lane){height:720px!important}
+#workspaceContent .forja2-agenda :is(.v621-time-axis,.v621-lane){height:1440px!important}
+#workspaceContent .forja2-agenda .v621-time-label{font-size:12px!important;font-variant-numeric:tabular-nums}
 #workspaceContent .forja2-agenda .v621-time-axis .v621-time-label:first-child{transform:translateY(0)!important}
 #workspaceContent .forja2-agenda .v621-time-axis .v621-time-label:last-child{transform:translateY(-100%)!important}
-#workspaceContent .forja2-agenda .v621-lane{background:repeating-linear-gradient(to bottom,#fff 0,#fff 23px,#f1f5f9 23px,#f1f5f9 24px,#fff 24px,#fff 47px,#e2e8f0 47px,#e2e8f0 48px)!important}
-#workspaceContent .forja2-agenda .forja2-state{position:absolute;left:0;right:0;pointer-events:none;z-index:0!important;border:0;border-radius:0;min-height:0;box-sizing:border-box;overflow:hidden;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 47px,#e2e8f0 47px,#e2e8f0 48px);background-position-y:var(--forja2-grid-offset,0px);color:var(--forja-agenda-neutral-text)}
+#workspaceContent .forja2-agenda .v621-lane{background:repeating-linear-gradient(to bottom,#fff 0,#fff 47px,#f1f5f9 47px,#f1f5f9 48px,#fff 48px,#fff 95px,#e2e8f0 95px,#e2e8f0 96px)!important}
+#workspaceContent .forja2-agenda .forja2-state{position:absolute;left:0;right:0;pointer-events:none;z-index:0!important;border:0;border-radius:0;min-height:0;box-sizing:border-box;overflow:hidden;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 95px,#e2e8f0 95px,#e2e8f0 96px);background-position-y:var(--forja2-grid-offset,0px);color:var(--forja-agenda-neutral-text)}
 #workspaceContent .forja2-agenda .forja2-state.outside{background-color:#f1f5f9}
 #workspaceContent .forja2-agenda .forja2-state.unknown{background-color:#f8fafc}
 .forja2-state>span{display:block;margin:5px 7px;font-size:10px;line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #workspaceContent .forja2-agenda .v621-lane .v621-block{display:flex!important;flex-direction:column!important;justify-content:flex-start!important;align-items:stretch!important;box-sizing:border-box!important;min-height:0!important;margin:0!important;padding:3px 6px!important;overflow:hidden!important;text-align:left;box-shadow:none!important;transition:none!important;border-radius:6px!important}
-#workspaceContent .forja2-agenda .v621-lane .v621-block b{font-size:11px!important;line-height:13px!important}
-#workspaceContent .forja2-agenda .v621-lane .v621-block small{font-size:10px!important;line-height:12px!important;margin-top:0!important}
+#workspaceContent .forja2-agenda .v621-lane .v621-block b{font-size:13px!important;line-height:16px!important;white-space:normal;font-variant-numeric:tabular-nums}
+#workspaceContent .forja2-agenda .v621-lane .v621-block small{font-size:12px!important;line-height:15px!important;margin-top:2px!important}
+#workspaceContent .forja2-agenda .v621-lane .forja2-event-time{white-space:normal;overflow-wrap:anywhere}
+#workspaceContent .forja2-agenda .v622-sync [data-personal-google-status]:not(:has(p)){display:contents}
+#workspaceContent .forja2-agenda .v622-sync [data-personal-google-status]:has(p){flex:0 0 100%;margin:4px 0}
 #workspaceContent .forja2-agenda .v621-lane .v621-block.lesson{z-index:9!important}
+#workspaceContent .forja2-agenda .v621-lane .v621-block{container-type:inline-size}
+#workspaceContent .forja2-agenda .forja2-medium .forja2-mode{display:none!important}
+#workspaceContent .forja2-agenda .forja2-medium.forja2-native-history .forja2-event-time{display:none!important}
+@container (max-width:110px){.forja2-medium :is(.forja2-event-time,.forja2-origin){display:none!important}}
 .forja2-presencial{--forja-event:var(--forja-agenda-presencial);--forja-event-bg:var(--forja-agenda-presencial-bg);--forja-event-text:var(--forja-agenda-presencial-text)}
 .forja2-online{--forja-event:var(--forja-agenda-online);--forja-event-bg:var(--forja-agenda-online-bg);--forja-event-text:var(--forja-agenda-online-text)}
 .forja2-unknown{--forja-event:var(--forja-agenda-neutral);--forja-event-bg:var(--forja-agenda-neutral-bg);--forja-event-text:var(--forja-agenda-neutral-text)}
@@ -70,13 +88,15 @@ body:has(#workspaceContent .forja2-agenda) .v630-edge-tab{display:none!important
 .forja2-place{font-weight:400;overflow:hidden;text-overflow:ellipsis}
 .forja2-event-title,.forja2-event-time{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #workspaceContent .forja2-agenda .v621-lane .forja2-compact{padding:0 4px!important}
-#workspaceContent .forja2-agenda .v621-lane .forja2-compact b{font-size:10px!important;line-height:12px!important}
+#workspaceContent .forja2-agenda .v621-lane .forja2-compact b{font-size:12px!important;line-height:14px!important}
 #workspaceContent .forja2-agenda .v621-lane .forja2-compact :is(small,.forja2-mode,.forja2-origin,.forja2-lesson-origin){display:none!important}
 #workspaceContent .forja2-agenda :is(.v621-block,.v621-month-tag,.v629-month-tag).availability{background:var(--forja-agenda-available-bg)!important;color:var(--forja-agenda-available-text)!important;border:1px solid #bbf7d0!important;border-left:3px solid var(--forja-agenda-available)!important}
+#workspaceContent .forja2-agenda .v621-lane .v621-block.availability{background:#16a34a08!important;border:0!important;border-left:2px solid #16a34a66!important;border-radius:0!important}
 #workspaceContent .forja2-agenda .v621-block.busy.forja2-busy{position:absolute;z-index:4!important;border:1px solid #fecaca!important;border-left:3px solid var(--forja-agenda-busy)!important;border-radius:6px;min-height:0;background:var(--forja-agenda-busy-bg)!important;color:var(--forja-agenda-busy-text)!important;opacity:1}
 #workspaceContent .forja2-agenda.v625-professor-agenda .v626-day-mode .v621-block{left:4px!important;right:4px!important;width:auto!important}
 #workspaceContent .forja2-agenda .v621-week-wrap.v626-day-mode :is(.v621-week,.v621-all-day){min-width:0!important;width:100%!important;grid-template-columns:52px minmax(0,1fr)!important}
-#workspaceContent .forja2-agenda.v629-secretary-agenda .v621-week-wrap:is(.v626-day-mode,.v626-week-mode) :is(.v621-week,.v621-all-day){grid-template-columns:52px repeat(var(--v621-days,7),minmax(var(--forja2-lane-min,112px),1fr))!important;min-width:calc(52px + var(--v621-days,7)*var(--forja2-lane-min,112px))!important}
+#workspaceContent .forja2-agenda.v629-secretary-agenda .v621-week-wrap:is(.v626-day-mode,.v626-week-mode) :is(.v621-week,.v621-all-day){grid-template-columns:52px repeat(var(--v621-days,7),minmax(var(--forja2-lane-min,144px),1fr))!important;min-width:calc(52px + var(--v621-days,7)*var(--forja2-lane-min,144px))!important}
+#workspaceContent .forja2-agenda.v625-professor-agenda .v626-week-mode :is(.v621-week,.v621-all-day){grid-template-columns:52px repeat(7,minmax(144px,1fr))!important;min-width:1060px!important}
 #workspaceContent .forja2-agenda .forja2-busy[data-v625-busy]{cursor:pointer!important}
 #workspaceContent .forja2-agenda .v621-all-day:not(:has(.v621-all-day-cell > *)){display:none!important}
 #workspaceContent .forja2-agenda .v621-week-wrap{overflow-anchor:none;scrollbar-width:thin;scrollbar-color:#94a3b8 #f8fafc}
@@ -85,11 +105,17 @@ body:has(#workspaceContent .forja2-agenda) .v630-edge-tab{display:none!important
 #workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag).cancelled{background:#f1f5f9!important;color:#475569!important}
 .forja2-origin{display:block;font-size:9px;line-height:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 #workspaceContent .forja2-agenda .forja2-busy b{white-space:nowrap;font-variant-numeric:tabular-nums;font-size:11px;line-height:14px}
-#workspaceContent .forja2-agenda .forja2-busy .forja2-origin{font-size:10px;line-height:12px;white-space:normal;overflow-wrap:anywhere}
+#workspaceContent .forja2-agenda .forja2-busy .forja2-origin{font-size:12px;line-height:15px;white-space:normal;overflow-wrap:anywhere}
 #workspaceContent .forja2-agenda .v621-block.busy.forja2-busy.forja2-historical,#workspaceContent .forja2-agenda .v621-month-tag.forja2-historical{background:repeating-linear-gradient(135deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 8px)!important;color:#475569!important;border:1px dashed #64748b!important;cursor:default}
 #workspaceContent .forja2-agenda .forja2-historical .forja2-origin{font-size:9px;line-height:11px}
 #workspaceContent .forja2-agenda :is(.v621-block.lesson.forja2-lesson,.v621-month-tag.lesson,.v629-month-tag.lesson,.forja2-cancelled).forja2-native-history{background:repeating-linear-gradient(135deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 8px)!important;color:#475569!important;border:1px dashed #64748b!important}
 .forja2-native-notice{display:block;font-size:inherit;font-weight:700;line-height:inherit;color:inherit}
+.forja2-history-label{font-size:11px;line-height:14px;color:#475569}
+#workspaceContent .forja2-agenda .forja2-compact .forja2-history-label{display:none}
+#workspaceContent .forja2-agenda .forja2-month-time{display:block;font-size:13px!important;font-weight:700;line-height:17px!important;font-variant-numeric:tabular-nums}
+#workspaceContent .forja2-agenda .forja2-more-lessons{border:0;background:#eef2f6;color:#123049;border-radius:6px;font:inherit;font-size:12px;min-height:28px;padding:4px}
+#workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag):is(.outside,.unknown){background:transparent!important;border:0!important;font-size:12px;text-align:right;color:#64748b}
+#workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag):is(.outside,.unknown):before{content:none!important}
 #workspaceContent .forja2-agenda .v623-now-line{height:1px!important;background:#123049!important;opacity:.55;z-index:3!important;pointer-events:none}
 #workspaceContent .forja2-agenda .v623-now-line i{width:5px!important;height:5px!important;top:-2px!important;background:#123049!important}
 .forja2-legend{display:flex;flex-wrap:wrap;gap:8px 16px;padding:11px 13px;color:var(--forja-agenda-neutral-text);font-size:11px;line-height:16px;border-bottom:1px solid var(--forja-agenda-border);background:#fff}
@@ -181,9 +207,17 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  .forja2-legend{font-size:10px;padding:9px;gap:6px 10px}
  #workspaceContent .forja2-agenda .v622-sync{width:100%!important;justify-content:flex-start!important}
  #workspaceContent .forja2-agenda .v622-sync .sync-copy{min-width:0!important;flex:1 1 160px!important}
+ #workspaceContent .forja2-agenda .v622-sync{gap:6px!important;padding:8px!important}
+ #workspaceContent .forja2-agenda .v622-sync .small-btn{font-size:11px;padding:7px!important;min-height:34px}
  #workspaceContent .forja2-agenda .v621-month-cell{padding:3px!important;min-height:100px!important}
- #workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag){font-size:8px!important;line-height:11px!important;padding:3px 2px!important}
- #workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag) :is(b,small,.forja2-mode){font-size:8px;line-height:11px}
+ #workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag){font-size:11px!important;line-height:14px!important;padding:4px 2px!important}
+ #workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag).lesson :is(b,small,.forja2-mode){display:none!important}
+ #workspaceContent .forja2-agenda .forja2-native-notice{font-size:11px!important;line-height:14px!important}
+ #workspaceContent .forja2-agenda .forja2-month-time{font-size:12px!important;line-height:16px!important}
+ #workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag).availability{font-size:0!important}
+ #workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag).availability:before{content:attr(data-forja2-compact)!important;font-size:11px!important;line-height:14px!important}
+ #workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag).busy{font-size:0!important}
+ #workspaceContent .forja2-agenda :is(.v621-month-tag,.v629-month-tag).busy:before{content:attr(data-forja2-compact)!important;font-size:11px!important;line-height:14px!important}
  #workspaceContent .forja2-agenda .v621-cal-toolbar strong{display:block!important;order:3!important;flex:0 0 100%;width:100%!important;height:auto!important;max-height:none!important;font-size:13px!important;margin:0!important}
  #workspaceContent .forja2-agenda :is(.small-btn,.v621-view-switch button){min-height:38px}
  #workspaceContent.forja2-calendar-page .g-event{padding:4px!important;font-size:9px}

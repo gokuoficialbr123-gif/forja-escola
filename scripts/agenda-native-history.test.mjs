@@ -18,7 +18,7 @@ async function historical(p){
   assert.equal(await card.evaluate(el=>el.classList.contains('forja2-native-history')),true,'old native lesson must be explicitly historical');
   assert.match(await card.getAttribute('aria-label'),/Última informação conhecida/);
   assert.match(await card.getAttribute('aria-label'),/13:00–14:00/,'historical cancellation retains the full native period');
-  assert.match(await card.innerText(),/Históric/,'historical state must be visible, not only a tooltip');
+  assert.match(await card.innerText(),/Histórico|Hist\./,'historical state must be visible, including the compact month label');
   assert.equal(await card.evaluate(el=>getComputedStyle(el).color),'rgb(71, 85, 105)');
   for(const notice of await card.locator('.forja2-native-notice').all())assert.equal(await notice.evaluate(el=>el.scrollWidth<=el.clientWidth+1),true,'monthly history label remains complete');
  }

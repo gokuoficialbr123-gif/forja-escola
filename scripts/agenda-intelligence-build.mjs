@@ -91,10 +91,11 @@ replace('já preenchidos.</div></aside>`;', 'já preenchidos.</div></div></detai
 {
  const start=html.indexOf('  function v621CalendarSidebar(role,uid){'),end=html.indexOf('\n  function v621TeacherTopbar(',start),body=html.slice(start,end);
  assert.ok(start>0&&end>start);
- const updated=body.replace('${actions}${v621MiniMonth(role)}','${actions}<details class="forja2-filters forja2-teacher-filters" ${state.v625AgendaFiltersOpen??!matchMedia("(max-width:900px)").matches?"open":""}><summary>Filtros e calendário</summary><div class="forja2-filter-content">${v621MiniMonth(role)}').replace('</div></aside>`;','</div></div></details></aside>`;');
+ const updated=body.replace('${actions}${v621MiniMonth(role)}','<details class="forja2-filters forja2-teacher-filters" ${state.v625AgendaFiltersOpen??!matchMedia("(max-width:900px)").matches?"open":""}><summary>Filtros e horários</summary><div class="forja2-filter-content">${actions}${v621MiniMonth(role)}').replace('</div></aside>`;','</div></div></details></aside>`;');
  assert.notEqual(updated,body);replace(body,updated);
 }
 replace('<b>Google ⇄ FORJA</b><br>O professor continua usando o Google Calendar.', '<b>Privacidade Google</b><br>A consulta automática verifica ocupações, sem escrever eventos.');
+replace("'<p>Consulte o diagnóstico da conexão Google pessoal sem alterar a agenda.</p>'","''");
 replace('    const search=$(\'#v629TeacherSearch\');', `    const details=document.querySelector('.forja2-filters');if(details&&!details.dataset.boundFine){details.dataset.boundFine='1';details.ontoggle=()=>{state.v629AgendaFiltersOpen=details.open};}
     const search=$('#v629TeacherSearch');`);
 for(const name of ['v621MonthCalendar(role,uid)','v629MonthCalendar()']){
@@ -110,12 +111,18 @@ function presentation(signature,transform){
  const indent=html.slice(html.lastIndexOf('\n',start)+1,start),end=html.indexOf('\n'+indent+'function ',start+1);assert.ok(end>start,signature);
  const before=html.slice(start,end),after=transform(before);assert.notEqual(after,before,signature);replace(before,after);
 }
+// One shared time scale for labels, cards and the current-time indicator.
+presentation('v621EventStyle(start,end)',body=>body.replace('unit=48/60','unit=96/60'));
+presentation('v621HourLabels()',body=>body.replace('(h-7)*48','(h-7)*96'));
+presentation('v623NowLine(day)',body=>body.replace('(48/60)','(96/60)'));
 presentation('v621Lane(role,uid,day)',body=>body
  .replace('class="v621-block lesson ${v621LessonClass(l)}"','class="v621-block lesson ${v621LessonClass(l)} ${window.forjaAgenda2LessonClass(l)}" data-forja2-modality="${window.forjaAgenda2Modality(l).kind}"')
- .replace(/<b>\$\{esc\(`\$\{l\.nomeAluno[\s\S]*?<\/small>/,'${window.forjaAgenda2LessonContent(l)}'));
+ .replace(/<b>\$\{esc\(`\$\{l\.nomeAluno[\s\S]*?<\/small>/,'${window.forjaAgenda2LessonContent(l)}')
+ .replace('<b>Disponível</b><small>${esc(`${p.inicio}–${p.fim}`)}</small>','<b>${esc(`${p.inicio}–${p.fim}`)}</b><small>Disponível</small>'));
 presentation('v629Lane(day)',body=>body
  .replace('lesson ${v621LessonClass(l)} ${v629EventPresentationClass(l.horaAula,end)}"','lesson ${v621LessonClass(l)} ${v629EventPresentationClass(l.horaAula,end)} ${window.forjaAgenda2LessonClass(l)}" data-forja2-modality="${window.forjaAgenda2Modality(l).kind}"')
- .replace('${v629EventContent(name,`Aula · ${lessonTitle(l)}`,l.horaAula,end)}','${window.forjaAgenda2LessonContent(l,{name:l.nomeAluno||name})}'));
+ .replace('${v629EventContent(name,`Aula · ${lessonTitle(l)}`,l.horaAula,end)}','${window.forjaAgenda2LessonContent(l,{name:l.nomeAluno||name})}')
+ .replace('${v629EventContent(name,"Disponível",p.inicio,p.fim)}','<b>${esc(`${p.inicio}–${p.fim}`)}</b><small>Disponível</small>'));
 presentation('v621MonthCalendar(role,uid)',body=>body
  .replace('lessons.slice(0,2)','lessons')
  .replace('class="v621-month-tag lesson"','class="v621-month-tag lesson ${window.forjaAgenda2LessonClass(l)}" data-forja2-modality="${window.forjaAgenda2Modality(l).kind}"')
@@ -189,7 +196,22 @@ const hooks=`
   function forjaAgenda2WriteGrid(host,markup){
     if(!host)return;
     const clock=host.classList.contains('v621-lane')&&markup.startsWith('<div class="v623-now-line"')?markup.slice(0,markup.indexOf('</div>')+6):'',content=clock?markup.slice(clock.length):markup,old=forjaAgenda2GridMarkup.get(host);
-    if(!old||old.markup!==content||old.rendered!==host.innerHTML){host.innerHTML=markup;forjaAgenda2GridMarkup.set(host,{markup:content,clock,rendered:markup});}
+    if(!old||old.markup!==content||old.rendered!==host.innerHTML){
+      const temp=document.createElement('template');temp.innerHTML=markup;
+      const key=node=>node.nodeType===1?(node.dataset.lesson?'lesson:'+node.dataset.lesson:node.dataset.forja2Key||node.dataset.v629MonthDay||node.dataset.v625MonthDay||node.dataset.forja2Day||node.dataset.forja2Start&&['busy',node.dataset.forja2Start,node.dataset.forja2End,node.dataset.forja2Origin].join(':')||node.dataset.start&&['slot',node.dataset.date,node.dataset.start,node.dataset.v629Slot||node.dataset.v621BookSlot||''].join(':')||null):null;
+      const patch=(target,source)=>{
+        const oldNodes=[...target.childNodes],used=new Set(),byKey=new Map(oldNodes.map(n=>[key(n),n]).filter(([k])=>k));let cursor=target.firstChild;
+        for(const wanted of [...source.childNodes]){
+          const wantedKey=key(wanted);let node=wantedKey?byKey.get(wantedKey):oldNodes.find(n=>!used.has(n)&&!key(n)&&n.nodeType===wanted.nodeType&&n.nodeName===wanted.nodeName);
+          if(!node||node.nodeType!==wanted.nodeType||node.nodeName!==wanted.nodeName)node=wanted.cloneNode(true);
+          else if(node.nodeType===1){for(const a of [...node.attributes])if(!wanted.hasAttribute(a.name))node.removeAttribute(a.name);for(const a of wanted.attributes)if(node.getAttribute(a.name)!==a.value)node.setAttribute(a.name,a.value);if(node.innerHTML!==wanted.innerHTML)patch(node,wanted);}
+          else if(node.nodeValue!==wanted.nodeValue)node.nodeValue=wanted.nodeValue;
+          used.add(node);if(node!==cursor)target.insertBefore(node,cursor);cursor=node.nextSibling;
+        }
+        for(const node of oldNodes)if(!used.has(node))node.remove();
+      };
+      patch(host,temp.content);forjaAgenda2GridMarkup.set(host,{markup:content,clock,rendered:host.innerHTML});
+    }
     else if(old.clock!==clock){host.querySelector('.v623-now-line')?.remove();if(clock)host.insertAdjacentHTML('afterbegin',clock);old.clock=clock;}
   }
   // Scoped rendering hooks: replace grid contents, never forms, toolbar or scroll containers.
@@ -211,11 +233,12 @@ const hooks=`
         const people=admin?v629SelectedTeachers():[{uid:state.user.uid}],bucket=cell.querySelector('.v621-month-tags');
         for(const person of people){const kind=window.forjaAgenda2DayKind(person.uid,day);if(!['unknown','outside'].includes(kind))continue;
           if(window.forjaAgenda2HistoricalMonth(person.uid,day)){const history=document.createElement('div');history.className='v621-month-tag forja2-historical';history.textContent='Última informação conhecida · Ocupado';history.setAttribute('aria-label',(person.fullName||'Professor')+' · '+history.textContent);bucket?.prepend(history);}
-          const tag=document.createElement(admin?'button':'div');tag.className=(admin?'v629':'v621')+'-month-tag '+kind;tag.dataset.forja2MonthStatus=person.uid;tag.textContent=(admin?(person.fullName||'Professor')+' · ':'')+(kind==='unknown'?'Não confirmado':'Fora da publicação');tag.title=tag.textContent;
+          const tag=document.createElement(admin?'button':'div');tag.className=(admin?'v629':'v621')+'-month-tag '+kind;tag.dataset.forja2MonthStatus=person.uid;tag.textContent=kind==='unknown'?'?':'—';tag.setAttribute('aria-label',(person.fullName||'Professor')+' · '+(kind==='unknown'?'Disponibilidade não confirmada':'Fora da disponibilidade publicada'));tag.title=tag.getAttribute('aria-label');
           if(admin){tag.type='button';tag.dataset.v629OpenTeacherDay=person.uid;tag.dataset.date=day;}bucket?.prepend(tag);
         }
         for(const tag of cell.querySelectorAll('.v629-month-tag.lesson')){const count=window.forjaAgenda2LessonCounts(tag.dataset.v629OpenTeacherDay,day);if(count.cancelled){tag.textContent=v629TeacherName(tag.dataset.v629OpenTeacherDay)+' · '+count.active+' aula(s) · '+count.cancelled+' cancelada(s)';if(!count.active){tag.classList.remove('lesson');tag.classList.add('cancelled');}}}
       }
+      window.forjaAgenda2MonthDensity?.(temp,admin);
       forjaAgenda2WriteGrid(grid,temp.querySelector('.v621-month-grid').innerHTML);
     }
     const host=document.querySelector(admin?'.v629-secretary-sync':'.v622-topbar');if(host&&!host.querySelector('[data-forja2-status]'))host.insertAdjacentHTML('beforeend','<div class="forja2-status" data-forja2-status role="status" aria-live="polite"></div>');
@@ -226,7 +249,8 @@ const hooks=`
     if(!admin&&host&&!host.querySelector('[data-forja2-refresh]')){const b=document.createElement('button');b.className='small-btn';b.dataset.forja2Refresh='1';b.textContent='Atualizar consulta';b.onclick=()=>window.forjaAgenda2Refresh({manual:true});(host.querySelector('.v622-sync')||host).append(b);}
     if(admin)document.querySelector('.v629-secretary-summary')?.remove();
     v621Bind();if(admin){v629Bind();window.forjaAgenda2BindBooking?.();}for(const b of document.querySelectorAll('[data-lesson]')){b.onclick=e=>{e.preventDefault();e.stopPropagation();openLesson(b.dataset.lesson);};window.forjaAgenda2DecorateLesson?.(b);}
-    for(const block of document.querySelectorAll('.v621-lane .v621-block'))block.classList.toggle('forja2-compact',parseFloat(block.style.height)<34);
+    for(const b of document.querySelectorAll('[data-forja2-date]'))b.onclick=e=>{e.preventDefault();e.stopPropagation();if(state.page!=='agenda'||state.role!==role)return;v621SetDate(role,b.dataset.forja2Date);v621SetView(role,'day');renderPage();};
+    for(const block of document.querySelectorAll('.v621-lane .v621-block')){const height=parseFloat(block.style.height);block.classList.toggle('forja2-compact',height<34);block.classList.toggle('forja2-medium',height>=34&&height<64);}
     window.forjaAgenda2Polish?.(admin?v629SelectedTeachers().map(x=>x.uid):[state.user.uid]);
     for(const host of document.querySelectorAll('.v621-lane,.v621-month-grid,[data-forja2-day]')){const saved=forjaAgenda2GridMarkup.get(host);if(saved)saved.rendered=host.innerHTML;}
     if(focusKey&&!focus.isConnected){const target=[...document.querySelectorAll('.v621-lane button,.v621-month-grid button')].find(el=>JSON.stringify({...el.dataset})===focusKey);if(target)target.focus({preventScroll:true});else if(card){card.tabIndex=-1;card.focus({preventScroll:true});}}

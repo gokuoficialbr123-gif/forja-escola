@@ -119,7 +119,7 @@ for(const mobile of [false,true])test(`Secretary selection of 50 professionals k
 });
 
 test('teacher mobile exposes native filters and fixed availability through polling, navigation and desktop resize',async t=>{
- const f=await fixture(t,{role:'teacher',mobile:true}),p=f.page;const details=p.locator('.forja2-teacher-filters');assert.equal(await details.getAttribute('open'),null);assert.equal(await p.locator('[data-fixed-open]:visible').count(),1,'original fixed availability action stays visible when filters are collapsed');
+ const f=await fixture(t,{role:'teacher',mobile:true}),p=f.page;const details=p.locator('.forja2-teacher-filters');assert.equal(await details.getAttribute('open'),null);assert.equal(await p.locator('[data-fixed-open]:visible').count(),0,'the existing fixed availability action belongs to the collapsed schedule controls');
  await details.locator('summary').click();assert.equal(await p.locator('[data-v624-filter]:visible').count(),3);assert.equal(await p.locator('[data-fixed-open]:visible').count(),1);
  await p.locator('[data-v624-filter="busy"]').click();await ready(p);assert.equal(await details.getAttribute('open'),'');assert.equal(await p.evaluate(()=>state.v624Filters.busy),false);
  const reads=f.reads();for(let i=0;i<5;i++)await automaticCycle(p);assert.equal(f.reads()-reads,5);assert.equal(await p.evaluate(()=>state.v624Filters.busy),false);
