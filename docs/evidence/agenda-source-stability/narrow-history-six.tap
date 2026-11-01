@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: narrow history keeps readable times and current Google admin 1920
+ok 1 - narrow history keeps readable times and current Google admin 1920
+  ---
+  duration_ms: 7961.8575
+  type: 'test'
+  ...
+# Subtest: narrow history keeps readable times and current Google admin 390
+ok 2 - narrow history keeps readable times and current Google admin 390
+  ---
+  duration_ms: 20532.3383
+  type: 'test'
+  ...
+# Subtest: narrow history keeps readable times and current Google admin 360
+ok 3 - narrow history keeps readable times and current Google admin 360
+  ---
+  duration_ms: 20671.3016
+  type: 'test'
+  ...
+# Subtest: narrow history keeps readable times and current Google teacher 1920
+ok 4 - narrow history keeps readable times and current Google teacher 1920
+  ---
+  duration_ms: 7528.3669
+  type: 'test'
+  ...
+# Subtest: narrow history keeps readable times and current Google teacher 390
+ok 5 - narrow history keeps readable times and current Google teacher 390
+  ---
+  duration_ms: 20100.369
+  type: 'test'
+  ...
+# Subtest: narrow history keeps readable times and current Google teacher 360
+ok 6 - narrow history keeps readable times and current Google teacher 360
+  ---
+  duration_ms: 20669.9868
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 98270.2406

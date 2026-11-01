@@ -1,0 +1,170 @@
+# repetition 1
+TAP version 13
+# Subtest: 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+ok 1 - 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+  ---
+  duration_ms: 5794.2203
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6587.3529
+# repetition 2
+TAP version 13
+# Subtest: 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+ok 1 - 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+  ---
+  duration_ms: 5539.5539
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6330.0217
+# repetition 3
+TAP version 13
+# Subtest: 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+ok 1 - 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+  ---
+  duration_ms: 5524.1084
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6297.6824
+# repetition 4
+TAP version 13
+# Subtest: 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+ok 1 - 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+  ---
+  duration_ms: 5617.9858
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6369.1954
+# repetition 5
+TAP version 13
+# Subtest: 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+ok 1 - 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+  ---
+  duration_ms: 5728.2853
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6543.7145
+# repetition 6
+TAP version 13
+# Subtest: 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+ok 1 - 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+  ---
+  duration_ms: 5739.9339
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6552.717
+# repetition 7
+TAP version 13
+# Subtest: 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+ok 1 - 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+  ---
+  duration_ms: 5709.6797
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6511.1291
+# repetition 8
+TAP version 13
+# Subtest: 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+ok 1 - 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+  ---
+  duration_ms: 5783.0017
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6589.6069
+# repetition 9
+TAP version 13
+# Subtest: 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+ok 1 - 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+  ---
+  duration_ms: 5878.7848
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6663.6426
+# repetition 10
+TAP version 13
+# Subtest: 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+ok 1 - 20-second reads pause while hidden/closed, resume immediately and never invoke sync
+  ---
+  duration_ms: 6590.9381
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7389.5883

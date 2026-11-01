@@ -59,10 +59,13 @@ categorias `native/personal/central` e esse booleano, sem IDs ou conteúdo.
 Clientes anteriores continuam aceitando o contrato; eventos antigos
 sem categoria continuam provocando invalidação conservadora no cliente novo.
 
-No modo institucional a leitura começa antes do prazo original. Se a projeção
+Com snapshot completo `refreshMode:events`, a leitura começa antes do prazo original. Se a projeção
 ainda não foi renovada no servidor, o cliente aguarda seu vencimento original,
 evitando um ciclo de consultas a cada segundo. Não existe polling de20s nesse
-modo. Uma prova vencida nunca é recuperada por heartbeat ou por `refreshOnly`.
+modo completo. Uma resposta parcial ainda usa recuperação conservadora somente
+de leitura, podendo reconsultar fontes nativas saudáveis a20s; o cooldown Google
+continua sendo aplicado no backend. Uma prova vencida nunca é recuperada por
+heartbeat ou por `refreshOnly`.
 
 O renderizador oficial reconcilia os filhos da grade por identidade, preservando
 cartões que não mudaram. Não substitui formulários, drawer, filtros ou contêineres
@@ -101,6 +104,16 @@ funcional de criação/remarcação/cancelamento não precisou ser modificado.
  A asserção de minutos foi fortalecida para nenhuma diferença de scroll/client,
  sem tolerância adicional. [Antes](evidence/agenda-source-stability/before-month-360-minutes.png)
  e [depois](evidence/agenda-source-stability/after-month-360-minutes.png).
+- A revisão manual também encontrou horários cortados em três colunas durante
+  falha nativa, com Google ainda confirmado. Início/fim agora se organizam em
+  linhas nos cartões estreitos, sem reticências; cartões muito curtos mostram
+  início compacto e conservam o período completo no nome acessível/detalhes.
+  `Hist.` permanece visível sem esconder as fontes realmente não confirmadas.
+  [Antes](evidence/agenda-source-stability/before-overlap-history.png),
+  [desktop após](evidence/agenda-source-stability/after-admin-1920-overlap-history.png),
+  [360px após](evidence/agenda-source-stability/after-teacher-360-overlap-history.png).
+  Cinco de seis combinações falhavam antes; as seis passaram depois, medindo
+  os glifos e o rótulo dentro de cada cartão, com fonte dos horários >=12px.
 
 ## QA e evidências
 
@@ -126,8 +139,22 @@ aprovadas. Os quatro casos nativos falharam antes da correção:
 [recibo de gravação](evidence/agenda-source-stability/receipt-before.tap).
 Os dois fluxos de integração pareada que falharam na CI passaram nos24 testes
 locais do conjunto afetado após correção e navegação pelos controles oficiais.
+O último artefato passou em
+[94 regressões de layout, histórico e ações](evidence/agenda-source-stability/layout-final-94.tap),
+[seis casos de colunas estreitas](evidence/agenda-source-stability/narrow-history-six.tap)
+e [quatro cenários gravados de Dia/Semana/Mês](evidence/agenda-source-stability/final-media-four.tap).
+Os casos estreitos têm [reprodução anterior](evidence/agenda-source-stability/narrow-history-before.tap).
 A suíte frontend completa e as CIs ainda estão em execução/preparação; seus
 resultados finais serão registrados no PR sem presumir aprovação.
+
+O push anterior de `b49cbe8` aprovou631/632 testes; PR e Hosting do mesmo SHA
+aprovaram632/632. O caso de polling aguardava um status que ainda podia pertencer
+à consulta anterior. Agora captura a nova requisição antes do avanço do relógio
+e aguarda corpo/conclusão usando os helpers existentes, tanto no ciclo de20s
+quanto ao retornar à aba. Contagens exatas, pausa, ausência de sync e exigência
+de consulta confirmada permanecem. As [dez repetições locais](evidence/agenda-source-stability/polling-ten-repetitions.tap)
+passaram consecutivamente. Pipeline completo (35 verificações), validação de
+hash/JavaScript e preparação oficial do artefato também passaram no HTML final.
 
 O job anterior [124603630093](https://github.com/gokuoficialbr123-gif/forja-escola/actions/runs/41223796053)
 foi cancelado após45min15s. O orçamento do workflow passou de45 para60min, com
@@ -140,7 +167,7 @@ de sobreposições, permissão, isolamento ou confirmação final foi removida.
 ### Sessão prolongada e interpretação das transições
 
 [Registro integral sanitizado](evidence/agenda-source-stability/soak-report.json):
-**601596ms reais de exercício**, além da preparação,17 fases,37 snapshots no
+**610106ms reais de exercício**, além da preparação,17 fases,39 snapshots no
 servidor administrativo compartilhado,5 conexões SSE acumuladas, no máximo1
 simultânea entre as abas administrativas. São56 compromissos sintéticos por
 semana, incluindo21 aulas,28 ocupações Google e7 bloqueios curtos/sobrepostos.
@@ -163,7 +190,7 @@ desse ensaio são simuladas; a integração com Firebase emulado foi testada à 
   no histórico existente, sem verde. A recuperação nativa confirmou a aula.
 - Não houve transição registrada com verde e alguma fonte necessária não atual.
 
-As37 consultas incluem preparação e a última leitura. Não são37 chamadas Google:
+As39 consultas incluem preparação e a última leitura. Não são39 chamadas Google:
 no ensaio o provedor é simulado e na integração real emulada o cache/limites do
 backend foram exercitados. Não extrapolar esse número para carga escolar real.
 

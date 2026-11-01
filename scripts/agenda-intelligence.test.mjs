@@ -43,9 +43,9 @@ test('admin partial response clearly requests teacher consent without exposing e
  assert.deepEqual(f.errors,[]);
 });
 test('20-second reads pause while hidden/closed, resume immediately and never invoke sync',async t=>{
- const f=await fixture(t,{clock:true}),p=f.page;const initial=f.count();await p.clock.fastForward(20010);await p.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));assert.equal(f.count(),initial+1);
+ const f=await fixture(t,{clock:true}),p=f.page;const initial=f.count();await automaticCycle(p);assert.match(await p.locator('[data-forja2-status]').textContent(),/^Consulta confirmada/);assert.equal(f.count(),initial+1);
  await p.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});await p.clock.fastForward(60000);assert.equal(f.count(),initial+1);
- await p.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});await p.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));assert.equal(f.count(),initial+2);
+ const resumed=nextSnapshot(p);await p.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});await ready(p,{request:resumed});assert.match(await p.locator('[data-forja2-status]').textContent(),/^Consulta confirmada/);assert.equal(f.count(),initial+2);
  await p.evaluate(()=>navigate('inicio'));await p.clock.fastForward(60000);assert.equal(f.count(),initial+2);assert.equal(f.calls.filter(x=>x.path.endsWith('/sync')).length,0);
 });
 for(const mode of ['quota','network','partial','consent','forbidden'])test(`${mode}: manual feedback is honest, green disappears and retries back off`,async t=>{
