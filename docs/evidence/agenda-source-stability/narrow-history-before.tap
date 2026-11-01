@@ -1,0 +1,106 @@
+TAP version 13
+# Subtest: narrow history keeps readable times and current Google admin 1920
+not ok 1 - narrow history keeps readable times and current Google admin 1920
+  ---
+  duration_ms: 8163.9555
+  type: 'test'
+  location: '<frontend>\\scripts\\agenda-stability-visual.test.mjs:33:73'
+  failureType: 'testCodeFailure'
+  error: 'each visible time glyph must fit, even in three overlapping history/current columns'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (<frontend>/scripts/agenda-stability-visual.test.mjs:36:38)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: narrow history keeps readable times and current Google admin 390
+not ok 2 - narrow history keeps readable times and current Google admin 390
+  ---
+  duration_ms: 21069.8638
+  type: 'test'
+  location: '<frontend>\\scripts\\agenda-stability-visual.test.mjs:33:73'
+  failureType: 'testCodeFailure'
+  error: 'each visible time glyph must fit, even in three overlapping history/current columns'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (<frontend>/scripts/agenda-stability-visual.test.mjs:36:38)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: narrow history keeps readable times and current Google admin 360
+not ok 3 - narrow history keeps readable times and current Google admin 360
+  ---
+  duration_ms: 22738.8911
+  type: 'test'
+  location: '<frontend>\\scripts\\agenda-stability-visual.test.mjs:33:73'
+  failureType: 'testCodeFailure'
+  error: 'each visible time glyph must fit, even in three overlapping history/current columns'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (<frontend>/scripts/agenda-stability-visual.test.mjs:36:38)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: narrow history keeps readable times and current Google teacher 1920
+ok 4 - narrow history keeps readable times and current Google teacher 1920
+  ---
+  duration_ms: 7835.5063
+  type: 'test'
+  ...
+# Subtest: narrow history keeps readable times and current Google teacher 390
+not ok 5 - narrow history keeps readable times and current Google teacher 390
+  ---
+  duration_ms: 20926.8473
+  type: 'test'
+  location: '<frontend>\\scripts\\agenda-stability-visual.test.mjs:33:73'
+  failureType: 'testCodeFailure'
+  error: 'each visible time glyph must fit, even in three overlapping history/current columns'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (<frontend>/scripts/agenda-stability-visual.test.mjs:36:38)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: narrow history keeps readable times and current Google teacher 360
+not ok 6 - narrow history keeps readable times and current Google teacher 360
+  ---
+  duration_ms: 21635.3327
+  type: 'test'
+  location: '<frontend>\\scripts\\agenda-stability-visual.test.mjs:33:73'
+  failureType: 'testCodeFailure'
+  error: 'each visible time glyph must fit, even in three overlapping history/current columns'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (<frontend>/scripts/agenda-stability-visual.test.mjs:36:38)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 1
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 103280.267

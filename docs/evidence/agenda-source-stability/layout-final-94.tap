@@ -1,0 +1,576 @@
+TAP version 13
+# Subtest: Agenda fine geometry and reachable actions admin desktop
+ok 1 - Agenda fine geometry and reachable actions admin desktop
+  ---
+  duration_ms: 8023.3338
+  type: 'test'
+  ...
+# Subtest: Agenda fine geometry and reachable actions admin notebook
+ok 2 - Agenda fine geometry and reachable actions admin notebook
+  ---
+  duration_ms: 6712.2839
+  type: 'test'
+  ...
+# Subtest: Agenda fine geometry and reachable actions admin tablet
+ok 3 - Agenda fine geometry and reachable actions admin tablet
+  ---
+  duration_ms: 11396.2507
+  type: 'test'
+  ...
+# Subtest: Agenda fine geometry and reachable actions admin mobile
+ok 4 - Agenda fine geometry and reachable actions admin mobile
+  ---
+  duration_ms: 10847.8037
+  type: 'test'
+  ...
+# Subtest: Agenda fine geometry and reachable actions admin small
+ok 5 - Agenda fine geometry and reachable actions admin small
+  ---
+  duration_ms: 11893.146
+  type: 'test'
+  ...
+# Subtest: Agenda fine geometry and reachable actions teacher desktop
+ok 6 - Agenda fine geometry and reachable actions teacher desktop
+  ---
+  duration_ms: 6261.8754
+  type: 'test'
+  ...
+# Subtest: Agenda fine geometry and reachable actions teacher notebook
+ok 7 - Agenda fine geometry and reachable actions teacher notebook
+  ---
+  duration_ms: 6517.2936
+  type: 'test'
+  ...
+# Subtest: Agenda fine geometry and reachable actions teacher tablet
+ok 8 - Agenda fine geometry and reachable actions teacher tablet
+  ---
+  duration_ms: 10166.7639
+  type: 'test'
+  ...
+# Subtest: Agenda fine geometry and reachable actions teacher mobile
+ok 9 - Agenda fine geometry and reachable actions teacher mobile
+  ---
+  duration_ms: 10226.2935
+  type: 'test'
+  ...
+# Subtest: Agenda fine geometry and reachable actions teacher small
+ok 10 - Agenda fine geometry and reachable actions teacher small
+  ---
+  duration_ms: 10797.1524
+  type: 'test'
+  ...
+# Subtest: newly polled lesson canonical details and one cancellation admin false
+ok 11 - newly polled lesson canonical details and one cancellation admin false
+  ---
+  duration_ms: 6336.9411
+  type: 'test'
+  ...
+# Subtest: newly polled lesson canonical details and one cancellation admin true
+ok 12 - newly polled lesson canonical details and one cancellation admin true
+  ---
+  duration_ms: 9513.2557
+  type: 'test'
+  ...
+# Subtest: newly polled lesson canonical details and one cancellation teacher false
+ok 13 - newly polled lesson canonical details and one cancellation teacher false
+  ---
+  duration_ms: 6182.0357
+  type: 'test'
+  ...
+# Subtest: newly polled lesson canonical details and one cancellation teacher true
+ok 14 - newly polled lesson canonical details and one cancellation teacher true
+  ---
+  duration_ms: 9267.9568
+  type: 'test'
+  ...
+# Subtest: late Agenda detail cannot reopen, replace a form, or cross a session admin
+ok 15 - late Agenda detail cannot reopen, replace a form, or cross a session admin
+  ---
+  duration_ms: 6351.681
+  type: 'test'
+  ...
+# Subtest: late Agenda detail cannot reopen, replace a form, or cross a session teacher
+ok 16 - late Agenda detail cannot reopen, replace a form, or cross a session teacher
+  ---
+  duration_ms: 5950.8909
+  type: 'test'
+  ...
+# Subtest: teacher month indicators and extra lessons open the official day false
+ok 17 - teacher month indicators and extra lessons open the official day false
+  ---
+  duration_ms: 6031.3407
+  type: 'test'
+  ...
+# Subtest: teacher month indicators and extra lessons open the official day true
+ok 18 - teacher month indicators and extra lessons open the official day true
+  ---
+  duration_ms: 10100.1619
+  type: 'test'
+  ...
+# Subtest: detail Escape returns focus to the repainted lesson admin
+ok 19 - detail Escape returns focus to the repainted lesson admin
+  ---
+  duration_ms: 6438.7844
+  type: 'test'
+  ...
+# Subtest: detail Escape returns focus to the repainted lesson teacher
+ok 20 - detail Escape returns focus to the repainted lesson teacher
+  ---
+  duration_ms: 6539.9755
+  type: 'test'
+  ...
+# Subtest: month date keyboard action keeps focus across five polls admin
+ok 21 - month date keyboard action keeps focus across five polls admin
+  ---
+  duration_ms: 15425.4622
+  type: 'test'
+  ...
+# Subtest: month date keyboard action keeps focus across five polls teacher
+ok 22 - month date keyboard action keeps focus across five polls teacher
+  ---
+  duration_ms: 15731.905
+  type: 'test'
+  ...
+# Subtest: mobile Secretary filters preserve selection/search through navigation and desktop resize
+ok 23 - mobile Secretary filters preserve selection/search through navigation and desktop resize
+  ---
+  duration_ms: 10507.9847
+  type: 'test'
+  ...
+# Subtest: Secretary selection of 50 professionals keeps readable, separate columns false
+ok 24 - Secretary selection of 50 professionals keeps readable, separate columns false
+  ---
+  duration_ms: 7327.6966
+  type: 'test'
+  ...
+# Subtest: Secretary selection of 50 professionals keeps readable, separate columns true
+ok 25 - Secretary selection of 50 professionals keeps readable, separate columns true
+  ---
+  duration_ms: 13760.5204
+  type: 'test'
+  ...
+# Subtest: teacher mobile exposes native filters and fixed availability through polling, navigation and desktop resize
+ok 26 - teacher mobile exposes native filters and fixed availability through polling, navigation and desktop resize
+  ---
+  duration_ms: 11734.1166
+  type: 'test'
+  ...
+# Subtest: Agenda internal scroll survives filters, navigation, five polls and clears by session admin false
+ok 27 - Agenda internal scroll survives filters, navigation, five polls and clears by session admin false
+  ---
+  duration_ms: 6817.8521
+  type: 'test'
+  ...
+# Subtest: Agenda internal scroll survives filters, navigation, five polls and clears by session admin true
+ok 28 - Agenda internal scroll survives filters, navigation, five polls and clears by session admin true
+  ---
+  duration_ms: 10803.4891
+  type: 'test'
+  ...
+# Subtest: Agenda internal scroll survives filters, navigation, five polls and clears by session teacher false
+ok 29 - Agenda internal scroll survives filters, navigation, five polls and clears by session teacher false
+  ---
+  duration_ms: 6853.6113
+  type: 'test'
+  ...
+# Subtest: Agenda internal scroll survives filters, navigation, five polls and clears by session teacher true
+ok 30 - Agenda internal scroll survives filters, navigation, five polls and clears by session teacher true
+  ---
+  duration_ms: 9953.1713
+  type: 'test'
+  ...
+# Subtest: mobile month keeps a complete readable start time admin 360
+ok 31 - mobile month keeps a complete readable start time admin 360
+  ---
+  duration_ms: 11223.1079
+  type: 'test'
+  ...
+# Subtest: mobile month keeps a complete readable start time teacher 360
+ok 32 - mobile month keeps a complete readable start time teacher 360
+  ---
+  duration_ms: 10593.9156
+  type: 'test'
+  ...
+# Subtest: mobile month keeps a complete readable start time student 360
+ok 33 - mobile month keeps a complete readable start time student 360
+  ---
+  duration_ms: 7854.2758
+  type: 'test'
+  ...
+# Subtest: mobile month keeps a complete readable start time admin 390
+ok 34 - mobile month keeps a complete readable start time admin 390
+  ---
+  duration_ms: 12383.0982
+  type: 'test'
+  ...
+# Subtest: mobile month keeps a complete readable start time teacher 390
+ok 35 - mobile month keeps a complete readable start time teacher 390
+  ---
+  duration_ms: 10886.4022
+  type: 'test'
+  ...
+# Subtest: mobile month keeps a complete readable start time student 390
+ok 36 - mobile month keeps a complete readable start time student 390
+  ---
+  duration_ms: 7811.6118
+  type: 'test'
+  ...
+# Subtest: mobile details and More menu fit and expose their last action student 360
+ok 37 - mobile details and More menu fit and expose their last action student 360
+  ---
+  duration_ms: 7796.1119
+  type: 'test'
+  ...
+# Subtest: mobile details and More menu fit and expose their last action parent 360
+ok 38 - mobile details and More menu fit and expose their last action parent 360
+  ---
+  duration_ms: 7857.8737
+  type: 'test'
+  ...
+# Subtest: mobile details and More menu fit and expose their last action psychologist 360
+ok 39 - mobile details and More menu fit and expose their last action psychologist 360
+  ---
+  duration_ms: 7374.8054
+  type: 'test'
+  ...
+# Subtest: mobile details and More menu fit and expose their last action student 390
+ok 40 - mobile details and More menu fit and expose their last action student 390
+  ---
+  duration_ms: 7655.4717
+  type: 'test'
+  ...
+# Subtest: mobile details and More menu fit and expose their last action parent 390
+ok 41 - mobile details and More menu fit and expose their last action parent 390
+  ---
+  duration_ms: 7697.9847
+  type: 'test'
+  ...
+# Subtest: mobile details and More menu fit and expose their last action psychologist 390
+ok 42 - mobile details and More menu fit and expose their last action psychologist 390
+  ---
+  duration_ms: 7442.0646
+  type: 'test'
+  ...
+# Subtest: native initial outage preserves authorized cached lessons only as history admin
+ok 43 - native initial outage preserves authorized cached lessons only as history admin
+  ---
+  duration_ms: 6306.6264
+  type: 'test'
+  ...
+# Subtest: native initial outage preserves authorized cached lessons only as history teacher
+ok 44 - native initial outage preserves authorized cached lessons only as history teacher
+  ---
+  duration_ms: 6259.6962
+  type: 'test'
+  ...
+# Subtest: native write receipt survives an unavailable snapshot as history, never as availability admin
+ok 45 - native write receipt survives an unavailable snapshot as history, never as availability admin
+  ---
+  duration_ms: 5805.7481
+  type: 'test'
+  ...
+# Subtest: native write receipt survives an unavailable snapshot as history, never as availability teacher
+ok 46 - native write receipt survives an unavailable snapshot as history, never as availability teacher
+  ---
+  duration_ms: 6101.1115
+  type: 'test'
+  ...
+# Subtest: native history: unavailable/expiry/recovery/cancel admin desktop day
+ok 47 - native history: unavailable/expiry/recovery/cancel admin desktop day
+  ---
+  duration_ms: 6156.0474
+  type: 'test'
+  ...
+# Subtest: native history: unavailable/expiry/recovery/cancel admin desktop week
+ok 48 - native history: unavailable/expiry/recovery/cancel admin desktop week
+  ---
+  duration_ms: 6218.7415
+  type: 'test'
+  ...
+# Subtest: native history: unavailable/expiry/recovery/cancel admin desktop month
+ok 49 - native history: unavailable/expiry/recovery/cancel admin desktop month
+  ---
+  duration_ms: 6578.6739
+  type: 'test'
+  ...
+# Subtest: native history: unavailable/expiry/recovery/cancel admin mobile day
+ok 50 - native history: unavailable/expiry/recovery/cancel admin mobile day
+  ---
+  duration_ms: 9446.2495
+  type: 'test'
+  ...
+# Subtest: native history: unavailable/expiry/recovery/cancel admin mobile week
+ok 51 - native history: unavailable/expiry/recovery/cancel admin mobile week
+  ---
+  duration_ms: 10142.7404
+  type: 'test'
+  ...
+# Subtest: native history: unavailable/expiry/recovery/cancel admin mobile month
+ok 52 - native history: unavailable/expiry/recovery/cancel admin mobile month
+  ---
+  duration_ms: 14876.4473
+  type: 'test'
+  ...
+# Subtest: native history: unavailable/expiry/recovery/cancel teacher desktop day
+ok 53 - native history: unavailable/expiry/recovery/cancel teacher desktop day
+  ---
+  duration_ms: 6763.6112
+  type: 'test'
+  ...
+# Subtest: native history: unavailable/expiry/recovery/cancel teacher desktop week
+ok 54 - native history: unavailable/expiry/recovery/cancel teacher desktop week
+  ---
+  duration_ms: 6511.7085
+  type: 'test'
+  ...
+# Subtest: native history: unavailable/expiry/recovery/cancel teacher desktop month
+ok 55 - native history: unavailable/expiry/recovery/cancel teacher desktop month
+  ---
+  duration_ms: 7567.2891
+  type: 'test'
+  ...
+# Subtest: native history: unavailable/expiry/recovery/cancel teacher mobile day
+ok 56 - native history: unavailable/expiry/recovery/cancel teacher mobile day
+  ---
+  duration_ms: 9384.654
+  type: 'test'
+  ...
+# Subtest: native history: unavailable/expiry/recovery/cancel teacher mobile week
+ok 57 - native history: unavailable/expiry/recovery/cancel teacher mobile week
+  ---
+  duration_ms: 11163.4782
+  type: 'test'
+  ...
+# Subtest: native history: unavailable/expiry/recovery/cancel teacher mobile month
+ok 58 - native history: unavailable/expiry/recovery/cancel teacher mobile month
+  ---
+  duration_ms: 14559.6184
+  type: 'test'
+  ...
+# Subtest: native detail: canonical read alone authorizes actions, independent Google failure admin false
+ok 59 - native detail: canonical read alone authorizes actions, independent Google failure admin false
+  ---
+  duration_ms: 7260.1363
+  type: 'test'
+  ...
+# Subtest: native detail: canonical read alone authorizes actions, independent Google failure admin true
+ok 60 - native detail: canonical read alone authorizes actions, independent Google failure admin true
+  ---
+  duration_ms: 9450.1633
+  type: 'test'
+  ...
+# Subtest: native detail: canonical read alone authorizes actions, independent Google failure teacher false
+ok 61 - native detail: canonical read alone authorizes actions, independent Google failure teacher false
+  ---
+  duration_ms: 6002.7856
+  type: 'test'
+  ...
+# Subtest: native detail: canonical read alone authorizes actions, independent Google failure teacher true
+ok 62 - native detail: canonical read alone authorizes actions, independent Google failure teacher true
+  ---
+  duration_ms: 9023.1348
+  type: 'test'
+  ...
+# Subtest: native cached fallback: missing-row admin
+ok 63 - native cached fallback: missing-row admin
+  ---
+  duration_ms: 5602.0811
+  type: 'test'
+  ...
+# Subtest: native cached fallback: forbidden admin
+ok 64 - native cached fallback: forbidden admin
+  ---
+  duration_ms: 5627.5077
+  type: 'test'
+  ...
+# Subtest: native cached fallback: missing-row teacher
+ok 65 - native cached fallback: missing-row teacher
+  ---
+  duration_ms: 6371.7128
+  type: 'test'
+  ...
+# Subtest: native cached fallback: forbidden teacher
+ok 66 - native cached fallback: forbidden teacher
+  ---
+  duration_ms: 6554.6347
+  type: 'test'
+  ...
+# Subtest: current snapshot readiness cannot reuse previous monthly confirmation desktop
+ok 67 - current snapshot readiness cannot reuse previous monthly confirmation desktop
+  ---
+  duration_ms: 6486.18
+  type: 'test'
+  ...
+# {"beforeRequest":{"settled":false,"reads":2},"heldResponse":{"settled":false,"reads":2},"completed":{"settled":true,"reads":3},"initialReads":2}
+# Subtest: current snapshot readiness cannot reuse previous monthly confirmation mobile
+ok 68 - current snapshot readiness cannot reuse previous monthly confirmation mobile
+  ---
+  duration_ms: 10621.7154
+  type: 'test'
+  ...
+# {"beforeRequest":{"settled":false,"reads":2},"heldResponse":{"settled":false,"reads":2},"completed":{"settled":true,"reads":3},"initialReads":2}
+# Subtest: one agenda representation teacher desktop day
+ok 69 - one agenda representation teacher desktop day
+  ---
+  duration_ms: 6292.5811
+  type: 'test'
+  ...
+# Subtest: one agenda representation teacher desktop week
+ok 70 - one agenda representation teacher desktop week
+  ---
+  duration_ms: 6398.5951
+  type: 'test'
+  ...
+# Subtest: one agenda representation teacher desktop month
+ok 71 - one agenda representation teacher desktop month
+  ---
+  duration_ms: 7337.755
+  type: 'test'
+  ...
+# Subtest: one agenda representation teacher mobile day
+ok 72 - one agenda representation teacher mobile day
+  ---
+  duration_ms: 9683.5318
+  type: 'test'
+  ...
+# Subtest: one agenda representation teacher mobile week
+ok 73 - one agenda representation teacher mobile week
+  ---
+  duration_ms: 11285.7888
+  type: 'test'
+  ...
+# Subtest: one agenda representation teacher mobile month
+ok 74 - one agenda representation teacher mobile month
+  ---
+  duration_ms: 17401.5175
+  type: 'test'
+  ...
+# Subtest: one agenda representation admin desktop day
+ok 75 - one agenda representation admin desktop day
+  ---
+  duration_ms: 6779.0586
+  type: 'test'
+  ...
+# Subtest: one agenda representation admin desktop week
+ok 76 - one agenda representation admin desktop week
+  ---
+  duration_ms: 6666.6448
+  type: 'test'
+  ...
+# Subtest: one agenda representation admin desktop month
+ok 77 - one agenda representation admin desktop month
+  ---
+  duration_ms: 7279.3011
+  type: 'test'
+  ...
+# Subtest: one agenda representation admin mobile day
+ok 78 - one agenda representation admin mobile day
+  ---
+  duration_ms: 11917.1052
+  type: 'test'
+  ...
+# Subtest: one agenda representation admin mobile week
+ok 79 - one agenda representation admin mobile week
+  ---
+  duration_ms: 12188.2701
+  type: 'test'
+  ...
+# Subtest: one agenda representation admin mobile month
+ok 80 - one agenda representation admin mobile month
+  ---
+  duration_ms: 14810.0973
+  type: 'test'
+  ...
+# Subtest: monthly professionals have independent states desktop
+ok 81 - monthly professionals have independent states desktop
+  ---
+  duration_ms: 5536.7503
+  type: 'test'
+  ...
+# Subtest: monthly professionals have independent states mobile
+ok 82 - monthly professionals have independent states mobile
+  ---
+  duration_ms: 9397.4143
+  type: 'test'
+  ...
+# Subtest: teacher editing and official busy handler survive five polls desktop
+ok 83 - teacher editing and official busy handler survive five polls desktop
+  ---
+  duration_ms: 5504.4752
+  type: 'test'
+  ...
+# Subtest: teacher editing and official busy handler survive five polls mobile
+ok 84 - teacher editing and official busy handler survive five polls mobile
+  ---
+  duration_ms: 8578.8699
+  type: 'test'
+  ...
+# Subtest: native reschedule never claims successful Google synchronization on partial failure desktop
+ok 85 - native reschedule never claims successful Google synchronization on partial failure desktop
+  ---
+  duration_ms: 5114.4805
+  type: 'test'
+  ...
+# Subtest: native reschedule never claims successful Google synchronization on partial failure mobile
+ok 86 - native reschedule never claims successful Google synchronization on partial failure mobile
+  ---
+  duration_ms: 7558.6094
+  type: 'test'
+  ...
+# Subtest: reconnection cards: admin 1366, day/week/month without private data
+ok 87 - reconnection cards: admin 1366, day/week/month without private data
+  ---
+  duration_ms: 6144.687
+  type: 'test'
+  ...
+# Subtest: reconnection cards: admin 1920, day/week/month without private data
+ok 88 - reconnection cards: admin 1920, day/week/month without private data
+  ---
+  duration_ms: 5722.7988
+  type: 'test'
+  ...
+# Subtest: reconnection cards: admin 360, day/week/month without private data
+ok 89 - reconnection cards: admin 360, day/week/month without private data
+  ---
+  duration_ms: 10310.5199
+  type: 'test'
+  ...
+# Subtest: reconnection cards: admin 390, day/week/month without private data
+ok 90 - reconnection cards: admin 390, day/week/month without private data
+  ---
+  duration_ms: 10035.3458
+  type: 'test'
+  ...
+# Subtest: reconnection cards: teacher 1366, day/week/month without private data
+ok 91 - reconnection cards: teacher 1366, day/week/month without private data
+  ---
+  duration_ms: 5587.3925
+  type: 'test'
+  ...
+# Subtest: reconnection cards: teacher 1920, day/week/month without private data
+ok 92 - reconnection cards: teacher 1920, day/week/month without private data
+  ---
+  duration_ms: 5722.9966
+  type: 'test'
+  ...
+# Subtest: reconnection cards: teacher 360, day/week/month without private data
+ok 93 - reconnection cards: teacher 360, day/week/month without private data
+  ---
+  duration_ms: 9515.4728
+  type: 'test'
+  ...
+# Subtest: reconnection cards: teacher 390, day/week/month without private data
+ok 94 - reconnection cards: teacher 390, day/week/month without private data
+  ---
+  duration_ms: 9634.1999
+  type: 'test'
+  ...
+1..94
+# tests 94
+# suites 0
+# pass 94
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 814211.5551

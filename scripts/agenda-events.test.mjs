@@ -53,7 +53,7 @@ for(const role of ['admin','teacher'])test(`reconnection: month identifies histo
 });
 
 for(const role of ['admin','teacher'])for(const failure of ['expiry',403,429,'timeout','partial'])test(`reconnection: historical busy survives ${failure}, never offers green ${role}`,async t=>{
- const f=await fixture(t,{role,mode:'mixed'}),p=f.page;await f.waitStreams(1,1);f.emit('ready');await delay(80);await p.clock.runFor(300);await ready(p);
+ const f=await fixture(t,{role,mode:'mixed'}),p=f.page;await f.waitStreams(1,1);f.emit('ready');await delay(80);await p.clock.runFor(300);await ready(p);await p.clock.pauseAt(new Date(await p.evaluate(()=>Date.now())+1000));
  const response=async route=>{if(failure==='partial'||failure===403)return route.fulfill({contentType:'application/json',headers:{'Access-Control-Allow-Origin':f.origin},body:JSON.stringify({...f.snapshot(),complete:false,items:f.snapshot().items.map(x=>({...x,status:'unavailable',busy:[],personal:{status:'unavailable',reason:failure===403?'personal_access_denied':'personal_rate_limit'},central:{status:'unavailable'}}))})});return route.fulfill({status:failure,contentType:'application/json',headers:{'Access-Control-Allow-Origin':f.origin,'Access-Control-Expose-Headers':'Retry-After','Retry-After':'75'},body:'{"code":"SYNTHETIC_FAILURE"}'});};
  let release,entered;const gate=new Promise(r=>release=r),entry=new Promise(r=>entered=r),held=async route=>{entered();await gate;await route.fallback();};
  if(['expiry','timeout'].includes(failure))await p.route('**/agenda/snapshot?**',held);else await p.route('**/agenda/snapshot?**',response);
@@ -62,6 +62,11 @@ for(const role of ['admin','teacher'])for(const failure of ['expiry',403,429,'ti
  if(['expiry','timeout'].includes(failure)){await entry;await p.clock.runFor(failure==='expiry'?5010:15001);await delay(50);}else await reading;
  if(failure==='expiry'&&process.env.FORJA_RECONNECTION_EVIDENCE_DIR){mkdirSync(process.env.FORJA_RECONNECTION_EVIDENCE_DIR,{recursive:true});await p.screenshot({path:resolve(process.env.FORJA_RECONNECTION_EVIDENCE_DIR,`expired-${role}.png`),fullPage:true});}
  assert.equal(await p.locator('.v621-block.availability').count(),0,'expired/failed intervals cannot be booked');
+ if(failure===429||failure==='timeout'){
+  assert.ok(await p.locator('.forja2-busy.google:not(.forja2-historical)').count()>0,'HTTP failure cannot revoke an independently current original source proof');
+  await p.clock.runFor(26000-(failure==='timeout'?15001:0));
+  assert.equal(await p.locator('.forja2-busy.google:not(.forja2-historical)').count(),0,'HTTP failure cannot extend the original source deadline');
+ }
  assert.ok(await p.locator('.forja2-busy.google.forja2-historical').count()>0,'last known Google busy stays visible as historical');
  assert.match(await p.locator('.forja2-busy.google.forja2-historical').first().getAttribute('aria-label'),/Última informação conhecida/);
  assert.equal(await p.locator('.forja2-historical').first().evaluate(el=>getComputedStyle(el).color),'rgb(71, 85, 105)','historical cards cannot retain confirmed red styling');

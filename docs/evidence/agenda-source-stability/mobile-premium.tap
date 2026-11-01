@@ -1,0 +1,376 @@
+TAP version 13
+# Subtest: mobile month keeps a complete readable start time admin 360
+ok 1 - mobile month keeps a complete readable start time admin 360
+  ---
+  duration_ms: 11657.9708
+  type: 'test'
+  ...
+# Subtest: mobile month keeps a complete readable start time teacher 360
+ok 2 - mobile month keeps a complete readable start time teacher 360
+  ---
+  duration_ms: 10893.8942
+  type: 'test'
+  ...
+# Subtest: mobile month keeps a complete readable start time student 360
+ok 3 - mobile month keeps a complete readable start time student 360
+  ---
+  duration_ms: 8619.8202
+  type: 'test'
+  ...
+# Subtest: mobile month keeps a complete readable start time admin 390
+ok 4 - mobile month keeps a complete readable start time admin 390
+  ---
+  duration_ms: 11505.1984
+  type: 'test'
+  ...
+# Subtest: mobile month keeps a complete readable start time teacher 390
+ok 5 - mobile month keeps a complete readable start time teacher 390
+  ---
+  duration_ms: 12099.5177
+  type: 'test'
+  ...
+# Subtest: mobile month keeps a complete readable start time student 390
+ok 6 - mobile month keeps a complete readable start time student 390
+  ---
+  duration_ms: 7858.9345
+  type: 'test'
+  ...
+# Subtest: mobile details and More menu fit and expose their last action student 360
+ok 7 - mobile details and More menu fit and expose their last action student 360
+  ---
+  duration_ms: 7826.2183
+  type: 'test'
+  ...
+# Subtest: mobile details and More menu fit and expose their last action parent 360
+ok 8 - mobile details and More menu fit and expose their last action parent 360
+  ---
+  duration_ms: 7523.5956
+  type: 'test'
+  ...
+# Subtest: mobile details and More menu fit and expose their last action psychologist 360
+ok 9 - mobile details and More menu fit and expose their last action psychologist 360
+  ---
+  duration_ms: 7685.4594
+  type: 'test'
+  ...
+# Subtest: mobile details and More menu fit and expose their last action student 390
+ok 10 - mobile details and More menu fit and expose their last action student 390
+  ---
+  duration_ms: 8337.432
+  type: 'test'
+  ...
+# Subtest: mobile details and More menu fit and expose their last action parent 390
+ok 11 - mobile details and More menu fit and expose their last action parent 390
+  ---
+  duration_ms: 7546.7747
+  type: 'test'
+  ...
+# Subtest: mobile details and More menu fit and expose their last action psychologist 390
+ok 12 - mobile details and More menu fit and expose their last action psychologist 390
+  ---
+  duration_ms: 7460.7928
+  type: 'test'
+  ...
+# Subtest: agenda modality comes only from native data and never from a title
+ok 13 - agenda modality comes only from native data and never from a title
+  ---
+  duration_ms: 6114.0642
+  type: 'test'
+  ...
+# Subtest: institutional teacher renders no personal actions; inherited legacy metadata false
+ok 14 - institutional teacher renders no personal actions; inherited legacy metadata false
+  ---
+  duration_ms: 5844.4964
+  type: 'test'
+  ...
+# Subtest: institutional teacher renders no personal actions; inherited legacy metadata true
+ok 15 - institutional teacher renders no personal actions; inherited legacy metadata true
+  ---
+  duration_ms: 5872.7965
+  type: 'test'
+  ...
+# Subtest: native modality palette admin day
+ok 16 - native modality palette admin day
+  ---
+  duration_ms: 6216.8718
+  type: 'test'
+  ...
+# Subtest: native modality palette admin week
+ok 17 - native modality palette admin week
+  ---
+  duration_ms: 6671.8959
+  type: 'test'
+  ...
+# Subtest: native modality palette admin month
+ok 18 - native modality palette admin month
+  ---
+  duration_ms: 6834.6636
+  type: 'test'
+  ...
+# Subtest: native modality palette teacher day
+ok 19 - native modality palette teacher day
+  ---
+  duration_ms: 7020.7946
+  type: 'test'
+  ...
+# Subtest: native modality palette teacher week
+ok 20 - native modality palette teacher week
+  ---
+  duration_ms: 7094.5502
+  type: 'test'
+  ...
+# Subtest: native modality palette teacher month
+ok 21 - native modality palette teacher month
+  ---
+  duration_ms: 6435.8575
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated admin 1920
+ok 22 - agenda responsive and isolated admin 1920
+  ---
+  duration_ms: 6622.4
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated admin 1366
+ok 23 - agenda responsive and isolated admin 1366
+  ---
+  duration_ms: 6436.4314
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated admin 768
+ok 24 - agenda responsive and isolated admin 768
+  ---
+  duration_ms: 12147.1247
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated admin 390
+ok 25 - agenda responsive and isolated admin 390
+  ---
+  duration_ms: 12354.4386
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated admin 360
+ok 26 - agenda responsive and isolated admin 360
+  ---
+  duration_ms: 12233.2611
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated teacher 1920
+ok 27 - agenda responsive and isolated teacher 1920
+  ---
+  duration_ms: 6535.8012
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated teacher 1366
+ok 28 - agenda responsive and isolated teacher 1366
+  ---
+  duration_ms: 6375.729
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated teacher 768
+ok 29 - agenda responsive and isolated teacher 768
+  ---
+  duration_ms: 12183.2249
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated teacher 390
+ok 30 - agenda responsive and isolated teacher 390
+  ---
+  duration_ms: 13879.8569
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated teacher 360
+ok 31 - agenda responsive and isolated teacher 360
+  ---
+  duration_ms: 14243.8898
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated student 1920
+ok 32 - agenda responsive and isolated student 1920
+  ---
+  duration_ms: 6111.6402
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated student 1366
+ok 33 - agenda responsive and isolated student 1366
+  ---
+  duration_ms: 6810.9707
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated student 768
+ok 34 - agenda responsive and isolated student 768
+  ---
+  duration_ms: 8829.6834
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated student 390
+ok 35 - agenda responsive and isolated student 390
+  ---
+  duration_ms: 8902.606
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated student 360
+ok 36 - agenda responsive and isolated student 360
+  ---
+  duration_ms: 7723.1967
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated parent 1920
+ok 37 - agenda responsive and isolated parent 1920
+  ---
+  duration_ms: 5774.4229
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated parent 1366
+ok 38 - agenda responsive and isolated parent 1366
+  ---
+  duration_ms: 5618.6922
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated parent 768
+ok 39 - agenda responsive and isolated parent 768
+  ---
+  duration_ms: 8276.3589
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated parent 390
+ok 40 - agenda responsive and isolated parent 390
+  ---
+  duration_ms: 7520.6658
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated parent 360
+ok 41 - agenda responsive and isolated parent 360
+  ---
+  duration_ms: 7671.5768
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated psychologist 1920
+ok 42 - agenda responsive and isolated psychologist 1920
+  ---
+  duration_ms: 6135.7743
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated psychologist 1366
+ok 43 - agenda responsive and isolated psychologist 1366
+  ---
+  duration_ms: 6028.7926
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated psychologist 768
+ok 44 - agenda responsive and isolated psychologist 768
+  ---
+  duration_ms: 8325.1811
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated psychologist 390
+ok 45 - agenda responsive and isolated psychologist 390
+  ---
+  duration_ms: 8120.4646
+  type: 'test'
+  ...
+# Subtest: agenda responsive and isolated psychologist 360
+ok 46 - agenda responsive and isolated psychologist 360
+  ---
+  duration_ms: 8678.8154
+  type: 'test'
+  ...
+# Subtest: palette checks observe current cards rather than detached pre-repaint handles
+ok 47 - palette checks observe current cards rather than detached pre-repaint handles
+  ---
+  duration_ms: 6671.9267
+  type: 'test'
+  ...
+# Subtest: month date keyboard navigation uses the official day view student
+ok 48 - month date keyboard navigation uses the official day view student
+  ---
+  duration_ms: 8519.7462
+  type: 'test'
+  ...
+# Subtest: month date keyboard navigation uses the official day view psychologist
+ok 49 - month date keyboard navigation uses the official day view psychologist
+  ---
+  duration_ms: 8030.9707
+  type: 'test'
+  ...
+# Subtest: official details preserve authorized modality admin
+ok 50 - official details preserve authorized modality admin
+  ---
+  duration_ms: 9000.9997
+  type: 'test'
+  ...
+# Subtest: official details preserve authorized modality teacher
+ok 51 - official details preserve authorized modality teacher
+  ---
+  duration_ms: 8424.3249
+  type: 'test'
+  ...
+# Subtest: official details preserve authorized modality student
+ok 52 - official details preserve authorized modality student
+  ---
+  duration_ms: 7340.9733
+  type: 'test'
+  ...
+# Subtest: official details preserve authorized modality parent
+ok 53 - official details preserve authorized modality parent
+  ---
+  duration_ms: 7252.8755
+  type: 'test'
+  ...
+# Subtest: unknown source stays neutral and never free admin
+ok 54 - unknown source stays neutral and never free admin
+  ---
+  duration_ms: 8209.8142
+  type: 'test'
+  ...
+# Subtest: unknown source stays neutral and never free teacher
+ok 55 - unknown source stays neutral and never free teacher
+  ---
+  duration_ms: 7856.1276
+  type: 'test'
+  ...
+# Subtest: institutional source failure has a neutral specific message institutional_rate_limit
+ok 56 - institutional source failure has a neutral specific message institutional_rate_limit
+  ---
+  duration_ms: 5770.5615
+  type: 'test'
+  ...
+# Subtest: institutional source failure has a neutral specific message institutional_consent_required
+ok 57 - institutional source failure has a neutral specific message institutional_consent_required
+  ---
+  duration_ms: 5504.9156
+  type: 'test'
+  ...
+# Subtest: institutional source failure has a neutral specific message institutional_access_denied
+ok 58 - institutional source failure has a neutral specific message institutional_access_denied
+  ---
+  duration_ms: 5579.7785
+  type: 'test'
+  ...
+# Subtest: institutional source failure has a neutral specific message institutional_configuration
+ok 59 - institutional source failure has a neutral specific message institutional_configuration
+  ---
+  duration_ms: 5738.5242
+  type: 'test'
+  ...
+# Subtest: psychologist calendar preserves its professional render scope 1366
+ok 60 - psychologist calendar preserves its professional render scope 1366
+  ---
+  duration_ms: 5472.0903
+  type: 'test'
+  ...
+# Subtest: psychologist calendar preserves its professional render scope 390
+ok 61 - psychologist calendar preserves its professional render scope 390
+  ---
+  duration_ms: 7037.2033
+  type: 'test'
+  ...
+1..61
+# tests 61
+# suites 0
+# pass 61
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 488863.9996
