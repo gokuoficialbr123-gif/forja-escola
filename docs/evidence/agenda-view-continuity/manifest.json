@@ -1,0 +1,62 @@
+[
+  {
+    "file": "after-admin-desktop-04-return-week.png",
+    "bytes": 160058,
+    "sha256": "6b7572c20ece4c016f045564dd23014980cbb7f704f654ec19eb40f0b012f01a"
+  },
+  {
+    "file": "after-admin-desktop-05-original-expiry.png",
+    "bytes": 170153,
+    "sha256": "238b441285bae61291c2009441c943eda7b07ad615e33903f5ade0c86ab12ff6"
+  },
+  {
+    "file": "after-admin-desktop-07-real-removal.png",
+    "bytes": 150874,
+    "sha256": "38aa7fa9775ed938b14b85ab77750c1fb350e0570d8f6211c2aac80cc5738dfc"
+  },
+  {
+    "file": "after-admin-desktop.webm",
+    "bytes": 1064239,
+    "sha256": "d9c6ddda4edae7456f862ee4b63822f19e72cfe9fcac9c1c56b07c35d992f6d6"
+  },
+  {
+    "file": "after-admin-mobile-02-month-pending.png",
+    "bytes": 70602,
+    "sha256": "9475c6964df1aeddc0187bc5992d82afeeeb66b66fef0de7647ca39c26c7783b"
+  },
+  {
+    "file": "after-admin-mobile-04-return-week.png",
+    "bytes": 62666,
+    "sha256": "2c24580321030ba4a91f8f8e74477e910e76e89c4b8dc2c2493f248fefddeea4"
+  },
+  {
+    "file": "after-admin-mobile.webm",
+    "bytes": 1770181,
+    "sha256": "4dfd42694a8b561fcf14ac95886c3e8cfc11b49eb44e6517faa1896e5b040a86"
+  },
+  {
+    "file": "before-admin-desktop-04-return-week.png",
+    "bytes": 151508,
+    "sha256": "a5eaf1331f130685c5d37e7ec59901fa6b04085013d5f81cb46d51771e54013d"
+  },
+  {
+    "file": "before-admin-desktop.webm",
+    "bytes": 761706,
+    "sha256": "ce49877d065945256ac9e78f1bc4347e0e4a2197b6f48600aeef7ad3e792cfe1"
+  },
+  {
+    "file": "before-admin-mobile-04-return-week.png",
+    "bytes": 58701,
+    "sha256": "40cb044de63847eb8ba34c333c37d03411ffc5e39b6d3653f990b3e23960596d"
+  },
+  {
+    "file": "before-admin-mobile.webm",
+    "bytes": 1273820,
+    "sha256": "ef0878703b3326eafc7052c67a42e608db8a100d4b0e9e7cb5e387c651c8f1a8"
+  },
+  {
+    "file": "soak-summary.json",
+    "bytes": 16106,
+    "sha256": "6ed40ae94e74abe3da6657ea20981d54e339df90fd05359ffc0a3982ac93a337"
+  }
+]

@@ -8817,7 +8817,12 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  // Bounded to one last confirmed set per source/professional in this context.
  // Display only: never feeds published periods, cuts or booking authorization.
  let knownRows=new Map(),accessDenied=false;
- function denyAccess(){accessDenied=true;knownRows.clear();record=null;lastSuccess=null;}
+ // One bounded, session-local display ledger. Each day keeps its ORIGINAL
+ // source proof; changing the query never grants fresh time or new coverage.
+ const retainedDays=new Map(),proofs=new WeakMap();
+ const proofFor=r=>r&&(proofs.get(r)||record);
+ const allProofs=()=>new Set([record,...[...retainedDays.values()].flatMap(day=>[...day.values()].map(x=>x.proof))].filter(Boolean));
+ function denyAccess(){accessDenied=true;knownRows.clear();retainedDays.clear();record=null;lastSuccess=null;}
  let stream=null,streamTimer=null,streamSeenAt=0,streamFailures=0,streamStatus='',revision=0,retryUntil=0,changeTimer=null,changeVersion=null,localDirty=false,awaitingStream=false;
  window.forjaAgenda2Enabled=true;
  window.forjaAgenda2RescheduleFeedback=result=>{
@@ -8825,10 +8830,10 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   toast(pending?'Aula reagendada no FORJA; sincronização Google pendente.':status==='sincronizado'?'Aula reagendada e sincronização Google confirmada.':'Aula reagendada no FORJA.',pending?'warn':'ok');
  };
  const active=(visible=true)=>(!visible||!document.hidden)&&state.page==='agenda'&&['admin','teacher'].includes(state.role)&&state.profile?.active===true&&state.profile.role===state.role;
- const capture=(visible=true)=>{if(!active(visible))return null;const range=window.forjaAgenda2Context?.();if(!range)return null;const scope=forjaCaptureSession();return {...range,scope,key:JSON.stringify([scope.uid,scope.generation,state.role,range])};};
+ const capture=(visible=true)=>{if(!active(visible))return null;const range=window.forjaAgenda2Context?.();if(!range)return null;const scope=forjaCaptureSession();return {...range,scope,audience:JSON.stringify([scope.uid,scope.generation,state.role,range.ids]),key:JSON.stringify([scope.uid,scope.generation,state.role,range])};};
  const current=c=>!!c&&active()&&forjaSessionCurrent(c.scope)&&capture()?.key===c.key;
- const row=(uid,day)=>context&&current(context)&&record?.key===context.key&&day>=record.value.from&&day<=record.value.to?record.value.items.find(x=>x.professionalId===uid):null;
- const knownRow=(uid,day)=>row(uid,day)?knownRows.get(uid):null;
+ const row=(uid,day)=>!accessDenied&&context&&current(context)&&context.ids.includes(uid)&&day>=context.from&&day<=context.to?(record?.key===context.key&&day>=record.value.from&&day<=record.value.to?record.value.items.find(x=>x.professionalId===uid):retainedDays.get(day)?.get(uid)?.row):null;
+ const knownRow=(uid,day)=>row(uid,day)?retainedDays.get(day)?.get(uid)?.known||knownRows.get(uid):null;
  const accountLessons=uid=>(state.lessons||[]).filter(l=>l?.professorId===uid);
  function remember(value){for(const item of value.items){
   const old=knownRows.get(item.professionalId)||{},next={...old};
@@ -8836,13 +8841,26 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   for(const source of ['personal','central'])if(['success','not_applicable'].includes(item[source].status))next[source]=item.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source);
   knownRows.set(item.professionalId,next);
  }}
+ function retain(value){
+  for(const r of value.items)proofs.set(r,record);
+  for(let day=value.from;day<=value.to;day=gAddDays(day,1)){
+   const old=retainedDays.get(day),rows=new Map();
+   for(const r of value.items){const previous=old?.get(r.professionalId)?.known||{},known={...previous};
+    if(r.nativeStatus==='success')Object.assign(known,{lessons:r.lessons,blocks:r.blocks,school:r.school});
+    for(const source of ['personal','central'])if(['success','not_applicable'].includes(r[source].status))known[source]=r.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source);
+    rows.set(r.professionalId,{row:r,known,proof:record});
+   }
+   retainedDays.delete(day);retainedDays.set(day,rows);
+  }
+  while(retainedDays.size>42)retainedDays.delete(retainedDays.keys().next().value);
+ }
  function sourceCurrent(r,source){
-  if(!r||!record||record.revoked||record.invalidSources?.has(source))return false;
-  if(record.value.refreshMode==='events'&&(record.leaseLost||!streamSeenAt||Date.now()-streamSeenAt>=45000)){record.leaseLost=true;return false;}
-  const deadline=record.sources?.get(r.professionalId)?.[source],status=source==='native'?r.nativeStatus:r[source]?.status;
+  const proof=proofFor(r);if(!r||!proof||proof.revoked||proof.invalidSources?.has(source))return false;
+  if(proof.value.refreshMode==='events'&&(proof.leaseLost||!streamSeenAt||Date.now()-streamSeenAt>=45000)){proof.leaseLost=true;return false;}
+  const deadline=proof.sources?.get(r.professionalId)?.[source],status=source==='native'?r.nativeStatus:r[source]?.status;
   return ['success','not_applicable'].includes(status)&&!!deadline&&performance.now()<deadline.expires&&Date.now()<deadline.wallExpires;
  }
- function noteStream(){if(record?.value.refreshMode==='events'&&streamSeenAt&&Date.now()-streamSeenAt>=45000)record.leaseLost=true;streamSeenAt=Date.now();}
+ function noteStream(){if(streamSeenAt&&Date.now()-streamSeenAt>=45000)for(const proof of allProofs())if(proof.value.refreshMode==='events')proof.leaseLost=true;streamSeenAt=Date.now();}
  function displayRow(uid,day){const r=row(uid,day),old=knownRow(uid,day);if(!r)return null;return {...r,nativeHistorical:!sourceCurrent(r,'native'),lessons:sourceCurrent(r,'native')?r.lessons:old?.lessons??accountLessons(uid),blocks:r.nativeStatus==='success'?r.blocks:old?.blocks||[],school:r.nativeStatus==='success'?r.school:old?.school||[],busy:['personal','central'].flatMap(source=>['success','not_applicable'].includes(r[source].status)?r.busy.filter(x=>(x.source==='google-central'?'central':'personal')===source):old?.[source]||[])};}
  const historical=(uid,day)=>!timely()||row(uid,day)?.status!=='success';
  // Some suspended mobile processes stop performance.now while wall time passes.
@@ -8912,7 +8930,7 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  const position=(style,a,b)=>style(time(a),time(b)).replace(/height:[\d.]+px/,'height:'+((b-a)*96/60).toFixed(1)+'px');
  function busyFor(r,day){return (r?.busy||[]).flatMap(x=>{const a=part(x.startAt),b=part(x.endAt),ad=dayKey(a),bd=dayKey(b);if(day<ad||day>bd)return [];const start=day===ad?a.hour+':'+a.minute:'00:00',end=day===bd?b.hour+':'+b.minute:'24:00';return end>start?[{start,end,source:x.source}]:[];});}
  function cuts(r,day){return [...busyFor(r,day),...(r?.blocks||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})),...(r?.school||[]).filter(x=>String(x.data).slice(0,10)===day).map(x=>({start:x.horaInicio,end:x.horaFim})),...(r?.lessons||[]).filter(x=>String(x.dataAula).slice(0,10)===day&&!/cancel/i.test(x.status||'')).map(x=>({start:x.horaAula,end:x.horaFim}))];}
- const confirmedRow=r=>record&&!record.error&&r?.status==='success'&&['native','personal','central'].every(source=>sourceCurrent(r,source));
+ const confirmedRow=r=>record&&!record.error&&record.value.items.includes(r)&&r?.status==='success'&&['native','personal','central'].every(source=>sourceCurrent(r,source));
  window.forjaAgenda2Periods=(uid,day)=>{const r=row(uid,day);return confirmedRow(r)?(r.days[day]||[]):[];};
  // Presentation metadata belongs to a clone, never to the source/native cache.
  // Google failure alone does not invalidate a currently confirmed native row.
@@ -9058,7 +9076,7 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   return html;
  };
  window.forjaAgenda2DayKind=(uid,day)=>{
-  const r=row(uid,day);if(!sourceCurrent(r,'native'))return 'unknown';const periods=r.days[day]||[],occupied=cuts(r,day);if(!periods.length)return occupied.length?'busy':'outside';if(!confirmedRow(r))return 'unknown';
+  const r=row(uid,day);if(!sourceCurrent(r,'native'))return 'unknown';const periods=r.days[day]||[],occupied=cuts(r,day);if(!periods.length)return occupied.length?'busy':'outside';if(!confirmedRow(r))return displaySources(uid,day).some(x=>!x.historical)?'busy':'unknown';
   for(const p of periods){let parts=[[minutes(p.inicio),minutes(p.fim)]];for(const cut of occupied){const a=minutes(cut.start),b=minutes(cut.end);parts=parts.flatMap(([s,e])=>b<=s||a>=e?[[s,e]]:[...(a>s?[[s,a]]:[]),...(b<e?[[b,e]]:[])]);}if(parts.some(([s,e])=>e>s))return 'available';}return 'busy';
  };
  function paint(){window.forjaAgenda2Paint?.();for(const host of document.querySelectorAll('[data-forja2-status]')){
@@ -9123,7 +9141,7 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   }))]));
   observedLatency=Math.max(flight&&!flight.shared?performance.now()-flight.startedAt:serviceTime+requestAge,observedLatency*.8);
   clearTimeout(changeTimer);changeTimer=null;
-  awaitingStream=false;accessDenied=false;remember(value);record={key:c.key,value,sources,transportAge:requestAge,expires:performance.now()+ttl,wallExpires:Date.now()+ttl,error:false,revoked:false,leaseLost:false};failureReason=null;
+  awaitingStream=false;accessDenied=false;remember(value);record={key:c.key,value,sources,transportAge:requestAge,expires:performance.now()+ttl,wallExpires:Date.now()+ttl,error:false,revoked:false,leaseLost:false};retain(value);failureReason=null;
   for(const item of value.items)if(typeof item.personal.connected==='boolean'){
    const metadata={connected:item.personal.connected,lastSyncAt:(item.personal.sourceMode==='institutional-events-v1'?item.central.checkedAt:item.personal.lastSyncAt)||null,...(item.personal.sourceMode?{sourceMode:item.personal.sourceMode,managedBySecretaria:true}:{})};
    if(state.role==='admin'){const old=(state.googleConnections||[]).find(x=>x.uid===item.professionalId)||{};state.googleConnections=[...(state.googleConnections||[]).filter(x=>x.uid!==item.professionalId),{...old,uid:item.professionalId,...metadata}];}
@@ -9138,6 +9156,15 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   // of one-second reads. No deadline is extended by this scheduling decision.
   const lead=Math.min(MAX_AGE-15000,Math.max(SOURCE_LEAD,observedLatency+2000)),unchanged=eventDriven&&previousDeadline===value.sourceExpiresAt&&ttl<=lead,normal=Math.max(1000,unchanged?ttl:ttl-lead),healthy=value.items.some(x=>x.nativeStatus==='success'||x.personal.status==='success'||x.central.status==='success');
   nextAt=Math.max(retryUntil,performance.now()+(value.complete?normal:healthy?Math.min(BACKOFF_BASE,retry||BACKOFF_BASE):retry||Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3))));}
+ function supersededSnapshot(value){
+  const previous=record?.value;if(record?.key!==context?.key||!previous||value?.changeVersion!==previous.changeVersion)return false;
+  const began=v=>Date.parse(v.collectionStartedAt||v.checkedAt);
+  if(Date.parse(value.servedAt)<=Date.parse(previous.servedAt)||began(value)<began(previous))return true;
+  // Google can change without a native SSE revision. A later delivery cannot
+  // replace a newer confirmed source with an older cached free/busy result.
+  const stamp=(v,item,source)=>source==='native'?began(v):Date.parse(item[source]?.checkedAt||v.collectionStartedAt||v.checkedAt);
+  return value.items.some(item=>{const old=previous.items.find(x=>x.professionalId===item.professionalId);return ['native','personal','central'].some(source=>sourceCurrent(old,source)&&['success','not_applicable'].includes(source==='native'?item.nativeStatus:item[source]?.status)&&stamp(value,item,source)<stamp(previous,old,source));});
+ }
  function connectChannel(c){
   if(typeof BroadcastChannel!=='function')return;
   // Different UIDs, generations, roles and periods do not receive this payload.
@@ -9145,12 +9172,12 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   channel.addEventListener('message',event=>{const m=event.data,age=Date.now()-m?.sentAt;if(m?.key!==c.key||!current(c)||!(age>=0&&age<(m?.value?.refreshMode==='events'?INSTITUTIONAL_MAX_AGE:MAX_AGE)))return;
    if(m.kind==='changes'){noteStream();handleChange(c,m.event);return;}
    if(m.kind==='cooldown'&&Number.isFinite(m.wait)&&m.wait>age){retryUntil=Math.max(retryUntil,performance.now()+Math.min(86400000,m.wait-age));nextAt=Math.max(nextAt,retryUntil);failureReason='Limite temporário de consultas; nova tentativa automática';if(record)record.error=true;paint();schedule();return;}
-   if(m.kind==='snapshot'&&!accessDenied&&performance.now()>=retryUntil&&!localDirty&&!flight&&Number.isFinite(m.ttlMs)&&m.ttlMs>0){try{accept(m.value,c,m.ttlMs-age,Number.isFinite(m.elapsedMs)&&m.elapsedMs>=0?m.elapsedMs+age:null);paint();schedule();}catch{}}
+   if(m.kind==='snapshot'&&!accessDenied&&performance.now()>=retryUntil&&!localDirty&&!flight&&Number.isFinite(m.ttlMs)&&m.ttlMs>0){try{if(supersededSnapshot(m.value))return;accept(m.value,c,m.ttlMs-age,Number.isFinite(m.elapsedMs)&&m.elapsedMs>=0?m.elapsedMs+age:null);paint();schedule();}catch{}}
   });
  }
  const queryFor=c=>{const query=new URLSearchParams({from:c.from,to:c.to});for(const id of c.ids)query.append('professionalId',id);return query;};
  function changed(c,sources=null,refreshOnly=false){
-  if(!current(c))return;revision++;if(!refreshOnly){if(record){record.error=true;if(Array.isArray(sources)&&sources.length&&sources.every(x=>['native','personal','central'].includes(x))){record.invalidSources||=new Set();for(const source of sources)record.invalidSources.add(source);}else record.revoked=true;}failureReason='Alteração detectada; confirmando horários';}paint();
+  if(!current(c))return;revision++;if(!refreshOnly){for(const proof of allProofs()){proof.error=true;if(Array.isArray(sources)&&sources.length&&sources.every(x=>['native','personal','central'].includes(x))){proof.invalidSources||=new Set();for(const source of sources)proof.invalidSources.add(source);}else proof.revoked=true;}failureReason='Alteração detectada; confirmando horários';}paint();
   clearTimeout(changeTimer);changeTimer=setTimeout(()=>{if(!current(c))return;nextAt=Math.max(retryUntil,performance.now());schedule();},250);
  }
  function handleChange(c,event){
@@ -9203,7 +9230,7 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  }
  function schedule(){
   clearTimeout(timer);if(!context||!current(context))return;
-  const now=performance.now(),expiry=record&&!record.error&&record.expires>now?record.expires:Infinity,sourceExpiry=Math.min(Infinity,...[...(record?.sources?.values()||[])].flatMap(x=>Object.values(x)).map(x=>Math.min(x.expires,now+x.wallExpires-Date.now())).filter(x=>x>now)),liveness=record?.value.refreshMode==='events'&&!record.leaseLost&&streamSeenAt&&Date.now()-streamSeenAt<45000?now+45000-(Date.now()-streamSeenAt):Infinity,due=Math.min(flight?Infinity:nextAt,expiry,sourceExpiry,liveness);
+  const now=performance.now(),expiry=record&&!record.error&&record.expires>now?record.expires:Infinity,sourceExpiry=Math.min(Infinity,...[...allProofs()].flatMap(proof=>[...(proof.sources?.values()||[])].flatMap(x=>Object.values(x))).map(x=>Math.min(x.expires,now+x.wallExpires-Date.now())).filter(x=>x>now)),liveness=[...allProofs()].some(proof=>proof.value.refreshMode==='events'&&!proof.leaseLost)&&streamSeenAt&&Date.now()-streamSeenAt<45000?now+45000-(Date.now()-streamSeenAt):Infinity,due=Math.min(flight?Infinity:nextAt,expiry,sourceExpiry,liveness);
   // Keep the original expiry armed during renewal. Do not spin or launch a
   // second GET while the existing request owns the refresh slot.
   if(!Number.isFinite(due))return;
@@ -9229,8 +9256,9 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  }
  // Pause transport, never renew or extend the retained snapshot's expiry.
  function pause(){if(record?.value.refreshMode==='events')record.error=true;sequence++;clearTimeout(timer);clearTimeout(changeTimer);clearTimeout(streamTimer);streamTimer=null;stream?.controller.abort();stream=null;flight?.controller.abort();channel?.close();channel=null;flight=null;}
- function reset(){pause();context=null;record=null;knownRows.clear();accessDenied=false;lastSuccess=null;failureReason=null;failures=0;nextAt=0;retryUntil=0;revision=0;streamSeenAt=0;streamFailures=0;streamStatus='';changeVersion=null;localDirty=false;awaitingStream=false;observedLatency=0;}
- function lifecycle(start=true){const c=capture(!document.hidden);if(!c){if(context)reset();return;}if(document.hidden){if(context?.key!==c.key)reset();else pause();return;}if(context?.key!==c.key){reset();context=c;connectChannel(c);nextAt=performance.now();paint();}else if(start){if(!channel)connectChannel(c);paint();}if(start){if(!stream&&!streamTimer)startChanges(c);if(!flight&&performance.now()>=nextAt)void refresh();}}
+ function reset(){pause();context=null;record=null;knownRows.clear();retainedDays.clear();accessDenied=false;lastSuccess=null;failureReason=null;failures=0;nextAt=0;retryUntil=0;revision=0;streamSeenAt=0;streamFailures=0;streamStatus='';changeVersion=null;localDirty=false;awaitingStream=false;observedLatency=0;}
+ const sameAudience=(a,b)=>a&&b&&a.audience===b.audience;
+ function lifecycle(start=true){const c=capture(!document.hidden);if(!c){if(context)reset();return;}if(document.hidden){if(context?.key!==c.key)reset();else pause();return;}if(context?.key!==c.key){if(sameAudience(context,c)){pause();record=null;knownRows.clear();changeVersion=null;failureReason=null;awaitingStream=false;}else reset();context=c;connectChannel(c);nextAt=Math.max(retryUntil,performance.now());paint();}else if(start){if(!channel)connectChannel(c);paint();}if(start){if(!stream&&!streamTimer)startChanges(c);if(!flight&&performance.now()>=nextAt)void refresh();}}
  window.forjaAgenda2Refresh=refresh;
  window.forjaAgenda2Mutation=(path,result)=>{if(!/^\/(?:aulas|aulas-recorrentes|indisponibilidades|disponibilidade|calendario-escolar|google\/calendar|admin\/google-calendar)/.test(path))return;
   // api() invokes this only after a successful response and its session fence.
@@ -9239,6 +9267,7 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   if(current(context)&&!accessDenied&&/^\/aulas(?:\/|$|-recorrentes(?:\/|$))/.test(path))for(const lesson of [result?.item,...(Array.isArray(result?.items)?result.items:[])]){
    if(!lesson||typeof lesson.id!=='string'||!context.ids.includes(lesson.professorId)||!/^\d{4}-\d{2}-\d{2}$/.test(lesson.dataAula||'')||!timeValid(lesson.horaAula)||!timeValid(lesson.horaFim)||lesson.horaFim<=lesson.horaAula)continue;
    const old=knownRows.get(lesson.professorId)||{};knownRows.set(lesson.professorId,{...old,lessons:[...(old.lessons??accountLessons(lesson.professorId)).filter(x=>x.id!==lesson.id),{...lesson}]});
+   const saved=retainedDays.get(lesson.dataAula)?.get(lesson.professorId);if(saved)saved.known.lessons=[...(saved.known.lessons||[]).filter(x=>x.id!==lesson.id),{...lesson}];
   }
   if(context){localDirty=true;changed(context);}else lifecycle();};
  const previousBind=bindPage;bindPage=function(){previousBind();window.forjaAgenda2ProfilePolish();lifecycle();};

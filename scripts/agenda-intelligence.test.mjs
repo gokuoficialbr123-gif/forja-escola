@@ -17,13 +17,13 @@ async function fixture(t,{role='admin',mobile=false,mode='free',clock=false}={})
  await p.route('**/agenda/snapshot?**',async route=>{
   count++;const request=new URL(route.request().url()),from=request.searchParams.get('from'),to=request.searchParams.get('to'),ids=request.searchParams.getAll('professionalId'),chosen=current;
   if(held){held=false;await new Promise(r=>release=r);}
-  const at=Date.now(),days={};for(let d=from;d<=to;){days[d]=[{inicio:'09:00',fim:chosen==='short'?'09:30':'18:00'}];const date=new Date(d+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+1);d=date.toISOString().slice(0,10);}
+  const at=await p.evaluate(()=>Date.now()),days={};for(let d=from;d<=to;){days[d]=[{inicio:'09:00',fim:chosen==='short'?'09:30':'18:00'}];const date=new Date(d+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+1);d=date.toISOString().slice(0,10);}
   const exclusiveEnd=new Date(Date.parse(to+'T12:00:00Z')+86400000).toISOString().slice(0,10);
   const body={ok:true,policy:'agenda-readonly-v1',from,to,professionalIds:ids,complete:!['partial','mixed','consent'].includes(chosen),checkedAt:new Date(at).toISOString(),servedAt:new Date(at).toISOString(),expiresAt:new Date(at+(chosen==='expired'?-1:25000)).toISOString(),items:ids.map((professionalId,index)=>({professionalId,status:chosen==='partial'||chosen==='consent'||chosen==='mixed'&&index===0?'unavailable':'success',nativeStatus:chosen==='consent'?'unavailable':'success',...(chosen==='consent'?{availabilityReason:'personal_consent_required'}:{}),days,lessons:[],blocks:[],school:chosen==='school'?[{data:from,horaInicio:'00:00',horaFim:'23:59'}]:chosen==='mixed'&&index===1?Object.keys(days).map(data=>({data,horaInicio:'10:00',horaFim:'11:00'})):[],busy:chosen==='all-day'?[{professionalId,startAt:from+'T00:00:00-03:00',endAt:exclusiveEnd+'T00:00:00-03:00',source:'google'}]:[],personal:{status:chosen==='partial'||chosen==='consent'||chosen==='mixed'&&index===0?'unavailable':'success',checkedAt:new Date(at).toISOString()},central:{status:'success',checkedAt:new Date(at).toISOString()}}))};
   if(chosen==='network')return route.abort();if(['quota','forbidden'].includes(chosen))return route.fulfill({status:chosen==='quota'?429:403,headers:{'Access-Control-Allow-Origin':f.origin},contentType:'application/json',body:'{"error":"Consulta simulada indisponível"}'});
   return route.fulfill({headers:{'Access-Control-Allow-Origin':f.origin},contentType:'application/json',body:JSON.stringify(body)}).catch(()=>{});
  });
- t.after(()=>f.close());if(clock)await p.clock.install();await p.evaluate(()=>{const Native=BroadcastChannel;window.fixtureBroadcastNames=[];window.fixtureBroadcastClosed=0;window.BroadcastChannel=class extends Native{constructor(name){super(name);fixtureBroadcastNames.push(name)}close(){fixtureBroadcastClosed++;return super.close()}};});await f.login();await p.waitForFunction(()=>state.profile&&!state.loading);const request=nextSnapshot(p);await p.evaluate(()=>navigate('agenda'));await ready(p,{request});
+ t.after(async()=>{await f.context.setOffline(true);await f.context.unrouteAll({behavior:'ignoreErrors'});await p.unrouteAll({behavior:'ignoreErrors'});await f.close()});if(clock){const initial=new Date();await p.clock.install({time:initial});await p.clock.pauseAt(new Date(initial.getTime()+60000));}await p.evaluate(()=>{const Native=BroadcastChannel;window.fixtureBroadcastNames=[];window.fixtureBroadcastClosed=0;window.BroadcastChannel=class extends Native{constructor(name){super(name);fixtureBroadcastNames.push(name)}close(){fixtureBroadcastClosed++;return super.close()}};});await f.login();await p.waitForFunction(()=>state.profile&&!state.loading);const request=nextSnapshot(p);await p.evaluate(()=>navigate('agenda'));await ready(p,{request});
  return {...f,setMode:x=>current=x,count:()=>count,holdNext:()=>held=true,release:()=>release?.()};
 }
 for(const role of ['admin','teacher'])for(const mode of ['all-day','school','partial','expired'])test(`${role}: ${mode} never offers false green; unknown differs from confirmed blocking`,async t=>{
@@ -49,7 +49,20 @@ test('20-second reads pause while hidden/closed, resume immediately and never in
  await p.evaluate(()=>navigate('inicio'));await p.clock.fastForward(60000);assert.equal(f.count(),initial+2);assert.equal(f.calls.filter(x=>x.path.endsWith('/sync')).length,0);
 });
 for(const mode of ['quota','network','partial','consent','forbidden'])test(`${mode}: manual feedback is honest, green disappears and retries back off`,async t=>{
- const f=await fixture(t,{clock:true}),p=f.page;f.setMode(mode);await p.locator('[data-v629-refresh]').click();await p.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.includes('incompleta'));assert.equal(await p.locator('.v621-block.availability').count(),0);const count=f.count();await p.clock.fastForward(20010);assert.equal(f.count(),count);await p.clock.fastForward(20010);await delay(50);assert.equal(f.count(),count+1);assert.ok(!(await p.locator('#toast').textContent()).includes('Disponibilidade e Google atualizados.'));
+ const f=await fixture(t,{clock:true}),p=f.page;f.setMode(mode);await p.locator('[data-v629-refresh]').click();await p.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.includes('incompleta'));assert.equal(await p.locator('.v621-block.availability').count(),0);const count=f.count(),partial=['partial','consent'].includes(mode);
+ // A healthy independent source keeps the existing 20s partial-read policy;
+ // transport/auth failures back off for 40s. Await each actual retry before
+ // advancing again, rather than fast-forwarding an unfinished HTTP request
+ // into its 15s timeout and accidentally accepting that as successful coverage.
+ for(let cycle=1;cycle<=2;cycle++){
+  const budget=partial?20000:40000*cycle;
+  // Leave the final timers to runFor: fastForward coalesces an earlier source
+  // expiry at the jump endpoint, where the client's 20ms timer floor applies.
+  await p.clock.fastForward(budget-100);await p.clock.runFor(99);assert.equal(f.count(),count+cycle-1,'no retry before the scheduled deadline');
+  const request=nextSnapshot(p);await p.clock.runFor(11);const response=await(await request).response();if(response)assert.equal(await response.finished(),null);else assert.equal(mode,'network');await ready(p);
+  assert.equal(f.count(),count+cycle,'exactly one completed query at each retry');assert.equal(await p.locator('.v621-block.availability').count(),0);assert.doesNotMatch(await p.locator('[data-forja2-status]').textContent(),/Tempo de consulta esgotado/);
+ }
+ assert.ok(!(await p.locator('#toast').textContent()).includes('Disponibilidade e Google atualizados.'));
 });
 test('new period cancels late replies; logout cannot receive previous agenda data',async t=>{
  const f=await fixture(t),p=f.page;f.setMode('all-day');f.holdNext();await p.evaluate(()=>{void forjaAgenda2Refresh();});await delay(30);f.setMode('free');await p.locator('[data-v621-nav="next"][data-role="admin"]').click();await p.waitForFunction(()=>document.querySelector('[data-forja2-status]')?.textContent.startsWith('Consulta confirmada'));f.release();await delay(50);assert.ok(await p.locator('.v621-block.availability').count()>0);assert.equal(await p.locator('.forja2-band.busy').count(),0);

@@ -1,0 +1,867 @@
+{
+  "elapsedMs": 604497,
+  "samples": [
+    {
+      "iteration": 0,
+      "elapsedMs": 2933,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 1,
+      "elapsedMs": 10079,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 2,
+      "elapsedMs": 17139,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 3,
+      "elapsedMs": 25010,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 4,
+      "elapsedMs": 30268,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 5,
+      "elapsedMs": 38315,
+      "view": "week",
+      "red": 14,
+      "historical": 14,
+      "green": 0
+    },
+    {
+      "iteration": 6,
+      "elapsedMs": 46485,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 7,
+      "elapsedMs": 53374,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 8,
+      "elapsedMs": 60131,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 9,
+      "elapsedMs": 66766,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 10,
+      "elapsedMs": 74905,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 11,
+      "elapsedMs": 81676,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 12,
+      "elapsedMs": 86871,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 13,
+      "elapsedMs": 93687,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 14,
+      "elapsedMs": 100872,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 15,
+      "elapsedMs": 108687,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 16,
+      "elapsedMs": 113921,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 17,
+      "elapsedMs": 122227,
+      "view": "week",
+      "red": 14,
+      "historical": 14,
+      "green": 0
+    },
+    {
+      "iteration": 18,
+      "elapsedMs": 131124,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 19,
+      "elapsedMs": 138077,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 20,
+      "elapsedMs": 144836,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 21,
+      "elapsedMs": 151660,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 22,
+      "elapsedMs": 159993,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 23,
+      "elapsedMs": 167201,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 24,
+      "elapsedMs": 172508,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 25,
+      "elapsedMs": 179577,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 26,
+      "elapsedMs": 186658,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 27,
+      "elapsedMs": 194942,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 28,
+      "elapsedMs": 200207,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 29,
+      "elapsedMs": 208512,
+      "view": "week",
+      "red": 14,
+      "historical": 14,
+      "green": 0
+    },
+    {
+      "iteration": 30,
+      "elapsedMs": 216894,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 31,
+      "elapsedMs": 223776,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 32,
+      "elapsedMs": 230583,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 33,
+      "elapsedMs": 237039,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 34,
+      "elapsedMs": 244797,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 35,
+      "elapsedMs": 251496,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 36,
+      "elapsedMs": 256691,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 37,
+      "elapsedMs": 263399,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 38,
+      "elapsedMs": 271041,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 39,
+      "elapsedMs": 278559,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 40,
+      "elapsedMs": 283777,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 41,
+      "elapsedMs": 291614,
+      "view": "week",
+      "red": 14,
+      "historical": 14,
+      "green": 0
+    },
+    {
+      "iteration": 42,
+      "elapsedMs": 299704,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 43,
+      "elapsedMs": 306754,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 44,
+      "elapsedMs": 313541,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 45,
+      "elapsedMs": 320081,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 46,
+      "elapsedMs": 327606,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 47,
+      "elapsedMs": 334614,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 48,
+      "elapsedMs": 339816,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 49,
+      "elapsedMs": 346890,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 50,
+      "elapsedMs": 353961,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 51,
+      "elapsedMs": 361889,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 52,
+      "elapsedMs": 367107,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 53,
+      "elapsedMs": 375111,
+      "view": "week",
+      "red": 14,
+      "historical": 14,
+      "green": 0
+    },
+    {
+      "iteration": 54,
+      "elapsedMs": 383614,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 55,
+      "elapsedMs": 390300,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 56,
+      "elapsedMs": 397132,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 57,
+      "elapsedMs": 403874,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 58,
+      "elapsedMs": 411831,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 59,
+      "elapsedMs": 418560,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 60,
+      "elapsedMs": 423785,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 61,
+      "elapsedMs": 430623,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 62,
+      "elapsedMs": 438191,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 63,
+      "elapsedMs": 446037,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 64,
+      "elapsedMs": 451260,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 65,
+      "elapsedMs": 459437,
+      "view": "week",
+      "red": 14,
+      "historical": 14,
+      "green": 0
+    },
+    {
+      "iteration": 66,
+      "elapsedMs": 467525,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 67,
+      "elapsedMs": 474426,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 68,
+      "elapsedMs": 481155,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 69,
+      "elapsedMs": 487771,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 70,
+      "elapsedMs": 495749,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 71,
+      "elapsedMs": 502653,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 72,
+      "elapsedMs": 507872,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 73,
+      "elapsedMs": 514889,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 74,
+      "elapsedMs": 522093,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 75,
+      "elapsedMs": 530057,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 76,
+      "elapsedMs": 535302,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 77,
+      "elapsedMs": 543308,
+      "view": "week",
+      "red": 14,
+      "historical": 14,
+      "green": 0
+    },
+    {
+      "iteration": 78,
+      "elapsedMs": 551323,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 79,
+      "elapsedMs": 557997,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 80,
+      "elapsedMs": 564711,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 81,
+      "elapsedMs": 571838,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 82,
+      "elapsedMs": 580111,
+      "view": "month",
+      "red": 0,
+      "historical": 0,
+      "green": 0
+    },
+    {
+      "iteration": 83,
+      "elapsedMs": 587223,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    },
+    {
+      "iteration": 84,
+      "elapsedMs": 592471,
+      "view": "day",
+      "red": 3,
+      "historical": 0,
+      "green": 6
+    },
+    {
+      "iteration": 85,
+      "elapsedMs": 599491,
+      "view": "week",
+      "red": 21,
+      "historical": 0,
+      "green": 42
+    }
+  ],
+  "received": [
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 969,
+      "atMs": 24161
+    },
+    {
+      "kind": "reconnect",
+      "version": "0000000000000000000000000000000000000000000000000000000000000000",
+      "atMs": 24200
+    },
+    {
+      "kind": "reconnected-ready",
+      "atMs": 24969
+    },
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 9,
+      "atMs": 36927
+    },
+    {
+      "kind": "changed",
+      "version": "0000000000000000000000000000000000000000000000000000000000000001",
+      "atMs": 37668
+    },
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 1200,
+      "atMs": 107932
+    },
+    {
+      "kind": "reconnect",
+      "version": "0000000000000000000000000000000000000000000000000000000000000001",
+      "atMs": 107963
+    },
+    {
+      "kind": "reconnected-ready",
+      "atMs": 108341
+    },
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 7,
+      "atMs": 120898
+    },
+    {
+      "kind": "changed",
+      "version": "0000000000000000000000000000000000000000000000000000000000000002",
+      "atMs": 121606
+    },
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 1291,
+      "atMs": 194057
+    },
+    {
+      "kind": "reconnect",
+      "version": "0000000000000000000000000000000000000000000000000000000000000002",
+      "atMs": 194069
+    },
+    {
+      "kind": "reconnected-ready",
+      "atMs": 194864
+    },
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 83,
+      "atMs": 206966
+    },
+    {
+      "kind": "changed",
+      "version": "0000000000000000000000000000000000000000000000000000000000000003",
+      "atMs": 207803
+    },
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 1453,
+      "atMs": 277822
+    },
+    {
+      "kind": "reconnect",
+      "version": "0000000000000000000000000000000000000000000000000000000000000003",
+      "atMs": 277836
+    },
+    {
+      "kind": "reconnected-ready",
+      "atMs": 278523
+    },
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 18,
+      "atMs": 290282
+    },
+    {
+      "kind": "changed",
+      "version": "0000000000000000000000000000000000000000000000000000000000000004",
+      "atMs": 290972
+    },
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 1131,
+      "atMs": 361128
+    },
+    {
+      "kind": "reconnect",
+      "version": "0000000000000000000000000000000000000000000000000000000000000004",
+      "atMs": 361164
+    },
+    {
+      "kind": "reconnected-ready",
+      "atMs": 361864
+    },
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 9,
+      "atMs": 373682
+    },
+    {
+      "kind": "changed",
+      "version": "0000000000000000000000000000000000000000000000000000000000000005",
+      "atMs": 374402
+    },
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 1439,
+      "atMs": 445179
+    },
+    {
+      "kind": "reconnect",
+      "version": "0000000000000000000000000000000000000000000000000000000000000005",
+      "atMs": 445193
+    },
+    {
+      "kind": "reconnected-ready",
+      "atMs": 445992
+    },
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 16,
+      "atMs": 457922
+    },
+    {
+      "kind": "changed",
+      "version": "0000000000000000000000000000000000000000000000000000000000000006",
+      "atMs": 458714
+    },
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 1539,
+      "atMs": 529268
+    },
+    {
+      "kind": "reconnect",
+      "version": "0000000000000000000000000000000000000000000000000000000000000006",
+      "atMs": 529299
+    },
+    {
+      "kind": "reconnected-ready",
+      "atMs": 530033
+    },
+    {
+      "kind": "clock-aligned",
+      "differenceMs": 7,
+      "atMs": 541877
+    },
+    {
+      "kind": "changed",
+      "version": "0000000000000000000000000000000000000000000000000000000000000007",
+      "atMs": 542622
+    }
+  ],
+  "connections": 60,
+  "remoteAddresses": [
+    "127.0.0.1"
+  ]
+}
