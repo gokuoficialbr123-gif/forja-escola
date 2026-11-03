@@ -5,8 +5,8 @@ export const reviewDay='2026-10-20';
 const next=d=>new Date(Date.parse(d+'T12:00:00Z')+86400000).toISOString().slice(0,10);
 // Full portal, synthetic identities and provider data only. Every external URL
 // is intercepted by performancePortal; the only real server is loopback static.
-export async function agendaPresentationFixture(browser,{role='teacher',mobile=false,mode='mixed',artifact=buildHostingArtifact(),transformItem=x=>x,transformSnapshot=x=>x,agendaEvents=null,changeVersion=()=>null}={}){
- const f=await performancePortal({browser,...artifact,role,mobile,requestDelay:5,secondaryDelay:5,agendaEvents}),p=f.page;
+export async function agendaPresentationFixture(browser,{role='teacher',mobile=false,mode='mixed',artifact=buildHostingArtifact(),transformItem=x=>x,transformSnapshot=x=>x,agendaEvents=null,changeVersion=()=>null,recordVideo}={}){
+ const f=await performancePortal({browser,...artifact,role,mobile,requestDelay:5,secondaryDelay:5,agendaEvents,recordVideo}),p=f.page;
  let current=mode,reads=0,lastSnapshot=null;
  await p.clock.install({time:new Date(reviewDay+'T10:15:00-03:00')});
  const snapshotRoute=async route=>{

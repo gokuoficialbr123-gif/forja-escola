@@ -86,6 +86,9 @@ for(const role of ['admin','teacher'])for(const condition of ['missing-row','for
   const denied=route=>route.fulfill({status:403,contentType:'application/json',headers:{'Access-Control-Allow-Origin':f.origin},body:'{"code":"SEM_PERMISSAO"}'});await p.route('**/agenda/snapshot?**',denied);await p.evaluate(()=>forjaAgenda2Refresh());
   assert.equal(await cards(p).count(),0,'denied snapshot cannot resurrect the old native state cache');await p.unroute('**/agenda/snapshot?**',denied);await p.evaluate(()=>forjaAgenda2Refresh());assert.ok(await cards(p).count()>0);assert.equal(await p.locator('.forja2-native-history').count(),0);
  }else{
+  // A view change now retains a still-current native proof. Establish an
+  // actual native outage first: only then is the cached fallback historical.
+  f.native('unavailable');await p.evaluate(()=>forjaAgenda2Refresh());f.native('success');
   let release,entered;const gate=new Promise(r=>release=r),entry=new Promise(r=>entered=r),held=async route=>{entered(route.request());await gate;await route.fallback();};await p.route('**/agenda/snapshot?**',held);
   await p.locator(`[data-v621-view="day"][data-role="${role}"]`).click();const request=await entry;
   try{
