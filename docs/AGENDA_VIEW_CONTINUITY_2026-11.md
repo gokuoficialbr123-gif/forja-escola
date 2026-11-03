@@ -132,6 +132,10 @@ parcial com fonte independente saudável; 40s/80s para falhas de transporte,
 autorização ou quota sem Retry-After explícito. Esses são os prazos já existentes
 no cliente, sem mudança funcional. O trecho final usa `runFor` para não coalescer
 o timer de vencimento e seu piso de 20ms no endpoint de `fastForward`.
+A desmontagem dessa fixture usa o mesmo fechamento offline/unrouteAll já
+adotado pela fixture de apresentação, para descartar callbacks pendentes somente
+durante o encerramento. Isso evita avaliar o relógio de uma página já fechada;
+erros de rota durante o teste continuam visíveis e nenhuma asserção foi removida.
 
 ## Limites, riscos e reversão
 
