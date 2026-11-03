@@ -5,10 +5,13 @@ export const reviewDay='2026-10-20';
 const next=d=>new Date(Date.parse(d+'T12:00:00Z')+86400000).toISOString().slice(0,10);
 // Full portal, synthetic identities and provider data only. Every external URL
 // is intercepted by performancePortal; the only real server is loopback static.
-export async function agendaPresentationFixture(browser,{role='teacher',mobile=false,mode='mixed',artifact=buildHostingArtifact(),transformItem=x=>x,transformSnapshot=x=>x,agendaEvents=null,changeVersion=()=>null,recordVideo}={}){
+export async function agendaPresentationFixture(browser,{role='teacher',mobile=false,mode='mixed',artifact=buildHostingArtifact(),transformItem=x=>x,transformSnapshot=x=>x,agendaEvents=null,changeVersion=()=>null,recordVideo,pauseClock=false}={}){
  const f=await performancePortal({browser,...artifact,role,mobile,requestDelay:5,secondaryDelay:5,agendaEvents,recordVideo}),p=f.page;
  let current=mode,reads=0,lastSnapshot=null;
  await p.clock.install({time:new Date(reviewDay+'T10:15:00-03:00')});
+ // Freeze before any proof is collected. Reading Date.now() after a slow mobile
+ // render and then pausing +1s later can race the running browser clock.
+ if(pauseClock)await p.clock.pauseAt(new Date(reviewDay+'T10:16:00-03:00'));
  const snapshotRoute=async route=>{
   reads++;const q=new URL(route.request().url()).searchParams,from=q.get('from'),to=q.get('to'),ids=q.getAll('professionalId'),at=await p.evaluate(()=>Date.now()),days={};
   for(let d=from;d<=to;d=next(d))days[d]=[{inicio:'08:00',fim:'18:00'}];

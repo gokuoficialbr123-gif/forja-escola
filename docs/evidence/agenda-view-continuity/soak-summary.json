@@ -1,9 +1,9 @@
 {
-  "elapsedMs": 603604,
+  "elapsedMs": 604497,
   "samples": [
     {
       "iteration": 0,
-      "elapsedMs": 3642,
+      "elapsedMs": 2933,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -11,7 +11,7 @@
     },
     {
       "iteration": 1,
-      "elapsedMs": 10987,
+      "elapsedMs": 10079,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -19,7 +19,7 @@
     },
     {
       "iteration": 2,
-      "elapsedMs": 17986,
+      "elapsedMs": 17139,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -27,7 +27,7 @@
     },
     {
       "iteration": 3,
-      "elapsedMs": 25779,
+      "elapsedMs": 25010,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -35,7 +35,7 @@
     },
     {
       "iteration": 4,
-      "elapsedMs": 30980,
+      "elapsedMs": 30268,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -43,7 +43,7 @@
     },
     {
       "iteration": 5,
-      "elapsedMs": 39135,
+      "elapsedMs": 38315,
       "view": "week",
       "red": 14,
       "historical": 14,
@@ -51,7 +51,7 @@
     },
     {
       "iteration": 6,
-      "elapsedMs": 47282,
+      "elapsedMs": 46485,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -59,7 +59,7 @@
     },
     {
       "iteration": 7,
-      "elapsedMs": 54271,
+      "elapsedMs": 53374,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -67,7 +67,7 @@
     },
     {
       "iteration": 8,
-      "elapsedMs": 61060,
+      "elapsedMs": 60131,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -75,7 +75,7 @@
     },
     {
       "iteration": 9,
-      "elapsedMs": 67719,
+      "elapsedMs": 66766,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -83,7 +83,7 @@
     },
     {
       "iteration": 10,
-      "elapsedMs": 75820,
+      "elapsedMs": 74905,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -91,7 +91,7 @@
     },
     {
       "iteration": 11,
-      "elapsedMs": 82720,
+      "elapsedMs": 81676,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -99,7 +99,7 @@
     },
     {
       "iteration": 12,
-      "elapsedMs": 87933,
+      "elapsedMs": 86871,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -107,7 +107,7 @@
     },
     {
       "iteration": 13,
-      "elapsedMs": 95099,
+      "elapsedMs": 93687,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -115,7 +115,7 @@
     },
     {
       "iteration": 14,
-      "elapsedMs": 102376,
+      "elapsedMs": 100872,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -123,7 +123,7 @@
     },
     {
       "iteration": 15,
-      "elapsedMs": 110495,
+      "elapsedMs": 108687,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -131,7 +131,7 @@
     },
     {
       "iteration": 16,
-      "elapsedMs": 115726,
+      "elapsedMs": 113921,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -139,7 +139,7 @@
     },
     {
       "iteration": 17,
-      "elapsedMs": 123717,
+      "elapsedMs": 122227,
       "view": "week",
       "red": 14,
       "historical": 14,
@@ -147,7 +147,7 @@
     },
     {
       "iteration": 18,
-      "elapsedMs": 131665,
+      "elapsedMs": 131124,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -155,7 +155,7 @@
     },
     {
       "iteration": 19,
-      "elapsedMs": 138354,
+      "elapsedMs": 138077,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -163,7 +163,7 @@
     },
     {
       "iteration": 20,
-      "elapsedMs": 145085,
+      "elapsedMs": 144836,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -171,7 +171,7 @@
     },
     {
       "iteration": 21,
-      "elapsedMs": 151693,
+      "elapsedMs": 151660,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -179,7 +179,7 @@
     },
     {
       "iteration": 22,
-      "elapsedMs": 159298,
+      "elapsedMs": 159993,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -187,7 +187,7 @@
     },
     {
       "iteration": 23,
-      "elapsedMs": 165984,
+      "elapsedMs": 167201,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -195,7 +195,7 @@
     },
     {
       "iteration": 24,
-      "elapsedMs": 171184,
+      "elapsedMs": 172508,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -203,7 +203,7 @@
     },
     {
       "iteration": 25,
-      "elapsedMs": 178098,
+      "elapsedMs": 179577,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -211,7 +211,7 @@
     },
     {
       "iteration": 26,
-      "elapsedMs": 185451,
+      "elapsedMs": 186658,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -219,7 +219,7 @@
     },
     {
       "iteration": 27,
-      "elapsedMs": 193495,
+      "elapsedMs": 194942,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -227,7 +227,7 @@
     },
     {
       "iteration": 28,
-      "elapsedMs": 198789,
+      "elapsedMs": 200207,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -235,7 +235,7 @@
     },
     {
       "iteration": 29,
-      "elapsedMs": 206955,
+      "elapsedMs": 208512,
       "view": "week",
       "red": 14,
       "historical": 14,
@@ -243,7 +243,7 @@
     },
     {
       "iteration": 30,
-      "elapsedMs": 214837,
+      "elapsedMs": 216894,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -251,7 +251,7 @@
     },
     {
       "iteration": 31,
-      "elapsedMs": 221776,
+      "elapsedMs": 223776,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -259,7 +259,7 @@
     },
     {
       "iteration": 32,
-      "elapsedMs": 228524,
+      "elapsedMs": 230583,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -267,7 +267,7 @@
     },
     {
       "iteration": 33,
-      "elapsedMs": 235220,
+      "elapsedMs": 237039,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -275,7 +275,7 @@
     },
     {
       "iteration": 34,
-      "elapsedMs": 243026,
+      "elapsedMs": 244797,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -283,7 +283,7 @@
     },
     {
       "iteration": 35,
-      "elapsedMs": 250124,
+      "elapsedMs": 251496,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -291,7 +291,7 @@
     },
     {
       "iteration": 36,
-      "elapsedMs": 255353,
+      "elapsedMs": 256691,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -299,7 +299,7 @@
     },
     {
       "iteration": 37,
-      "elapsedMs": 262219,
+      "elapsedMs": 263399,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -307,7 +307,7 @@
     },
     {
       "iteration": 38,
-      "elapsedMs": 269963,
+      "elapsedMs": 271041,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -315,7 +315,7 @@
     },
     {
       "iteration": 39,
-      "elapsedMs": 277351,
+      "elapsedMs": 278559,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -323,7 +323,7 @@
     },
     {
       "iteration": 40,
-      "elapsedMs": 282582,
+      "elapsedMs": 283777,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -331,7 +331,7 @@
     },
     {
       "iteration": 41,
-      "elapsedMs": 290631,
+      "elapsedMs": 291614,
       "view": "week",
       "red": 14,
       "historical": 14,
@@ -339,7 +339,7 @@
     },
     {
       "iteration": 42,
-      "elapsedMs": 298689,
+      "elapsedMs": 299704,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -347,7 +347,7 @@
     },
     {
       "iteration": 43,
-      "elapsedMs": 305458,
+      "elapsedMs": 306754,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -355,7 +355,7 @@
     },
     {
       "iteration": 44,
-      "elapsedMs": 312180,
+      "elapsedMs": 313541,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -363,7 +363,7 @@
     },
     {
       "iteration": 45,
-      "elapsedMs": 318989,
+      "elapsedMs": 320081,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -371,7 +371,7 @@
     },
     {
       "iteration": 46,
-      "elapsedMs": 327123,
+      "elapsedMs": 327606,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -379,7 +379,7 @@
     },
     {
       "iteration": 47,
-      "elapsedMs": 334102,
+      "elapsedMs": 334614,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -387,7 +387,7 @@
     },
     {
       "iteration": 48,
-      "elapsedMs": 339336,
+      "elapsedMs": 339816,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -395,7 +395,7 @@
     },
     {
       "iteration": 49,
-      "elapsedMs": 346355,
+      "elapsedMs": 346890,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -403,7 +403,7 @@
     },
     {
       "iteration": 50,
-      "elapsedMs": 353139,
+      "elapsedMs": 353961,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -411,7 +411,7 @@
     },
     {
       "iteration": 51,
-      "elapsedMs": 360676,
+      "elapsedMs": 361889,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -419,7 +419,7 @@
     },
     {
       "iteration": 52,
-      "elapsedMs": 365858,
+      "elapsedMs": 367107,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -427,7 +427,7 @@
     },
     {
       "iteration": 53,
-      "elapsedMs": 373850,
+      "elapsedMs": 375111,
       "view": "week",
       "red": 14,
       "historical": 14,
@@ -435,7 +435,7 @@
     },
     {
       "iteration": 54,
-      "elapsedMs": 381641,
+      "elapsedMs": 383614,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -443,7 +443,7 @@
     },
     {
       "iteration": 55,
-      "elapsedMs": 388365,
+      "elapsedMs": 390300,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -451,7 +451,7 @@
     },
     {
       "iteration": 56,
-      "elapsedMs": 395090,
+      "elapsedMs": 397132,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -459,7 +459,7 @@
     },
     {
       "iteration": 57,
-      "elapsedMs": 401714,
+      "elapsedMs": 403874,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -467,7 +467,7 @@
     },
     {
       "iteration": 58,
-      "elapsedMs": 410035,
+      "elapsedMs": 411831,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -475,7 +475,7 @@
     },
     {
       "iteration": 59,
-      "elapsedMs": 417019,
+      "elapsedMs": 418560,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -483,7 +483,7 @@
     },
     {
       "iteration": 60,
-      "elapsedMs": 422223,
+      "elapsedMs": 423785,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -491,7 +491,7 @@
     },
     {
       "iteration": 61,
-      "elapsedMs": 429245,
+      "elapsedMs": 430623,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -499,7 +499,7 @@
     },
     {
       "iteration": 62,
-      "elapsedMs": 436447,
+      "elapsedMs": 438191,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -507,7 +507,7 @@
     },
     {
       "iteration": 63,
-      "elapsedMs": 444444,
+      "elapsedMs": 446037,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -515,7 +515,7 @@
     },
     {
       "iteration": 64,
-      "elapsedMs": 450124,
+      "elapsedMs": 451260,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -523,7 +523,7 @@
     },
     {
       "iteration": 65,
-      "elapsedMs": 459006,
+      "elapsedMs": 459437,
       "view": "week",
       "red": 14,
       "historical": 14,
@@ -531,7 +531,7 @@
     },
     {
       "iteration": 66,
-      "elapsedMs": 467458,
+      "elapsedMs": 467525,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -539,7 +539,7 @@
     },
     {
       "iteration": 67,
-      "elapsedMs": 474229,
+      "elapsedMs": 474426,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -547,7 +547,7 @@
     },
     {
       "iteration": 68,
-      "elapsedMs": 480955,
+      "elapsedMs": 481155,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -555,7 +555,7 @@
     },
     {
       "iteration": 69,
-      "elapsedMs": 487626,
+      "elapsedMs": 487771,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -563,7 +563,7 @@
     },
     {
       "iteration": 70,
-      "elapsedMs": 495308,
+      "elapsedMs": 495749,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -571,7 +571,7 @@
     },
     {
       "iteration": 71,
-      "elapsedMs": 502137,
+      "elapsedMs": 502653,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -579,7 +579,7 @@
     },
     {
       "iteration": 72,
-      "elapsedMs": 507347,
+      "elapsedMs": 507872,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -587,7 +587,7 @@
     },
     {
       "iteration": 73,
-      "elapsedMs": 514750,
+      "elapsedMs": 514889,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -595,7 +595,7 @@
     },
     {
       "iteration": 74,
-      "elapsedMs": 522041,
+      "elapsedMs": 522093,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -603,7 +603,7 @@
     },
     {
       "iteration": 75,
-      "elapsedMs": 529634,
+      "elapsedMs": 530057,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -611,7 +611,7 @@
     },
     {
       "iteration": 76,
-      "elapsedMs": 534884,
+      "elapsedMs": 535302,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -619,7 +619,7 @@
     },
     {
       "iteration": 77,
-      "elapsedMs": 542940,
+      "elapsedMs": 543308,
       "view": "week",
       "red": 14,
       "historical": 14,
@@ -627,7 +627,7 @@
     },
     {
       "iteration": 78,
-      "elapsedMs": 550864,
+      "elapsedMs": 551323,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -635,7 +635,7 @@
     },
     {
       "iteration": 79,
-      "elapsedMs": 557582,
+      "elapsedMs": 557997,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -643,7 +643,7 @@
     },
     {
       "iteration": 80,
-      "elapsedMs": 564294,
+      "elapsedMs": 564711,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -651,7 +651,7 @@
     },
     {
       "iteration": 81,
-      "elapsedMs": 570985,
+      "elapsedMs": 571838,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -659,7 +659,7 @@
     },
     {
       "iteration": 82,
-      "elapsedMs": 579326,
+      "elapsedMs": 580111,
       "view": "month",
       "red": 0,
       "historical": 0,
@@ -667,7 +667,7 @@
     },
     {
       "iteration": 83,
-      "elapsedMs": 586359,
+      "elapsedMs": 587223,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -675,7 +675,7 @@
     },
     {
       "iteration": 84,
-      "elapsedMs": 591565,
+      "elapsedMs": 592471,
       "view": "day",
       "red": 3,
       "historical": 0,
@@ -683,7 +683,7 @@
     },
     {
       "iteration": 85,
-      "elapsedMs": 598580,
+      "elapsedMs": 599491,
       "view": "week",
       "red": 21,
       "historical": 0,
@@ -693,174 +693,174 @@
   "received": [
     {
       "kind": "clock-aligned",
-      "differenceMs": 834,
-      "atMs": 25015
+      "differenceMs": 969,
+      "atMs": 24161
     },
     {
       "kind": "reconnect",
       "version": "0000000000000000000000000000000000000000000000000000000000000000",
-      "atMs": 25025
+      "atMs": 24200
     },
     {
       "kind": "reconnected-ready",
-      "atMs": 25698
+      "atMs": 24969
     },
     {
       "kind": "clock-aligned",
-      "differenceMs": 56,
-      "atMs": 37672
+      "differenceMs": 9,
+      "atMs": 36927
     },
     {
       "kind": "changed",
       "version": "0000000000000000000000000000000000000000000000000000000000000001",
-      "atMs": 38421
+      "atMs": 37668
     },
     {
       "kind": "clock-aligned",
-      "differenceMs": 1277,
-      "atMs": 109568
+      "differenceMs": 1200,
+      "atMs": 107932
     },
     {
       "kind": "reconnect",
       "version": "0000000000000000000000000000000000000000000000000000000000000001",
-      "atMs": 109580
+      "atMs": 107963
     },
     {
       "kind": "reconnected-ready",
-      "atMs": 110040
+      "atMs": 108341
     },
     {
       "kind": "clock-aligned",
-      "differenceMs": 21,
-      "atMs": 122405
+      "differenceMs": 7,
+      "atMs": 120898
     },
     {
       "kind": "changed",
       "version": "0000000000000000000000000000000000000000000000000000000000000002",
-      "atMs": 123104
+      "atMs": 121606
     },
     {
       "kind": "clock-aligned",
-      "differenceMs": 1317,
-      "atMs": 192700
+      "differenceMs": 1291,
+      "atMs": 194057
     },
     {
       "kind": "reconnect",
       "version": "0000000000000000000000000000000000000000000000000000000000000002",
-      "atMs": 192730
+      "atMs": 194069
     },
     {
       "kind": "reconnected-ready",
-      "atMs": 193452
+      "atMs": 194864
     },
     {
       "kind": "clock-aligned",
-      "differenceMs": 30,
-      "atMs": 205478
+      "differenceMs": 83,
+      "atMs": 206966
     },
     {
       "kind": "changed",
       "version": "0000000000000000000000000000000000000000000000000000000000000003",
-      "atMs": 206223
+      "atMs": 207803
     },
     {
       "kind": "clock-aligned",
-      "differenceMs": 1404,
-      "atMs": 276635
+      "differenceMs": 1453,
+      "atMs": 277822
     },
     {
       "kind": "reconnect",
       "version": "0000000000000000000000000000000000000000000000000000000000000003",
-      "atMs": 276644
+      "atMs": 277836
     },
     {
       "kind": "reconnected-ready",
-      "atMs": 277309
+      "atMs": 278523
     },
     {
       "kind": "clock-aligned",
-      "differenceMs": 15,
-      "atMs": 289235
+      "differenceMs": 18,
+      "atMs": 290282
     },
     {
       "kind": "changed",
       "version": "0000000000000000000000000000000000000000000000000000000000000004",
-      "atMs": 289965
+      "atMs": 290972
     },
     {
       "kind": "clock-aligned",
-      "differenceMs": 1401,
-      "atMs": 359964
+      "differenceMs": 1131,
+      "atMs": 361128
     },
     {
       "kind": "reconnect",
       "version": "0000000000000000000000000000000000000000000000000000000000000004",
-      "atMs": 360015
+      "atMs": 361164
     },
     {
       "kind": "reconnected-ready",
-      "atMs": 360352
+      "atMs": 361864
     },
     {
       "kind": "clock-aligned",
-      "differenceMs": 72,
-      "atMs": 372911
+      "differenceMs": 9,
+      "atMs": 373682
     },
     {
       "kind": "changed",
       "version": "0000000000000000000000000000000000000000000000000000000000000005",
-      "atMs": 373448
+      "atMs": 374402
     },
     {
       "kind": "clock-aligned",
-      "differenceMs": 1578,
-      "atMs": 443594
+      "differenceMs": 1439,
+      "atMs": 445179
     },
     {
       "kind": "reconnect",
       "version": "0000000000000000000000000000000000000000000000000000000000000005",
-      "atMs": 443633
+      "atMs": 445193
     },
     {
       "kind": "reconnected-ready",
-      "atMs": 444417
+      "atMs": 445992
     },
     {
       "kind": "clock-aligned",
-      "differenceMs": -357,
-      "atMs": 457484
+      "differenceMs": 16,
+      "atMs": 457922
     },
     {
       "kind": "changed",
       "version": "0000000000000000000000000000000000000000000000000000000000000006",
-      "atMs": 458293
+      "atMs": 458714
     },
     {
       "kind": "clock-aligned",
-      "differenceMs": 1444,
-      "atMs": 528975
+      "differenceMs": 1539,
+      "atMs": 529268
     },
     {
       "kind": "reconnect",
       "version": "0000000000000000000000000000000000000000000000000000000000000006",
-      "atMs": 528981
+      "atMs": 529299
     },
     {
       "kind": "reconnected-ready",
-      "atMs": 529602
+      "atMs": 530033
     },
     {
       "kind": "clock-aligned",
-      "differenceMs": 24,
-      "atMs": 541600
+      "differenceMs": 7,
+      "atMs": 541877
     },
     {
       "kind": "changed",
       "version": "0000000000000000000000000000000000000000000000000000000000000007",
-      "atMs": 542257
+      "atMs": 542622
     }
   ],
-  "connections": 61,
+  "connections": 60,
   "remoteAddresses": [
     "127.0.0.1"
   ]

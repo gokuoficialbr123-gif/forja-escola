@@ -21,6 +21,14 @@ Branch `codex/agenda-view-continuity`. Base frontend
    `AGENDA_QUERY_CHANGED`. A alteração de credencial foi um controle negativo
    e permanece rejeitada. Não se atribui ao caso real da escola uma causa sem
    acesso aos respectivos metadados; o caminho defeituoso foi comprovado no QA.
+3. Com a mesma versão SSE, um broadcast ainda válido, porém coletado antes de
+   uma ocupação Google recém-confirmada, substituía o snapshot novo por dados
+   antigos. Duas regressões (Secretaria/Professor) falharam antes da correção.
+   Versão SSE sozinha não ordena alterações externas do Google.
+4. Os caches pessoais e centrais escolhiam a primeira janela compatível. Uma
+   leitura antiga estreita/livre podia reaparecer depois de uma nova janela
+   ampla/ocupada. Também foram reproduzidas janelas parcialmente sobrepostas
+   e uma leitura antiga em voo concluída depois da nova.
 
 ## Correção mínima
 
@@ -36,6 +44,9 @@ Vencimento, invalidação SSE e perda da concessão institucional continuam send
 verificados por fonte. O histórico vencido tem identificação existente e não
 habilita reserva. Resposta nova autoritativa vazia substitui a informação anterior.
 Respostas tardias continuam cercadas pela chave, sequência e revisão SSE.
+Broadcasts da mesma revisão também são ordenados pela entrega, início da coleta
+e timestamps das fontes confirmadas; uma fonte antiga não substitui prova nova.
+O descarte não dispara outra consulta nem prolonga a validade.
 
 HTTP 429 mantém o mesmo `Retry-After`, inclusive ao mudar de visualização ou
 pressionar Atualizar. O refresh manual compartilha a requisição em andamento.
@@ -46,6 +57,11 @@ No backend, uma versão canônica comum à leitura e ao SSE ignora exclusivament
 pessoal. Credenciais, identidade, autorização, calendário, consentimento,
 desconexão, falhas, estado de sincronização e sincronização inicial permanecem
 significativos. Os outros tipos de documento preservam a política anterior.
+Os caches existentes passam a selecionar a prova mais nova e a aposentar provas
+anteriores sobrepostas quando uma nova coleta completa tem sucesso. Uma leitura
+em voo superada só pode entregar a prova substituta quando ela cobre todo o
+pedido; sobreposição parcial exige nova consulta. Um 429 tardio ainda conserva
+o cooldown da conta. O caminho fresco da confirmação de reservas não mudou.
 
 ## QA e evidências
 
@@ -72,8 +88,8 @@ Comparação visual: quatro cenários anteriores e quatro corrigidos aprovados,
 com capturas e gravação de todo o roteiro. Veja o
 [índice de imagens, vídeos e hashes](evidence/agenda-view-continuity/README.md).
 
-Sessão prolongada final aprovada: **603.604 ms reais**, 86 ciclos Dia/Semana/Mês, duas
-abas, 498 transições e 115 GETs concluídos na página instrumentada durante
+Sessão prolongada final aprovada: **604.497 ms reais**, 86 ciclos Dia/Semana/Mês, duas
+abas, 496 transições e 115 GETs concluídos na página instrumentada durante
 navegação deliberada, renovação e recuperação. A aba secundária é exercitada
 pelos mesmos Web Locks/BroadcastChannel oficiais. Não se interpreta o total de
 GETs desse roteiro de navegação como uma frequência de polling parado.
@@ -82,7 +98,7 @@ de dez minutos foi medida pelo relógio real do processo Node.
 
 O checkpoint exige recebimento na aba atual: sete eventos `changed`, sete
 `reconnect`, sete novos `ready` após liberação do Web Lock/conexão anterior e
-uma única conexão substituta compartilhada entre as abas. A análise das 498
+uma única conexão substituta compartilhada entre as abas. A análise das 496
 transições encontrou zero disponibilidades verdes sem prova atual de todas as
 fontes. Falha e recuperação central, troca de foco e atraso da API foram
 registrados. CDP observou somente `127.0.0.1` como endereço remoto real.
@@ -95,6 +111,16 @@ guarda temporal de produção, e confirma cada frame efetivamente recebido.
 Provedores e contas são simulados; isso não prova autenticação ou disponibilidade
 de uma conta Google real. Os resultados integrais ficam vinculados ao SHA nos
 checks e no relatório final de validação do PR.
+
+A revisão final acrescentou oito regressões unitárias dos caches (371 aprovadas)
+e duas regressões de broadcast, cada uma com três variantes. As 74 integrações
+afetadas e os 35 testes de isolamento/pipeline passaram no código final. Os
+roteiros visuais finais (quatro cenários e sessão longa) passaram: 5/5.
+O teste de navegação agora pausa o relógio antes de coletar qualquer prova, e
+aguarda a conclusão da resposta obsoleta antes de avançar o retry da revisão
+atual. Esses checkpoints corrigem corridas do QA, mantendo os mesmos deadlines,
+asserts de remoção autoritativa e cobertura. As execuções anteriores com falha
+permanecem registradas; não representam aprovação da versão final.
 
 ## Limites, riscos e reversão
 

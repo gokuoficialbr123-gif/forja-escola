@@ -1,13 +1,13 @@
 [
   {
     "file": "after-admin-desktop-04-return-week.png",
-    "bytes": 160077,
-    "sha256": "76ca9072b4c2a607699482e851b4dc0302c1fa450a0b05e2d6662c5c047e3b78"
+    "bytes": 160058,
+    "sha256": "6b7572c20ece4c016f045564dd23014980cbb7f704f654ec19eb40f0b012f01a"
   },
   {
     "file": "after-admin-desktop-05-original-expiry.png",
-    "bytes": 170167,
-    "sha256": "03ee24be646adeb80a53a93feb30f98935313d8e97249d64452a799c0798dbeb"
+    "bytes": 170153,
+    "sha256": "238b441285bae61291c2009441c943eda7b07ad615e33903f5ade0c86ab12ff6"
   },
   {
     "file": "after-admin-desktop-07-real-removal.png",
@@ -16,23 +16,23 @@
   },
   {
     "file": "after-admin-desktop.webm",
-    "bytes": 1075447,
-    "sha256": "149dadb928c536826bcfcda0c078002e19308b4b03072ca2527f94eb106fc6e2"
+    "bytes": 1064239,
+    "sha256": "d9c6ddda4edae7456f862ee4b63822f19e72cfe9fcac9c1c56b07c35d992f6d6"
   },
   {
     "file": "after-admin-mobile-02-month-pending.png",
-    "bytes": 70589,
-    "sha256": "2946fd4f6767d415e7285a33fc9b71e9264e4a5b44635400a1c929c1d626b1fc"
+    "bytes": 70602,
+    "sha256": "9475c6964df1aeddc0187bc5992d82afeeeb66b66fef0de7647ca39c26c7783b"
   },
   {
     "file": "after-admin-mobile-04-return-week.png",
-    "bytes": 62724,
-    "sha256": "7f6d13f3066b1ac0e93e88412e2624fd9cf47ce05932c6a97542d8f1f46a317d"
+    "bytes": 62666,
+    "sha256": "2c24580321030ba4a91f8f8e74477e910e76e89c4b8dc2c2493f248fefddeea4"
   },
   {
     "file": "after-admin-mobile.webm",
-    "bytes": 1663074,
-    "sha256": "3c63d1f4dcfbe55e93a5153d2321ad5013b4b2bcb553e38fea8a3f8ebd804834"
+    "bytes": 1770181,
+    "sha256": "4dfd42694a8b561fcf14ac95886c3e8cfc11b49eb44e6517faa1896e5b040a86"
   },
   {
     "file": "before-admin-desktop-04-return-week.png",
@@ -53,5 +53,10 @@
     "file": "before-admin-mobile.webm",
     "bytes": 1273820,
     "sha256": "ef0878703b3326eafc7052c67a42e608db8a100d4b0e9e7cb5e387c651c8f1a8"
+  },
+  {
+    "file": "soak-summary.json",
+    "bytes": 16106,
+    "sha256": "6ed40ae94e74abe3da6657ea20981d54e339df90fd05359ffc0a3982ac93a337"
   }
 ]

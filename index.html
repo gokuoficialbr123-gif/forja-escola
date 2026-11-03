@@ -9156,6 +9156,15 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   // of one-second reads. No deadline is extended by this scheduling decision.
   const lead=Math.min(MAX_AGE-15000,Math.max(SOURCE_LEAD,observedLatency+2000)),unchanged=eventDriven&&previousDeadline===value.sourceExpiresAt&&ttl<=lead,normal=Math.max(1000,unchanged?ttl:ttl-lead),healthy=value.items.some(x=>x.nativeStatus==='success'||x.personal.status==='success'||x.central.status==='success');
   nextAt=Math.max(retryUntil,performance.now()+(value.complete?normal:healthy?Math.min(BACKOFF_BASE,retry||BACKOFF_BASE):retry||Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3))));}
+ function supersededSnapshot(value){
+  const previous=record?.value;if(record?.key!==context?.key||!previous||value?.changeVersion!==previous.changeVersion)return false;
+  const began=v=>Date.parse(v.collectionStartedAt||v.checkedAt);
+  if(Date.parse(value.servedAt)<=Date.parse(previous.servedAt)||began(value)<began(previous))return true;
+  // Google can change without a native SSE revision. A later delivery cannot
+  // replace a newer confirmed source with an older cached free/busy result.
+  const stamp=(v,item,source)=>source==='native'?began(v):Date.parse(item[source]?.checkedAt||v.collectionStartedAt||v.checkedAt);
+  return value.items.some(item=>{const old=previous.items.find(x=>x.professionalId===item.professionalId);return ['native','personal','central'].some(source=>sourceCurrent(old,source)&&['success','not_applicable'].includes(source==='native'?item.nativeStatus:item[source]?.status)&&stamp(value,item,source)<stamp(previous,old,source));});
+ }
  function connectChannel(c){
   if(typeof BroadcastChannel!=='function')return;
   // Different UIDs, generations, roles and periods do not receive this payload.
@@ -9163,7 +9172,7 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
   channel.addEventListener('message',event=>{const m=event.data,age=Date.now()-m?.sentAt;if(m?.key!==c.key||!current(c)||!(age>=0&&age<(m?.value?.refreshMode==='events'?INSTITUTIONAL_MAX_AGE:MAX_AGE)))return;
    if(m.kind==='changes'){noteStream();handleChange(c,m.event);return;}
    if(m.kind==='cooldown'&&Number.isFinite(m.wait)&&m.wait>age){retryUntil=Math.max(retryUntil,performance.now()+Math.min(86400000,m.wait-age));nextAt=Math.max(nextAt,retryUntil);failureReason='Limite temporário de consultas; nova tentativa automática';if(record)record.error=true;paint();schedule();return;}
-   if(m.kind==='snapshot'&&!accessDenied&&performance.now()>=retryUntil&&!localDirty&&!flight&&Number.isFinite(m.ttlMs)&&m.ttlMs>0){try{accept(m.value,c,m.ttlMs-age,Number.isFinite(m.elapsedMs)&&m.elapsedMs>=0?m.elapsedMs+age:null);paint();schedule();}catch{}}
+   if(m.kind==='snapshot'&&!accessDenied&&performance.now()>=retryUntil&&!localDirty&&!flight&&Number.isFinite(m.ttlMs)&&m.ttlMs>0){try{if(supersededSnapshot(m.value))return;accept(m.value,c,m.ttlMs-age,Number.isFinite(m.elapsedMs)&&m.elapsedMs>=0?m.elapsedMs+age:null);paint();schedule();}catch{}}
   });
  }
  const queryFor=c=>{const query=new URLSearchParams({from:c.from,to:c.to});for(const id of c.ids)query.append('professionalId',id);return query;};

@@ -28,7 +28,7 @@ menos dez minutos reais com duas abas, trocas de visão, foco, SSE, latência e
 falha/recuperação de fonte. A sessão longa e a telemetria integral são entregues
 no pacote local de evidências; não são dados de produção.
 
-[Resumo da sessão final](soak-summary.json): 603.604 ms reais, 86 ciclos,
+[Resumo da sessão final](soak-summary.json): 604.497 ms reais, 86 ciclos,
 sete `changed` e sete `reconnect` recebidos na aba atual; sete novos `ready`
 após fechamento do transporte e liberação do Web Lock. Uma única conexão
 substituta compartilhada foi exigida em cada reconexão. Os relógios simulados

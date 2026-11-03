@@ -4,11 +4,12 @@ import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {stabilityFixture,denseWeek} from './helpers/agenda-stability-fixture.mjs';
 import {setView} from './helpers/agenda-presentation-fixture.mjs';
+import {delay} from './helpers/performance-portal-fixture.mjs';
 const {chromium}=await import(pathToFileURL(resolve(process.env.FORJA_PLAYWRIGHT_MODULE)).href);let browser;
 before(async()=>browser=await chromium.launch({headless:true,executablePath:process.env.FORJA_CHROMIUM_PATH}));after(()=>browser?.close());
 for(const role of ['admin','teacher'])for(const mobile of [false,true])test(`known occupancy survives week/month/week ${role} ${mobile?'mobile':'desktop'}`,async t=>{
- const f=await stabilityFixture(browser,{role,mobile,transformItem:denseWeek}),p=f.page;t.after(()=>f.close());
- await setView(f,role,'week');await p.clock.pauseAt(new Date(await p.evaluate(()=>Date.now())+1000));
+ const f=await stabilityFixture(browser,{role,mobile,pauseClock:true,transformItem:denseWeek}),p=f.page;t.after(()=>f.close());
+ await setView(f,role,'week');
  const red=await p.locator('.forja2-busy.google:not(.forja2-historical)').count();assert.ok(red>=14);
  let entered,release;const entry=new Promise(r=>entered=r),gate=new Promise(r=>release=r);t.after(()=>release());
  let count=0;await p.route('**/agenda/snapshot?**',async route=>{count++;entered();await gate;await route.fulfill({status:409,contentType:'application/json',headers:{'Access-Control-Allow-Origin':f.origin},body:'{"code":"AGENDA_QUERY_CHANGED"}'}).catch(()=>{});});
@@ -27,8 +28,8 @@ for(const role of ['admin','teacher'])for(const mobile of [false,true])test(`kno
  releaseWeek();assert.deepEqual(f.errors,[]);
 });
 for(const role of ['admin','teacher'])test(`overlap renewal, source invalidation, authoritative removal and session fence ${role}`,async t=>{
- let removed=false;const f=await stabilityFixture(browser,{role,transformItem:x=>removed?{...x,busy:[],lessons:[],blocks:[],school:[]}:denseWeek(x)}),p=f.page;t.after(()=>f.close());
- await setView(f,role,'week');await p.clock.pauseAt(new Date(await p.evaluate(()=>Date.now())+1000));
+ let removed=false;const f=await stabilityFixture(browser,{role,pauseClock:true,transformItem:x=>removed?{...x,busy:[],lessons:[],blocks:[],school:[]}:denseWeek(x)}),p=f.page;t.after(()=>f.close());
+ await setView(f,role,'week');
  for(const view of ['day','week','month','week']){await setView(f,role,view);assert.ok(await p.locator('.forja2-busy.google,.v621-month-tag.availability,.v629-month-tag.availability').count()>0);}
  await f.waitStreams(1);f.emit('ready');await p.clock.runFor(300);
  let release,entered;const gate=new Promise(r=>release=r),entry=new Promise(r=>entered=r);t.after(()=>release());
@@ -39,7 +40,11 @@ for(const role of ['admin','teacher'])test(`overlap renewal, source invalidation
  f.emit('changed',['native']);await p.waitForFunction(()=>window.__lastAgendaChange?.kind==='changed');await p.clock.runFor(300);
  assert.ok(await p.locator('.forja2-busy.google:not(.forja2-historical)').count()>0,'retained healthy Google proof survives a native-only change');
  assert.equal(await p.locator('.v621-block.availability').count(),0,'retained rows cannot authorize new slots while a view is pending');
- removed=true;await p.unroute('**/agenda/snapshot?**',hold);release();await p.clock.runFor(1001);await p.evaluate(()=>forjaAgenda2Refresh());
+ removed=true;await p.unroute('**/agenda/snapshot?**',hold);release();
+ // Join the held, now obsolete revision before advancing its retry timer.
+ // Advancing first can finish before the network response, then join only the
+ // correctly discarded request instead of awaiting the authoritative retry.
+ await p.evaluate(()=>forjaAgenda2Refresh());await p.clock.runFor(1001);await p.evaluate(()=>forjaAgenda2Refresh());
  assert.equal(await p.locator('.forja2-busy.google').count(),0,'fresh authoritative empty source removes previous occupancy, including a late aborted month response');
  removed=false;await p.evaluate(()=>forjaAgenda2Refresh());assert.ok(await p.locator('.forja2-busy.google').count()>0,'session fence is tested with populated evidence');
  // Session core clears state; the official logout owns the DOM/navigation.
@@ -48,10 +53,23 @@ for(const role of ['admin','teacher'])test(`overlap renewal, source invalidation
  assert.equal(await p.locator('.forja2-busy.google:visible').count(),0,'official session exit hides the previous Agenda');assert.equal(await p.locator('.v621-block.availability:visible').count(),0);assert.deepEqual(f.errors,[]);
 });
 test('HTTP Retry-After is preserved across view changes',async t=>{
- const f=await stabilityFixture(browser,{role:'admin',transformItem:denseWeek}),p=f.page;t.after(()=>f.close());await setView(f,'admin','week');await p.clock.pauseAt(new Date(await p.evaluate(()=>Date.now())+1000));
+ const f=await stabilityFixture(browser,{role:'admin',pauseClock:true,transformItem:denseWeek}),p=f.page;t.after(()=>f.close());await setView(f,'admin','week');
  let calls=0;await p.route('**/agenda/snapshot?**',route=>{calls++;return route.fulfill({status:429,headers:{'Access-Control-Allow-Origin':f.origin,'Access-Control-Expose-Headers':'Retry-After','Retry-After':'75'},contentType:'application/json',body:'{"code":"AGENDA_QUERY_BUSY"}'});});
  await p.evaluate(()=>forjaAgenda2Refresh());assert.equal(calls,1);
  for(const view of ['month','day','week'])await p.locator(`[data-v621-view="${view}"][data-role="admin"]`).click();
  await p.evaluate(()=>forjaAgenda2Refresh({manual:true}));assert.equal(calls,1);await p.clock.runFor(74000);assert.equal(calls,1);assert.equal(await p.locator('.v621-block.availability').count(),0);
  await p.clock.runFor(1100);await p.waitForFunction(()=>!document.querySelector('[data-forja2-status]').textContent.startsWith('Consultando'));assert.equal(calls,2,'exactly one request when the original retry deadline passes');
+});
+for(const role of ['admin','teacher'])test(`older same-version tab broadcast cannot replace newer Google occupancy ${role}`,async t=>{
+ const f=await stabilityFixture(browser,{role,pauseClock:true}),p=f.page;t.after(()=>f.close());await setView(f,role,'day');
+ f.setMode('free');await p.evaluate(()=>forjaAgenda2Refresh());const old=f.snapshot(),sentAt=await p.evaluate(()=>Date.now()),key=await p.evaluate(()=>{const s=forjaCaptureSession();return JSON.stringify([s.uid,s.generation,state.role,forjaAgenda2Context()]);});
+ await p.clock.runFor(1500);f.setMode('external');await p.evaluate(()=>forjaAgenda2Refresh());assert.equal(await p.locator('.forja2-busy.google').count(),1,'newer provider read confirms the external occupancy');
+ await p.evaluate(({old,sentAt,key})=>{const c=new BroadcastChannel('forja-agenda-readonly-v1:'+key);c.postMessage({kind:'snapshot',key,value:old,ttlMs:20000,elapsedMs:0,sentAt});c.close();},{old,sentAt,key});await delay(80);
+ assert.equal(await p.locator('.forja2-busy.google:not(.forja2-historical)').count(),1,'a still-unexpired but superseded same-version broadcast cannot restore free time');
+ for(const cachedSource of [false,true]){
+  await p.clock.runFor(500);const now=await p.evaluate(()=>Date.now()),value={...old,servedAt:new Date(now).toISOString(),collectionStartedAt:cachedSource?new Date(now).toISOString():old.checkedAt,...(cachedSource?{items:old.items.map(x=>({...x,central:{...x.central,checkedAt:new Date(now).toISOString()}}))}:{})};
+  await p.evaluate(({value,key,now})=>{const c=new BroadcastChannel('forja-agenda-readonly-v1:'+key);c.postMessage({kind:'snapshot',key,value,ttlMs:18000,elapsedMs:0,sentAt:now});c.close();},{value,key,now});await delay(80);
+  assert.equal(await p.locator('.forja2-busy.google:not(.forja2-historical)').count(),1,cachedSource?'a newer collection with an older personal source cannot overwrite its newer confirmed busy':'a later delivery cannot renew an older collection');
+ }
+ assert.equal(await p.evaluate(uid=>forjaAgenda2Google(uid,'2026-10-20').length,old.professionalIds[0]),1);assert.deepEqual(f.errors,[]);
 });
