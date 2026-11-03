@@ -122,6 +122,17 @@ atual. Esses checkpoints corrigem corridas do QA, mantendo os mesmos deadlines,
 asserts de remoção autoritativa e cobertura. As execuções anteriores com falha
 permanecem registradas; não representam aprovação da versão final.
 
+O teste legado de backoff também foi instrumentado em cópia isolada: mesmo uma
+rodada aprovada avançava o relógio durante HTTP pendente e terminava com timeout
+artificial. Os timestamps da resposta vinham do Node, enquanto o navegador já
+estava 40s adiante. A fixture agora compartilha o relógio sintético, congela antes
+da coleta e aguarda cada resposta. Exige duas tentativas completas, nenhuma antes
+do prazo, nenhuma duplicada e nenhum timeout artificial: 20s para resultado
+parcial com fonte independente saudável; 40s/80s para falhas de transporte,
+autorização ou quota sem Retry-After explícito. Esses são os prazos já existentes
+no cliente, sem mudança funcional. O trecho final usa `runFor` para não coalescer
+o timer de vencimento e seu piso de 20ms no endpoint de `fastForward`.
+
 ## Limites, riscos e reversão
 
 - Informação histórica pode estar diferente do Google atual; é identificada e
