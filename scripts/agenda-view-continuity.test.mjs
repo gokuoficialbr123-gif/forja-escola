@@ -44,7 +44,13 @@ for(const role of ['admin','teacher'])test(`overlap renewal, source invalidation
  // Join the held, now obsolete revision before advancing its retry timer.
  // Advancing first can finish before the network response, then join only the
  // correctly discarded request instead of awaiting the authoritative retry.
- await p.evaluate(()=>forjaAgenda2Refresh());await p.clock.runFor(1001);await p.evaluate(()=>forjaAgenda2Refresh());
+ // Chromium 141/CDP can collect its awaitPromise wrapper for a discarded read,
+ // reporting "context destroyed" despite no navigation. Observe completion
+ // inside the page instead; do not advance the retry clock until it has settled.
+ await p.evaluate(()=>{const checkpoint=window.__viewPendingRefresh={done:false,error:false};checkpoint.promise=forjaAgenda2Refresh();checkpoint.promise.then(()=>checkpoint.done=true,()=>{checkpoint.error=true;checkpoint.done=true})});
+ await p.waitForFunction(()=>window.__viewPendingRefresh.done);
+ assert.equal(await p.evaluate(()=>window.__viewPendingRefresh.error),false);await p.evaluate(()=>{delete window.__viewPendingRefresh});
+ await p.clock.runFor(1001);await p.evaluate(()=>forjaAgenda2Refresh());
  assert.equal(await p.locator('.forja2-busy.google').count(),0,'fresh authoritative empty source removes previous occupancy, including a late aborted month response');
  removed=false;await p.evaluate(()=>forjaAgenda2Refresh());assert.ok(await p.locator('.forja2-busy.google').count()>0,'session fence is tested with populated evidence');
  // Session core clears state; the official logout owns the DOM/navigation.

@@ -137,6 +137,19 @@ adotado pela fixture de apresentação, para descartar callbacks pendentes somen
 durante o encerramento. Isso evita avaliar o relógio de uma página já fechada;
 erros de rota durante o teste continuam visíveis e nenhuma asserção foi removida.
 
+A CI posterior ainda reproduziu dois erros `Execution context was destroyed` no
+checkpoint da leitura descartada. O mesmo Chromium Headless 141 foi executado
+localmente e reproduziu 2/2, enquanto o Chrome instalado passava. A telemetria
+não registrou navegação no checkpoint; o erro CDP real foi `Promise was collected`.
+Uma referência global isoladamente ainda reproduziu o erro do await CDP. O
+checkpoint agora observa a conclusão sinalizada pela promise dentro da página,
+sem usar o awaitPromise frágil do protocolo para essa leitura descartada. A
+promise exata continua referenciada até a observação; rejeição falha o teste.
+Não se altera o cliente, avança timers antecipadamente, aumenta timeout ou remove
+asserções. O retry autoritativo, remoção dos cartões e limpeza da sessão
+continuam exigidos pelo mesmo roteiro. Os dois cenários corrigidos passaram
+em três rodadas consecutivas no Chromium Headless 141 (6/6).
+
 ## Limites, riscos e reversão
 
 - Informação histórica pode estar diferente do Google atual; é identificada e
