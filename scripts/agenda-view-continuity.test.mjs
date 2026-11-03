@@ -42,7 +42,10 @@ for(const role of ['admin','teacher'])test(`overlap renewal, source invalidation
  removed=true;await p.unroute('**/agenda/snapshot?**',hold);release();await p.clock.runFor(1001);await p.evaluate(()=>forjaAgenda2Refresh());
  assert.equal(await p.locator('.forja2-busy.google').count(),0,'fresh authoritative empty source removes previous occupancy, including a late aborted month response');
  removed=false;await p.evaluate(()=>forjaAgenda2Refresh());assert.ok(await p.locator('.forja2-busy.google').count()>0,'session fence is tested with populated evidence');
- await p.evaluate(()=>{forjaChangeSession();forjaAgenda2Paint();});assert.equal(await p.locator('.forja2-busy.google').count(),0,'session change cannot restore prior history');assert.equal(await p.locator('.v621-block.availability').count(),0);assert.deepEqual(f.errors,[]);
+ // Session core clears state; the official logout owns the DOM/navigation.
+ const old=await p.evaluate(()=>forjaAgenda2Context());await p.evaluate(()=>executeLogout());
+ assert.equal(await p.evaluate(old=>forjaAgenda2BusyCards(old.ids[0],old.from,()=>'', 'admin'),old),'','session exit erases retained source evidence, not merely its DOM');
+ assert.equal(await p.locator('.forja2-busy.google:visible').count(),0,'official session exit hides the previous Agenda');assert.equal(await p.locator('.v621-block.availability:visible').count(),0);assert.deepEqual(f.errors,[]);
 });
 test('HTTP Retry-After is preserved across view changes',async t=>{
  const f=await stabilityFixture(browser,{role:'admin',transformItem:denseWeek}),p=f.page;t.after(()=>f.close());await setView(f,'admin','week');await p.clock.pauseAt(new Date(await p.evaluate(()=>Date.now())+1000));
