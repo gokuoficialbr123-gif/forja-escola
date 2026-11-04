@@ -26,6 +26,7 @@ for(const mobile of [false,true])test('Google diagnostic: explicit GETs, private
  await p.getByRole('button',{name:'Consultar requisitos',exact:true}).dblclick();await p.waitForFunction(()=>document.querySelector('[data-forja2-diagnostic-result]')?.textContent.includes('Este diagnóstico não autoriza ativação'));
  assert.equal(f.calls.length,2);assert.ok(f.calls.every(x=>x.method==='GET'));assert.ok(f.calls.find(x=>x.path.endsWith('/calendars')).query.includes('diagnosticFor=PERF_TEACHER'));
  const before=await p.locator('[data-forja2-diagnostic-result]').innerText();assert.ok(!/PRIVATE_|PERF_TEACHER|calendarId/.test(before));assert.ok(before.includes('Não verificado'));
+ for(const width of mobile?[390,360]:[1366]){await p.setViewportSize({width,height:900});assert.equal(await p.locator('[data-forja2-diagnostic-result] table').evaluate(table=>table.scrollWidth<=table.parentElement.clientWidth+1),true,'diagnostic columns and descriptions must fit the modal at '+width);assert.equal(await p.locator('[data-forja2-diagnostic-result] td').first().evaluate(el=>getComputedStyle(el).whiteSpace),'normal','descriptions must wrap rather than clip');}
  await p.evaluate(()=>{for(let n=0;n<5;n++)forjaAgenda2Paint();});assert.equal(await p.locator('[data-forja2-diagnostic-result]').innerText(),before);assert.equal(f.calls.length,2);assert.equal(await p.locator('[data-forja2-google-check]').count(),1);
  assert.deepEqual(f.errors,[]);
 });

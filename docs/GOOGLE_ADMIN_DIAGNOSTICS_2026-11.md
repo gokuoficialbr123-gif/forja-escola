@@ -26,6 +26,11 @@ Atualizações da Agenda preservam o modal e não repetem o diagnóstico.
 
 ## Validação focada
 
+Na conferência visual da demonstração foi reproduzido corte de descrições na
+tabela mobile. A correção limita-se à largura e quebra de texto da tabela deste
+diagnóstico. A regressão exige colunas dentro do modal e descrições com quebra
+normal em 1366, 390 e 360px; nenhum layout da Agenda foi redesenhado.
+
 Node 22.23.3; Chromium 141; portal real com fixtures e firewall de rede existentes.
 Oito verificações de navegador: desktop/celular, consultas explícitas, clique duplo,
 privacidade, falha HTTP/contrato antigo, cinco repinturas, mudança de seleção,

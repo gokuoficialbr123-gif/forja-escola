@@ -367,7 +367,7 @@
     const same=(key,value)=>report.checks.find(x=>x.key===key)?.state===(value?'ok':'blocked');
     if(!same('institutional',status.item.institutionalAuthorized)||!same('freeBusy',status.item.freeBusyAuthorized))throw Error('DIAGNOSTIC_CHANGED');
     const rows=report.checks.map(x=>'<tr><th scope="row">'+escape(labels[x.key])+'</th><td><strong>'+states[x.state]+'</strong><br>'+escape(x.explanation)+'</td></tr>').join('');
-    result.innerHTML='<p><strong>'+states[report.state]+'</strong> · Este diagnóstico não autoriza ativação. A cobertura real dos compromissos continua não verificada.</p><p>Metadados consultados em '+escape(new Date(report.checkedAt).toLocaleString('pt-BR'))+'. Consulte novamente para verificar mudanças.</p><div style="overflow:auto"><table class="table"><tbody>'+rows+'</tbody></table></div>';
+    result.innerHTML='<p><strong>'+states[report.state]+'</strong> · Este diagnóstico não autoriza ativação. A cobertura real dos compromissos continua não verificada.</p><p>Metadados consultados em '+escape(new Date(report.checkedAt).toLocaleString('pt-BR'))+'. Consulte novamente para verificar mudanças.</p><div style="overflow:auto"><table class="table forja2-google-diagnostic-table"><tbody>'+rows+'</tbody></table></div>';
    }catch(error){controller.abort();if(valid()&&request===serial)result.textContent=error.status===403?'Acesso restrito a administradores ativos. Nenhum requisito confirmado.':'Não foi possível confirmar os requisitos. O backend pode ainda não oferecer este diagnóstico; nenhuma falha foi tratada como sucesso.';}
    finally{if(valid()&&request===serial)button.disabled=false;}
   };
