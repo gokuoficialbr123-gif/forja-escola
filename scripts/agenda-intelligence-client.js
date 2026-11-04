@@ -295,6 +295,9 @@
   const message=(failureReason||institutionalIssue||(centralConsent?'Google central: autorização pendente.':consent?'Google pessoal: consentimento pendente.':quota?'Limite temporário na fonte Google; horários sem confirmação para agendar.':unavailable?'Fontes incompletas ou vencidas; horários sem confirmação para agendar.':streamStatus.includes('indisponível')?streamStatus:institutional?'Agenda institucional gerenciada pela Secretaria.':'Atualização automática ativa.'))+(document.querySelector('.forja2-historical,.forja2-native-history')?' Há ocupações em histórico, sem confirmação atual.':'');
   const info=host.querySelector('.forja2-status-message');if(info.textContent!==message)info.textContent=message;
   const diagnostic=(phase||'Todas as fontes necessárias confirmadas')+(details.length?' · '+details.join(' · '):'')+(institutional?' · Fonte Google institucional administrada pela Secretaria':'')+(streamStatus?' · '+streamStatus:'')+(lastSuccess?' · Última consulta completa: '+timestamp:' · Aguardando primeira consulta completa'),body=host.querySelector('.forja2-diagnostic-body');if(body.textContent!==diagnostic)body.textContent=diagnostic;
+  if(state.role==='admin'&&!host.querySelector('[data-forja2-google-check]')){
+   const button=document.createElement('button');button.type='button';button.className='small-btn';button.dataset.forja2GoogleCheck='1';button.textContent='Verificar integração Google';button.onclick=googleDiagnostic;host.querySelector('.forja2-diagnostic').append(button);
+  }
   if(state.role==='teacher'){
    const controls=host.closest('.v622-topbar')?.querySelector('.v622-sync'),diagnostic=host.querySelector('.forja2-diagnostic'),refresh=controls?.querySelector('[data-forja2-refresh]');
    if(refresh){refresh.classList.add('forja2-refresh-inline');host.append(refresh);}
@@ -345,6 +348,30 @@
   // of one-second reads. No deadline is extended by this scheduling decision.
   const lead=Math.min(MAX_AGE-15000,Math.max(SOURCE_LEAD,observedLatency+2000)),unchanged=eventDriven&&previousDeadline===value.sourceExpiresAt&&ttl<=lead,normal=Math.max(1000,unchanged?ttl:ttl-lead),healthy=value.items.some(x=>x.nativeStatus==='success'||x.personal.status==='success'||x.central.status==='success');
   nextAt=Math.max(retryUntil,performance.now()+(value.complete?normal:healthy?Math.min(BACKOFF_BASE,retry||BACKOFF_BASE):retry||Math.min(120000,BACKOFF_BASE*2**Math.min(failures,3))));}
+ function googleDiagnostic(){
+  if(state.role!=='admin'||!active())return;
+  const scope=forjaCaptureSession(),teachers=(state.users||[]).filter(x=>x.role==='teacher'),selected=context?.ids?.length===1?context.ids[0]:'';
+  modal('Verificar integração Google','<p>Consulta administrativa somente de leitura. Não atualiza catálogo, não sincroniza e não ativa fontes.</p><label for="forja2DiagnosticTeacher">Professor</label><select id="forja2DiagnosticTeacher"><option value="">Selecione um professor</option>'+teachers.map(t=>'<option value="'+escape(t.uid)+'" '+(t.uid===selected?'selected':'')+'>'+escape(t.fullName||'Professor')+'</option>').join('')+'</select><button type="button" class="small-btn" data-forja2-diagnostic-read>Consultar requisitos</button><div data-forja2-diagnostic-result role="status" aria-live="polite">Nenhuma consulta realizada.</div>');
+  const dialog=document.querySelector('#modal .modal'),select=dialog.querySelector('select'),button=dialog.querySelector('[data-forja2-diagnostic-read]'),result=dialog.querySelector('[data-forja2-diagnostic-result]');let serial=0,controller=null;
+  const valid=()=>forjaSessionCurrent(scope)&&active(false)&&state.role==='admin'&&document.querySelector('#modal .modal')===dialog;
+  select.onchange=()=>{serial++;controller?.abort();button.disabled=false;result.textContent='Seleção alterada. Consulte os requisitos deste professor.';};
+  button.onclick=async()=>{
+   if(!valid()||!select.value||button.disabled)return;
+   const id=select.value,request=++serial;controller=new AbortController();button.disabled=true;result.textContent='Consultando metadados…';
+   try{
+    const base='/admin/google-calendar/central',options={method:'GET',session:scope,signal:controller.signal};
+    const [report,status]=await Promise.all([api(base+'/calendars?diagnosticFor='+encodeURIComponent(id),options),api(base+'/status',options)]);
+    if(!valid()||request!==serial||select.value!==id)return;
+    const states={ok:'OK',blocked:'Bloqueado',not_verified:'Não verificado'},labels={calendar:'Calendário central associado',teacher:'Professor ativo',uid:'Correspondência do UID',enabled:'enabled',effective:'effectiveEnabled',accessRole:'accessRole',accessStatus:'accessStatus',mode:'institutionalMode',model:'Modelo de integração',institutional:'institutionalAuthorized',freeBusy:'freeBusyAuthorized',reauthorization:'Reautorização',configuration:'Configuração central',legacy:'Vínculos legados incompatíveis',coverage:'Cobertura dos eventos reais',synchronization:'Sincronização, cobertura temporal e webhook'};
+    if(report.ok!==true||report.policy!=='central-readonly-diagnostics-v1'||!Number.isFinite(Date.parse(report.checkedAt))||report.activationSafe!==false||!states[report.state]||report.state==='ok'||!Array.isArray(report.checks)||report.checks.length!==Object.keys(labels).length||new Set(report.checks.map(x=>x.key)).size!==Object.keys(labels).length||report.checks.some(x=>!Object.hasOwn(labels,x.key)||!states[x.state]||typeof x.explanation!=='string'||x.explanation.length>400)||status.ok!==true||status.policy!=='calendarlist-association-v2'||!status.item||['connected','institutionalAuthorized','freeBusyAuthorized','requiresReauthorization','freeBusyRequiresReauthorization'].some(k=>typeof status.item[k]!=='boolean'))throw Error('DIAGNOSTIC_INVALID');
+    const same=(key,value)=>report.checks.find(x=>x.key===key)?.state===(value?'ok':'blocked');
+    if(!same('institutional',status.item.institutionalAuthorized)||!same('freeBusy',status.item.freeBusyAuthorized))throw Error('DIAGNOSTIC_CHANGED');
+    const rows=report.checks.map(x=>'<tr><th scope="row">'+escape(labels[x.key])+'</th><td><strong>'+states[x.state]+'</strong><br>'+escape(x.explanation)+'</td></tr>').join('');
+    result.innerHTML='<p><strong>'+states[report.state]+'</strong> · Este diagnóstico não autoriza ativação. A cobertura real dos compromissos continua não verificada.</p><p>Metadados consultados em '+escape(new Date(report.checkedAt).toLocaleString('pt-BR'))+'. Consulte novamente para verificar mudanças.</p><div style="overflow:auto"><table class="table"><tbody>'+rows+'</tbody></table></div>';
+   }catch(error){controller.abort();if(valid()&&request===serial)result.textContent=error.status===403?'Acesso restrito a administradores ativos. Nenhum requisito confirmado.':'Não foi possível confirmar os requisitos. O backend pode ainda não oferecer este diagnóstico; nenhuma falha foi tratada como sucesso.';}
+   finally{if(valid()&&request===serial)button.disabled=false;}
+  };
+ }
  function supersededSnapshot(value){
   const previous=record?.value;if(record?.key!==context?.key||!previous||value?.changeVersion!==previous.changeVersion)return false;
   const began=v=>Date.parse(v.collectionStartedAt||v.checkedAt);
