@@ -249,3 +249,6 @@ body:has(#workspaceContent .forja2-agenda) #fixedWeekNotice{flex-basis:100%;font
  body:has(#workspaceContent .forja2-agenda,#workspaceContent.forja2-calendar-page) #modal .quick-row{gap:6px}
  body:has(#workspaceContent .forja2-agenda,#workspaceContent.forja2-calendar-page) #modal .btn{min-height:38px;padding:8px 10px}
 }
+.forja2-google-diagnostic-table{width:100%;min-width:0!important;table-layout:fixed}
+.forja2-google-diagnostic-table th{width:36%;white-space:normal;overflow-wrap:anywhere}
+.forja2-google-diagnostic-table td{white-space:normal;overflow-wrap:anywhere}
