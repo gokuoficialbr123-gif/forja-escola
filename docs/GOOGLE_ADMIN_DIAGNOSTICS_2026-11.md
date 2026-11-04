@@ -31,6 +31,12 @@ tabela mobile. A correção limita-se à largura e quebra de texto da tabela des
 diagnóstico. A regressão exige colunas dentro do modal e descrições com quebra
 normal em 1366, 390 e 360px; nenhum layout da Agenda foi redesenhado.
 
+CI anterior 41892717383: 658 verificações de navegador passaram e uma falhou
+em `clock.pauseAt` no cenário visual admin/mobile; o push do mesmo SHA passou.
+A sequência lia Date.now()+1000 com relógio ainda correndo e podia ultrapassar
+o alvo entre chamadas CDP. O teste agora usa a opção existente `pauseClock:true`
+antes da primeira prova. Nenhuma asserção, TTL, timeout ou código funcional muda.
+
 Node 22.23.3; Chromium 141; portal real com fixtures e firewall de rede existentes.
 Oito verificações de navegador: desktop/celular, consultas explícitas, clique duplo,
 privacidade, falha HTTP/contrato antigo, cinco repinturas, mudança de seleção,

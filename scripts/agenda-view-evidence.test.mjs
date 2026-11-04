@@ -14,9 +14,11 @@ async function capture(p,name){if(directory)await p.screenshot({path:resolve(dir
 async function evidence(f,name,video){if(directory){writeFileSync(resolve(directory,name+'.json'),JSON.stringify({requests:f.requestTransitions,transitions:await f.page.evaluate(()=>__agendaTransitions||[]),broadcast:await f.page.evaluate(()=>window.__agendaBroadcast||[])},null,2));}await f.close();if(directory&&video)copyFileSync(await video.path(),resolve(directory,name+'.webm'));}
 for(const role of ['admin','teacher'])for(const mobile of [false,true])test(`view transition visual ${role} ${mobile?'mobile':'desktop'}`,async()=>{
  if(directory)mkdirSync(directory,{recursive:true});let removed=false;
- const name=(baseline?'before-':'after-')+role+'-'+(mobile?'mobile':'desktop'),f=await stabilityFixture(browser,{role,mobile,artifact:artifact(),transformItem:x=>removed?{...x,lessons:[],blocks:[],school:[],busy:[]}:denseWeek(x),...(directory?{recordVideo:{dir:directory,size:mobile?{width:390,height:844}:{width:1365,height:900}}}:{})}),p=f.page,video=p.video();let release=()=>{};
+ const name=(baseline?'before-':'after-')+role+'-'+(mobile?'mobile':'desktop'),f=await stabilityFixture(browser,{role,mobile,pauseClock:true,artifact:artifact(),transformItem:x=>removed?{...x,lessons:[],blocks:[],school:[],busy:[]}:denseWeek(x),...(directory?{recordVideo:{dir:directory,size:mobile?{width:390,height:844}:{width:1365,height:900}}}:{})}),p=f.page,video=p.video();let release=()=>{};
  try{
-  await setView(f,role,'week');await p.clock.pauseAt(new Date(await p.evaluate(()=>Date.now())+1000));
+  // Freeze before the first proof: a running clock can overtake Date.now()+1000
+  // between the former two CDP calls on a loaded CI runner.
+  await setView(f,role,'week');
   await p.evaluate(()=>{const tag=document.createElement('div');tag.textContent='DEMONSTRAÇÃO — DADOS SIMULADOS';tag.style.cssText='position:fixed;right:8px;bottom:70px;background:#fff;color:#334155;font:11px sans-serif;z-index:99999;padding:3px;pointer-events:none';document.body.append(tag);});
   const red=await p.locator('.forja2-busy.google:not(.forja2-historical)').count();assert.ok(red>=14);await capture(p,name+'-01-confirmed-week');
   let enter;const entry=new Promise(r=>enter=r),gate=new Promise(r=>release=r);
