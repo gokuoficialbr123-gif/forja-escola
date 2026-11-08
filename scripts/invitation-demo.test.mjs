@@ -15,6 +15,7 @@ test('demo is explicit, Preview-only and cannot enter the production artifact',(
  assert.deepEqual(hostingOptionsFromArgs([]),{});const built=buildHostingArtifact();assert.ok(expandStaticResources(built.bytes,built.resources).equals(html));assert.ok(!buildHostingArtifact().bytes.includes('forja-invitation-demo'));
  assert.throws(()=>buildHostingArtifact(undefined,{invitationDemo:true,previewApiUrl:'https://forja-api-pr-7.onrender.com'}));
  const demo=buildHostingArtifact(undefined,{invitationDemo:true});assert.equal(demo.result.apiUrl,null);assert.ok(demo.bytes.includes('forja-invitation-demo'));assert.ok(!demo.bytes.includes('src="https://www.gstatic.com/firebasejs'));
+ assert.ok(!demo.bytes.includes('forja-automation-script'));
 });
 for(const mobile of [false,true])test(`safe demo ${mobile?'mobile':'desktop'} creates/resends in memory; zero real API/Auth/email requests`,async t=>{
  const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:1000},locale:'pt-BR',reducedMotion:'reduce'});t.after(()=>page.close());const network=[],errors=[];
