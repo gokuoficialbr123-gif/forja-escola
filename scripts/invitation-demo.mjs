@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {withoutAutomation} from './automation-scope.mjs';
 export function invitationDemoArtifact(source){
- let html=source.toString('utf8');
+ let html=withoutAutomation(source.toString('utf8'));
  // The explicit in-memory demo keeps its existing complete-data fixture. Its
  // synthetic API intentionally does not implement the live lazy-read contract.
  html=html.replace(/<script id="forja-admin-page-data-script">[\s\S]*?<\/script>\s*/, '');

@@ -1,4 +1,5 @@
 import {expandStaticResources} from './static-resources.mjs';
+import {withoutAutomation} from './automation-scope.mjs';
 import {withoutRecurringLessons} from './recurring-lessons-scope.mjs';
 import {legalFiles,withoutLegalNavigation,portalBeforeLegalSha256,validateLegalPages} from './legal-pages.mjs';
 import {withoutFixedAvailability} from './fixed-availability-scope.mjs';
@@ -13,7 +14,7 @@ import { createServer } from 'node:http';
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { rootDir, referenceVersion, referenceSha256, sha256, validate, validateInlineScripts, googleVerificationFile, googleVerificationContent, validateGoogleVerification } from './validate.mjs';
+import { rootDir, referenceVersion, referenceSha256, sha256, validate, validateInlineScripts, googleVerificationFile, googleVerificationContent, validateGoogleVerification, cancellationPage } from './validate.mjs';
 import { buildHostingArtifact, hostingOptionsFromArgs, prepareHosting, productionApiUrl } from './prepare-hosting.mjs';
 import { verifyHosting, verifyGoogleVerification } from './verify-hosting.mjs';
 import { previewApiFromEvent, previewConfigFromEvent, validatePreviewApiUrl } from './preview-config.mjs';
@@ -24,7 +25,7 @@ const deployed=buildHostingArtifact().bytes;
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'forja-pipeline-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  for (const file of ['index.html', 'firebase.json', '.firebaserc',googleVerificationFile,...legalFiles]) { mkdirSync(dirname(join(root,file)),{recursive:true});copyFileSync(join(rootDir,file),join(root,file)); }
+  for (const file of ['index.html', 'firebase.json', '.firebaserc',googleVerificationFile,cancellationPage,...legalFiles]) { mkdirSync(dirname(join(root,file)),{recursive:true});copyFileSync(join(rootDir,file),join(root,file)); }
   return root;
 }
 
@@ -63,7 +64,7 @@ test('artefato contém somente o HTML e sua preparação é repetível', t => {
   prepareHosting(root);
   writeFileSync(join(root, '.firebase-public', 'nao-publicar.txt'), 'documentação');
   prepareHosting(root);
-  assert.deepEqual(readdirSync(join(root, '.firebase-public')), ['assets', googleVerificationFile, 'index.html', 'privacidade', 'termos']);
+  assert.deepEqual(readdirSync(join(root, '.firebase-public')), ['assets','cancelar', googleVerificationFile, 'index.html', 'privacidade', 'termos']);
   assert.ok(readFileSync(join(root, '.firebase-public', 'index.html')).equals(deployed));
 });
 test('Search Console: nome exato, bytes sem newline e arquivo preservado ao recriar o artefato', t => {
@@ -272,7 +273,7 @@ test('backend sem Etapa 2 central não pode autorizar o novo Preview',async()=>{
 });
 
 test('Somente blocos centrais e Novo usuário podem mudar; Agenda e relatório preservados',()=>{
- const previous=withoutRegistrationChanges(withoutSessionIsolation(withoutBookingHotfix(withoutPersonalGoogleDiagnostics(withoutLessonReadPolicy(withoutFixedAvailability(withoutLegalNavigation(withoutRecurringLessons(html.toString())))))))).replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
+ const previous=withoutRegistrationChanges(withoutSessionIsolation(withoutBookingHotfix(withoutPersonalGoogleDiagnostics(withoutLessonReadPolicy(withoutFixedAvailability(withoutLegalNavigation(withoutRecurringLessons(withoutAutomation(html.toString()))))))))).replace(/<style id="forja-google-secretaria-style">[\s\S]*?<\/style>\n/,'').replace(/<script id="forja-google-secretaria-script">[\s\S]*?<\/script>\n\n/,'');
  assert.equal(sha256(Buffer.from(previous)),'cf5b8ffbc9c7827892492864d9d034d318e707bebaefc9ee4967f8ba115f741c');
 });
 

@@ -5,7 +5,7 @@ import {invitationDemoArtifact} from './invitation-demo.mjs';
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { rootDir, sha256, validate, validateInlineScripts, googleVerificationFile } from './validate.mjs';
+import { rootDir, sha256, validate, validateInlineScripts, googleVerificationFile, cancellationPage } from './validate.mjs';
 import { validatePreviewApiUrl } from './preview-config.mjs';
 
 export const productionApiUrl = 'https://forja-api-m1kq.onrender.com';
@@ -50,10 +50,15 @@ export function prepareHosting(root = rootDir, options = {}) {
   writeFileSync(join(output, 'index.html'), bytes);
   writeFileSync(join(output, googleVerificationFile), readFileSync(join(root, googleVerificationFile)));
   for(const file of legalFiles) { mkdirSync(dirname(join(output,file)),{recursive:true});writeFileSync(join(output,file),readFileSync(join(root,file))); }
+  if(result.target==='production'){
+    const file=join(output,cancellationPage);
+    mkdirSync(dirname(file),{recursive:true});
+    writeFileSync(file,readFileSync(join(root,cancellationPage)));
+  }
   for(const resource of resources){assert.match(resource.file,/^assets\/forja-image-[a-f0-9]{64}\.webp$/);mkdirSync(dirname(join(output,resource.file)),{recursive:true});writeFileSync(join(output,resource.file),resource.bytes);}
   const expectedAssets=[...legalFiles.filter(f=>f.startsWith('assets/')).map(f=>f.slice(7)),...resources.map(r=>r.file.slice(7))].sort();
   assert.deepEqual(readdirSync(join(output,'assets')).sort(),expectedAssets,'Hosting assets must match the exact derived allowlist.');
-  assert.deepEqual(readdirSync(output), ['assets',googleVerificationFile,'index.html','privacidade','termos']);
+  assert.deepEqual(readdirSync(output), ['assets',...(result.target==='production'?['cancelar']:[]),googleVerificationFile,'index.html','privacidade','termos']);
   assert.ok(bytes.equals(readFileSync(join(output, 'index.html'))));
   return result;
 }

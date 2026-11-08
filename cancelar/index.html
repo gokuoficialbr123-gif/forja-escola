@@ -1,0 +1,32 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VSq76ia/Eo/wYrtDv83qyhqI8JWCqLG1lPmkP2PZnk0='; style-src 'sha256-WuZJhJHpYnM3Ff9M5jYQLawc+PVKeCyVlKT6jvLp0MQ='; connect-src https://forja-api-m1kq.onrender.com; base-uri 'none'; form-action 'none'"><title>Desmarcar aula | FORJA Escola</title><style>*{box-sizing:border-box}body{margin:0;background:#f4f6f7;color:#152f3f;font-family:system-ui,sans-serif}main{max-width:580px;margin:40px auto;background:white;padding:28px;border-radius:14px}.brand{font-weight:800;letter-spacing:.12em}h1{font-size:1.6rem}dt{font-weight:700}dd{margin:4px 0 16px}label,textarea,button{display:block;width:100%}textarea{margin:8px 0;padding:12px;font:inherit}.confirm{display:flex;gap:10px;margin:20px 0}.confirm input{width:auto}button{padding:14px;background:#123a50;color:white;border:0;border-radius:8px;font:inherit;font-weight:700;cursor:pointer}button:disabled{opacity:.6}p{line-height:1.5}@media(max-width:600px){main{margin:12px;padding:20px}}</style></head><body><main><p class="brand">FORJA ESCOLA</p><h1>Desmarcar aula</h1><p id="state" role="status">Validando seu link…</p><section id="lesson" hidden><dl><dt>Aluno</dt><dd id="student"></dd><dt>Professor</dt><dd id="teacher"></dd><dt>Data e horário</dt><dd id="when"></dd></dl><form id="cancel-form"><label for="reason">Justificativa obrigatória</label><textarea id="reason" required minlength="3" maxlength="600" rows="5"></textarea><label class="confirm"><input id="confirm" type="checkbox" required> Confirmo que desejo desmarcar esta aula.</label><button id="submit" type="submit">Confirmar desmarcação</button></form><p>O cancelamento pode ser solicitado até antes do início da aula. A Secretaria analisará sua justificativa e ficará responsável por avisar o professor.</p></section></main><script>(()=>{
+ const state=document.getElementById('state'),section=document.getElementById('lesson'),form=document.getElementById('cancel-form'),button=document.getElementById('submit');
+ const token=new URLSearchParams(location.hash.slice(1)).get('token')||'';
+ history.replaceState(null,'',location.pathname);
+ const headers={Authorization:'Bearer '+token,'Content-Type':'application/json'};
+ async function load(){
+  if(!/^[A-Za-z0-9_-]{43}$/.test(token))throw Error();
+  const response=await fetch('https://forja-api-m1kq.onrender.com/cancelamento/aula',{headers,credentials:'omit',cache:'no-store'});
+  if(!response.ok)throw Error();
+  const data=await response.json(),aula=data.aula;
+  document.getElementById('student').textContent=aula.aluno;
+  document.getElementById('teacher').textContent=aula.professor;
+  document.getElementById('when').textContent=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'}).format(new Date(aula.inicio));
+  state.textContent=aula.cancelada?'Esta aula já foi desmarcada.':'Confira a aula e informe a justificativa.';
+  section.hidden=false;form.hidden=aula.cancelada;
+ }
+ form.addEventListener('submit',async event=>{
+  event.preventDefault();if(button.disabled||!form.reportValidity())return;
+  const motivo=document.getElementById('reason').value.trim();
+  if(motivo.length<3){state.textContent='Informe uma justificativa com pelo menos três caracteres.';return;}
+  button.disabled=true;
+  try{
+   const response=await fetch('https://forja-api-m1kq.onrender.com/cancelamento/confirmar',{method:'POST',headers,credentials:'omit',cache:'no-store',
+    body:JSON.stringify({motivo,confirmacao:document.getElementById('confirm').checked})});
+   if(!response.ok)throw Error();
+   const data=await response.json();
+   form.hidden=true;state.textContent='Cancelamento registrado. A justificativa foi registrada para análise da Secretaria, responsável por avisar o professor.'+
+    (data.googleSyncStatus==='cancelamento_pendente'?' A atualização da agenda ainda está pendente.':'');
+  }catch{state.textContent='Não foi possível confirmar o resultado. Consulte novamente pelo mesmo link antes de repetir a operação.';button.disabled=false;}
+ });
+ load().catch(()=>{state.textContent='Link inválido, expirado ou aula alterada. Entre em contato com a Secretaria.';});
+})();</script></body></html>
