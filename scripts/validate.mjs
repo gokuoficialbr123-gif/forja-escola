@@ -1,4 +1,5 @@
 import {withoutRecurringLessons} from './recurring-lessons-scope.mjs';
+import {withoutAutomation} from './automation-scope.mjs';
 import {legalFiles,withoutLegalNavigation,portalBeforeLegalSha256,validateLegalPages} from './legal-pages.mjs';
 import {withoutFixedAvailability} from './fixed-availability-scope.mjs';
 import {withoutLessonReadPolicy} from './lesson-read-policy-scope.mjs';
@@ -15,11 +16,22 @@ import { fileURLToPath } from 'node:url';
 
 export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const referenceVersion = '6.31.1-secretaria-drawer-fluido';
-export const referenceSha256 = '29ccc515db23fd282be2a2051e8eb76fe4a34ea8e88679f5fd62beb52899e36e';
+export const referenceSha256 = '2d98830440c68b708efc2c17d37da9592d16c6c2cf4cf022460e6a93b48a2369';
 export const sha256 = data => createHash('sha256').update(data).digest('hex');
 // Public ownership proof: preserve the exact bytes, including no final newline.
 export const googleVerificationFile = 'googleaaf1dd5c13d03a74.html';
 export const googleVerificationContent = 'google-site-verification: googleaaf1dd5c13d03a74.html';
+export const cancellationPage = 'cancelar/index.html';
+export const cancellationPageSha256 = 'f07bf330fe1719f0dac91a1e9360bbfc5d75819b11142fc4f3f14e2e7828128d';
+
+export function validateCancellationPage(root = rootDir) {
+  const path = join(root,cancellationPage);
+  assert.ok(lstatSync(path).isFile(),'Página de cancelamento deve ser arquivo regular.');
+  const bytes = readFileSync(path);
+  assert.equal(sha256(bytes),cancellationPageSha256,'Página de cancelamento diferente do artefato aprovado.');
+  assert.equal(validateInlineScripts(bytes.toString('utf8')),1);
+  return {file:cancellationPage,bytes:bytes.length,sha256:cancellationPageSha256};
+}
 
 export function validateGoogleVerification(root = rootDir) {
   const file = join(root, googleVerificationFile);
@@ -59,8 +71,9 @@ export function validate(root = rootDir) {
   assert.equal(marker, referenceVersion, 'Marker da release ativa incorreto.');
   assert.match(release, /dataset\.forjaAgendaVersion\s*=\s*VERSION/, 'Marker não aplicado à versão ativa.');
   assert.equal(sha256(bytes), referenceSha256, 'HTML diferente da base 6.31 preparada para revisão.');
-  assert.equal(sha256(withoutSessionIsolation(withoutBookingHotfix(withoutPersonalGoogleDiagnostics(withoutLessonReadPolicy(withoutFixedAvailability(withoutLegalNavigation(withoutRecurringLessons(html)))))))), '3d6908cd807c5b2abf3a7620b2d4275738bb28931478e4340fe84c4557e6cf1f', 'Fora do isolamento de sessão, o portal deve ser idêntico ao main publicado.');
-  assert.equal(sha256(withoutLegalNavigation(withoutRecurringLessons(html))),portalBeforeLegalSha256,'Fora do rodapé legal, portal igual à produção #16/#17.');
+  const scoped = withoutAutomation(html);
+  assert.equal(sha256(withoutSessionIsolation(withoutBookingHotfix(withoutPersonalGoogleDiagnostics(withoutLessonReadPolicy(withoutFixedAvailability(withoutLegalNavigation(withoutRecurringLessons(scoped)))))))), '3d6908cd807c5b2abf3a7620b2d4275738bb28931478e4340fe84c4557e6cf1f', 'Fora do isolamento de sessão, o portal deve ser idêntico ao main publicado.');
+  assert.equal(sha256(withoutLegalNavigation(withoutRecurringLessons(scoped))),portalBeforeLegalSha256,'Fora do rodapé legal, portal igual à produção #16/#17.');
   assert.ok(!/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(html), 'Chave privada não pode entrar no frontend.');
   const central=html.match(/<script id="forja-google-secretaria-script">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(central?.includes("const CENTRAL_POLICY='calendarlist-association-v2'"), 'Marker da conexão central ausente.');
@@ -72,7 +85,7 @@ export function validate(root = rootDir) {
   assert.deepEqual(config.hosting?.rewrites, [{ source: '**', destination: '/index.html' }]);
   const googleVerification = validateGoogleVerification(root);
   const checked = validateInlineScripts(html);
-  return { version: marker, sha256: referenceSha256, inlineScripts: checked, bytes: bytes.length, legalPages:validateLegalPages(root), googleVerification };
+  return { version: marker, sha256: referenceSha256, inlineScripts: checked, bytes: bytes.length, legalPages:validateLegalPages(root), googleVerification, cancellationPage:validateCancellationPage(root) };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

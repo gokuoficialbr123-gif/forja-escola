@@ -1,2 +1,3 @@
 # Runtime source and integrity guards use canonical LF on Windows and Linux.
 index.html text eol=lf
+cancelar/index.html text eol=lf

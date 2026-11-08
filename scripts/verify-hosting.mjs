@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { rootDir, referenceVersion, sha256, googleVerificationFile, googleVerificationContent } from './validate.mjs';
+import { rootDir, referenceVersion, sha256, googleVerificationFile, googleVerificationContent, cancellationPageSha256 } from './validate.mjs';
 import { buildHostingArtifact, hostingOptionsFromArgs } from './prepare-hosting.mjs';
 
 export async function verifyHosting(url, {
@@ -74,8 +74,13 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   assert.ok(url, 'Defina FORJA_VERIFY_URL.');
   // Derive expected bytes from the pinned source and the single allowed Preview
   // substitution. Do not trust a supplied hash or an arbitrary generated file.
-  const { bytes,resources=[] } = buildHostingArtifact(rootDir, hostingOptionsFromArgs());
+  const { bytes,resources=[],result } = buildHostingArtifact(rootDir, hostingOptionsFromArgs());
   console.log(JSON.stringify(await verifyHosting(url, { expected: bytes }), null, 2));
   console.log(JSON.stringify(await verifyHostingResources(url,{resources}),null,2));
   console.log(JSON.stringify(await verifyGoogleVerification(url), null, 2));
+  if(result.target==='production'&&!process.env.FORJA_PREVIEW_BACKEND_MODE){
+    const page=await fetch(new URL('/cancelar/',url),{redirect:'error',signal:AbortSignal.timeout(15000)});
+    assert.equal(page.status,200,'Página de cancelamento não servida.');
+    assert.equal(sha256(Buffer.from(await page.arrayBuffer())),cancellationPageSha256,'Página de cancelamento divergente.');
+  }
 }
